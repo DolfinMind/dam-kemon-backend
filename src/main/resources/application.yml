@@ -1,0 +1,48 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  # Auto-import .env from the working directory.
+  # Spring Boot reads it as a properties file (KEY=VALUE), so KEY becomes a
+  # Spring property and ${KEY} placeholders below resolve to its value.
+  # "optional:" prevents startup failure when the file is missing.
+  config:
+    import: "optional:file:./.env[.properties]"
+  application:
+    name: dam-kemon
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/damkemon}
+  cache:
+    type: caffeine
+    cache-names:
+      - search
+    caffeine:
+      # 600s = 10-minute TTL; max 500 entries; recordStats lets us expose hit/miss
+      spec: maximumSize=500,expireAfterWrite=600s,recordStats
+
+scraper:
+  timeout: ${SCRAPER_TIMEOUT_MS:15000}
+  retry-attempts: ${SCRAPER_RETRIES:2}
+  retry-delay-ms: ${SCRAPER_RETRY_DELAY:800}
+  request-delay-ms: ${SCRAPER_REQUEST_DELAY:600}
+  user-agents:
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Safari/605.1.15"
+    - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0"
+
+# Playwright — headless Chromium used for JS-heavy sites (Daraz, Walton).
+# First-time run will download Chromium (~200MB). Disable with BROWSER_ENABLED=false.
+browser:
+  enabled: ${BROWSER_ENABLED:true}
+  headless: ${BROWSER_HEADLESS:true}
+  timeout-ms: ${BROWSER_TIMEOUT_MS:25000}
+  wait-until: ${BROWSER_WAIT_UNTIL:DOMCONTENTLOADED}   # DOMCONTENTLOADED | NETWORKIDLE | LOAD
+
+price-history:
+  snapshot-cron: ${PRICE_HISTORY_CRON:0 0 3 * * *}      # daily at 3 AM
+  enabled: ${PRICE_HISTORY_ENABLED:true}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
