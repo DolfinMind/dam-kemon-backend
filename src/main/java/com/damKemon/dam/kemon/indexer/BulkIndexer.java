@@ -59,6 +59,7 @@ public class BulkIndexer {
     private final ShopRepository shopRepository;
     private final ProductRepository productRepository;
     private final SitemapCrawler sitemapCrawler;
+    private final HomepageCrawler homepageCrawler;
     private final ExtractorRegistry extractors;
     private final QueryClassifier classifier;
 
@@ -80,11 +81,13 @@ public class BulkIndexer {
     public BulkIndexer(ShopRepository shopRepository,
                        ProductRepository productRepository,
                        SitemapCrawler sitemapCrawler,
+                       HomepageCrawler homepageCrawler,
                        ExtractorRegistry extractors,
                        QueryClassifier classifier) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
+        this.homepageCrawler = homepageCrawler;
         this.extractors = extractors;
         this.classifier = classifier;
     }
@@ -225,8 +228,17 @@ public class BulkIndexer {
         if (shop.getSitemapUrl() != null && !shop.getSitemapUrl().isBlank()) {
             urls = sitemapCrawler.crawl(shop.getSitemapUrl());
         }
+        // Fallback: crawl homepage + category pages for shops without a
+        // useful sitemap (BD-Shop, Pickaboo, Othoba, Walton, etc).
+        if (urls.isEmpty() && shop.getBaseUrl() != null && !shop.getBaseUrl().isBlank()) {
+            urls = homepageCrawler.crawl(shop.getBaseUrl());
+            if (!urls.isEmpty()) {
+                log.info("Indexer: shop '{}' falling back to homepage crawl ({} URLs)",
+                        shop.getSlug(), urls.size());
+            }
+        }
         if (urls.isEmpty()) {
-            log.info("Indexer: shop '{}' has no sitemap URLs, skipping (search-fallback in Phase 2)", shop.getSlug());
+            log.info("Indexer: shop '{}' yielded no URLs from sitemap or homepage", shop.getSlug());
             return 0;
         }
         if (urls.size() > maxProductsPerShop) {
