@@ -1,6 +1,5 @@
 package com.damKemon.dam.kemon.scraper;
 
-import com.damKemon.dam.kemon.intelligence.ProductCategory;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -11,26 +10,26 @@ import org.springframework.beans.factory.annotation.Value;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Base class for all scrapers. Provides:
- *   - retry with exponential backoff
- *   - rotating User-Agent
- *   - per-host minimum delay between requests (politeness)
- *   - timeout + redirect handling
- *   - URL-encode helper
+ * HTTP fetch helpers shared by every {@link ProductExtractor}. Provides:
+ * <ul>
+ *   <li>retry with exponential backoff</li>
+ *   <li>rotating User-Agent</li>
+ *   <li>per-host minimum delay between requests (politeness)</li>
+ *   <li>timeout + redirect handling</li>
+ *   <li>URL-encode helper</li>
+ * </ul>
  *
- * Concrete scrapers only need to implement {@link #search(String)}
- * (and override metadata methods).
+ * <p>Subclasses are extractors that pull a single product from a URL. The
+ * generic schema.org extractor and the site-specific ones (Daraz, Pickaboo,
+ * Startech) all extend this.
  */
-public abstract class BaseScraper implements EcommerceScraper {
+public abstract class BaseScraper {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -51,26 +50,6 @@ public abstract class BaseScraper implements EcommerceScraper {
 
     private static final ConcurrentHashMap<String, AtomicLong> LAST_HIT = new ConcurrentHashMap<>();
 
-    @Override
-    public List<ScrapedReview> getReviews(String productUrl) {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public boolean isAvailable() {
-        try {
-            connect(getBaseUrl()).timeout(5000).execute();
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    @Override
-    public Set<ProductCategory> getSupportedCategories() {
-        return EnumSet.of(ProductCategory.GENERAL);
-    }
-
     /** Fetch a URL with retry, UA rotation, and per-host throttle. */
     protected Document fetch(String url) throws IOException {
         throttleHost(url);
@@ -81,8 +60,8 @@ public abstract class BaseScraper implements EcommerceScraper {
             } catch (IOException e) {
                 last = e;
                 long sleep = retryDelayMs * (1L << attempt) + ThreadLocalRandom.current().nextLong(200);
-                log.debug("[{}] attempt {} failed for {} — retrying in {}ms ({})",
-                        getSiteSlug(), attempt + 1, url, sleep, e.getMessage());
+                log.debug("attempt {} failed for {} — retrying in {}ms ({})",
+                        attempt + 1, url, sleep, e.getMessage());
                 try { Thread.sleep(sleep); } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt(); break;
                 }

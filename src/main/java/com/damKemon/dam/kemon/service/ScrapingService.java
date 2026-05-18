@@ -1,84 +1,75 @@
 package com.damKemon.dam.kemon.service;
 
+import com.damKemon.dam.kemon.indexer.BulkIndexer;
 import com.damKemon.dam.kemon.model.ScrapingJob;
 import com.damKemon.dam.kemon.repository.ScrapingJobRepository;
-import com.damKemon.dam.kemon.scraper.ScrapedProduct;
-import com.damKemon.dam.kemon.scraper.ScraperEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Legacy "trigger a scrape" endpoint kept so the Dashboard "Quick scrape"
+ * button still works. The implementation now just kicks the {@link BulkIndexer}
+ * — there's no per-query scraping anymore in the DB-first architecture.
+ */
 @Service
 public class ScrapingService {
 
     private static final Logger log = LoggerFactory.getLogger(ScrapingService.class);
 
     private final ScrapingJobRepository scrapingJobRepository;
-    private final ScraperEngine scraperEngine;
-    private final SearchService searchService;
+    private final BulkIndexer indexer;
 
-    public ScrapingService(ScrapingJobRepository scrapingJobRepository,
-                           ScraperEngine scraperEngine,
-                           SearchService searchService) {
+    public ScrapingService(ScrapingJobRepository scrapingJobRepository, BulkIndexer indexer) {
         this.scrapingJobRepository = scrapingJobRepository;
-        this.scraperEngine = scraperEngine;
-        this.searchService = searchService;
+        this.indexer = indexer;
     }
 
     public ScrapingJob triggerScrape(String query, List<String> sites) {
         ScrapingJob job = ScrapingJob.builder()
-                .query(query)
+                .query(query == null ? "(full reindex)" : query)
                 .status("PENDING")
-                .sitesRequested(sites != null && !sites.isEmpty() ? sites : getAllSiteSlugs())
+                .sitesRequested(sites != null ? sites : new ArrayList<>())
                 .sitesCompleted(new ArrayList<>())
                 .startedAt(LocalDateTime.now())
                 .build();
+        ScrapingJob saved;
+        try { saved = scrapingJobRepository.save(job); } catch (DataAccessException e) { saved = job; }
+        ScrapingJob ref = saved;
 
-        ScrapingJob savedJob = scrapingJobRepository.save(job);
-
-        // Run scraping asynchronously
-        CompletableFuture.runAsync(() -> executeScrape(savedJob));
-
-        return savedJob;
-    }
-
-    private void executeScrape(ScrapingJob job) {
-        try {
-            job.setStatus("RUNNING");
-            scrapingJobRepository.save(job);
-
-            searchService.search(job.getQuery());
-
-            job.setStatus("COMPLETED");
-            job.setSitesCompleted(job.getSitesRequested());
-            job.setCompletedAt(LocalDateTime.now());
-        } catch (Exception e) {
-            log.error("Scraping job {} failed: {}", job.getId(), e.getMessage());
-            job.setStatus("FAILED");
-            job.setErrorMessage(e.getMessage());
-            job.setCompletedAt(LocalDateTime.now());
-        }
-        scrapingJobRepository.save(job);
+        CompletableFuture.runAsync(() -> {
+            try {
+                ref.setStatus("RUNNING");
+                safeSave(ref);
+                BulkIndexer.RunSummary summary = indexer.runAll();
+                ref.setStatus("COMPLETED");
+                ref.setCompletedAt(LocalDateTime.now());
+                log.info("ScrapingService: reindex finished — {} shops, {} products inserted, {} merged",
+                        summary.shopsAttempted, summary.productsInserted, summary.productsMerged);
+            } catch (Exception e) {
+                log.error("ScrapingService: reindex failed", e);
+                ref.setStatus("FAILED");
+                ref.setErrorMessage(e.getMessage());
+                ref.setCompletedAt(LocalDateTime.now());
+            }
+            safeSave(ref);
+        });
+        return saved;
     }
 
     public Optional<ScrapingJob> getJob(String jobId) {
-        return scrapingJobRepository.findById(jobId);
+        try { return scrapingJobRepository.findById(jobId); }
+        catch (DataAccessException e) { return Optional.empty(); }
     }
 
-    public List<ScrapingJob> getRecentJobs() {
-        return scrapingJobRepository.findTop10ByOrderByStartedAtDesc();
-    }
-
-    private List<String> getAllSiteSlugs() {
-        List<String> slugs = new ArrayList<>();
-        scraperEngine.getScrapers().forEach(s -> slugs.add(s.getSiteSlug()));
-        return slugs;
+    private void safeSave(ScrapingJob job) {
+        try { scrapingJobRepository.save(job); } catch (DataAccessException ignored) {}
     }
 }

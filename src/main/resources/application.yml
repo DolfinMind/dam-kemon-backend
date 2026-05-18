@@ -2,25 +2,26 @@ server:
   port: ${SERVER_PORT:8080}
 
 spring:
-  # Auto-import .env from the working directory.
-  # Spring Boot reads it as a properties file (KEY=VALUE), so KEY becomes a
-  # Spring property and ${KEY} placeholders below resolve to its value.
-  # "optional:" prevents startup failure when the file is missing.
   config:
     import: "optional:file:./.env[.properties]"
   application:
     name: dam-kemon
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/damkemon}
+      # Defaults include fast fail-over (2s) so the app doesn't hang when
+      # Mongo is unreachable. For Atlas, replace with the connection string
+      # from atlas.mongodb.com (Database → Connect → "Connect your application").
+      uri: ${MONGODB_URI:mongodb://localhost:27017/damkemon?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000&socketTimeoutMS=4000}
+      auto-index-creation: true
   cache:
     type: caffeine
     cache-names:
       - search
+      - dashboard-stats
     caffeine:
-      # 600s = 10-minute TTL; max 500 entries; recordStats lets us expose hit/miss
-      spec: maximumSize=500,expireAfterWrite=600s,recordStats
+      spec: maximumSize=500,expireAfterWrite=60s,recordStats
 
+# ───── Per-HTTP-request behaviour for scrapers ─────
 scraper:
   timeout: ${SCRAPER_TIMEOUT_MS:15000}
   retry-attempts: ${SCRAPER_RETRIES:2}
@@ -32,16 +33,34 @@ scraper:
     - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0"
 
-# Playwright — headless Chromium used for JS-heavy sites (Daraz, Walton).
-# First-time run will download Chromium (~200MB). Disable with BROWSER_ENABLED=false.
+# ───── Nightly catalog indexer ─────
+indexer:
+  # Cron expression for daily run. Default: 03:00 local time.
+  cron: ${INDEXER_CRON:0 0 3 * * *}
+  scheduled: ${INDEXER_SCHEDULED:true}
+  sitemap-timeout-ms: ${INDEXER_SITEMAP_TIMEOUT_MS:15000}
+  max-urls-per-shop: ${INDEXER_MAX_URLS_PER_SHOP:1500}
+  max-products-per-shop: ${INDEXER_MAX_PRODUCTS_PER_SHOP:500}
+  per-extract-timeout-ms: ${INDEXER_PER_EXTRACT_TIMEOUT_MS:15000}
+  per-host-parallelism: ${INDEXER_PER_HOST_PARALLELISM:2}
+  global-parallelism: ${INDEXER_GLOBAL_PARALLELISM:24}
+  user-agent: "${INDEXER_USER_AGENT:Mozilla/5.0 DamKemon/1.0 (+contact hello@damkemon.com)}"
+
+# ───── Search behaviour ─────
+search:
+  page-size: ${SEARCH_PAGE_SIZE:30}
+
+# ───── Headless browser (Playwright + Chromium) ─────
+# Off by default. Enable if you want JS-rendered shop coverage (Daraz, Chaldal).
 browser:
-  enabled: ${BROWSER_ENABLED:true}
+  enabled: ${BROWSER_ENABLED:false}
   headless: ${BROWSER_HEADLESS:true}
   timeout-ms: ${BROWSER_TIMEOUT_MS:25000}
-  wait-until: ${BROWSER_WAIT_UNTIL:DOMCONTENTLOADED}   # DOMCONTENTLOADED | NETWORKIDLE | LOAD
+  wait-until: ${BROWSER_WAIT_UNTIL:DOMCONTENTLOADED}
 
+# ───── Daily price-history snapshot ─────
 price-history:
-  snapshot-cron: ${PRICE_HISTORY_CRON:0 0 3 * * *}      # daily at 3 AM
+  snapshot-cron: ${PRICE_HISTORY_CRON:0 0 4 * * *}
   enabled: ${PRICE_HISTORY_ENABLED:true}
 
 cors:

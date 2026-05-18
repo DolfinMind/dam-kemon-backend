@@ -1,77 +1,68 @@
 package com.damKemon.dam.kemon.scraper.impl;
 
 import com.damKemon.dam.kemon.intelligence.PriceParser;
-import com.damKemon.dam.kemon.intelligence.ProductCategory;
 import com.damKemon.dam.kemon.scraper.BaseScraper;
+import com.damKemon.dam.kemon.scraper.GenericProductExtractor;
+import com.damKemon.dam.kemon.scraper.ProductExtractor;
 import com.damKemon.dam.kemon.scraper.ScrapedProduct;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-
+/**
+ * Pickaboo product-page extractor. Pickaboo is mostly server-rendered with
+ * good JSON-LD coverage; the per-site selectors below are mostly belt-and-
+ * braces for cases where structured data is missing.
+ */
 @Component
-public class PickabooScraper extends BaseScraper {
+public class PickabooScraper extends BaseScraper implements ProductExtractor {
 
-    private static final String BASE_URL = "https://www.pickaboo.com";
+    private final GenericProductExtractor generic;
+
+    public PickabooScraper(GenericProductExtractor generic) {
+        this.generic = generic;
+    }
 
     @Override public String getSiteName() { return "Pickaboo"; }
     @Override public String getSiteSlug() { return "pickaboo"; }
-    @Override public String getBaseUrl()  { return BASE_URL; }
 
     @Override
-    public boolean handlesGeneralQueries() { return true; }
-
-    @Override
-    public Set<ProductCategory> getSupportedCategories() {
-        return EnumSet.of(
-                ProductCategory.SMARTPHONE, ProductCategory.LAPTOP, ProductCategory.TABLET,
-                ProductCategory.HEADPHONE, ProductCategory.CAMERA, ProductCategory.SMARTWATCH,
-                ProductCategory.TV, ProductCategory.APPLIANCE, ProductCategory.AC,
-                ProductCategory.REFRIGERATOR, ProductCategory.GAMING, ProductCategory.BEAUTY,
-                ProductCategory.FASHION);
+    public boolean supports(String url) {
+        return url != null && url.contains("pickaboo.com");
     }
 
     @Override
-    public List<ScrapedProduct> search(String query) {
-        List<ScrapedProduct> products = new ArrayList<>();
+    public ScrapedProduct extract(String url) {
+        Document doc;
         try {
-            Document doc = fetch(BASE_URL + "/catalogsearch/result/?q=" + encode(query));
-
-            Elements cards = doc.select(".product-item, li.product-item, .item.product.product-item");
-
-            for (Element card : cards) {
-                try {
-                    Element nameEl = card.selectFirst(".product-item-link, .product-name a, a.product-item-link");
-                    Element priceEl = card.selectFirst(".special-price .price, .price, span.price");
-                    if (nameEl == null || priceEl == null) continue;
-
-                    String name = nameEl.text().trim();
-                    Double price = PriceParser.parseFirst(priceEl.text());
-                    if (name.isBlank() || price == null) continue;
-
-                    Element oldEl = card.selectFirst(".old-price .price");
-                    Double original = oldEl == null ? null : PriceParser.parseFirst(oldEl.text());
-
-                    Element imgEl = card.selectFirst("img.product-image-photo, .product-image img");
-                    String img = imgEl == null ? null : imgEl.attr("src");
-                    Element linkEl = card.selectFirst("a.product-item-link, a[href]");
-                    String url = linkEl == null ? null : linkEl.attr("abs:href");
-
-                    products.add(ScrapedProduct.builder()
-                            .name(name).price(price).originalPrice(original)
-                            .productUrl(url).imageUrl(img).inStock(true).build());
-                } catch (Exception e) {
-                    log.debug("Pickaboo card parse error: {}", e.getMessage());
-                }
-            }
+            doc = fetch(url);
         } catch (Exception e) {
-            log.error("Pickaboo search failed: {}", e.getMessage());
+            log.debug("Pickaboo fetch failed for {}: {}", url, e.getMessage());
+            return null;
         }
-        return products;
+
+        ScrapedProduct fromLd = generic.parseJsonLd(doc);
+        if (GenericProductExtractor.isValid(fromLd)) { fromLd.setProductUrl(url); return fromLd; }
+        ScrapedProduct fromOg = generic.parseOpenGraph(doc);
+        if (GenericProductExtractor.isValid(fromOg)) { fromOg.setProductUrl(url); return fromOg; }
+
+        ScrapedProduct sp = parsePickabooSpecific(doc);
+        if (GenericProductExtractor.isValid(sp)) { sp.setProductUrl(url); return sp; }
+        return null;
+    }
+
+    private ScrapedProduct parsePickabooSpecific(Document doc) {
+        Element title = doc.selectFirst("h1.product-title, h1.product-name, h1");
+        Element priceNow = doc.selectFirst(".product-price .new-price, .product-price-now, .price--current");
+        Element priceWas = doc.selectFirst(".product-price .old-price, .product-price-old, .price--was");
+        if (title == null || priceNow == null) return null;
+        Double parsed = PriceParser.parseFirst(priceNow.text());
+        if (parsed == null) return null;
+        Double original = priceWas == null ? null : PriceParser.parseFirst(priceWas.text());
+        Element img = doc.selectFirst(".product-gallery img, img.product-image, .product-image-zoom img");
+        return ScrapedProduct.builder()
+                .name(title.text().trim()).price(parsed).originalPrice(original)
+                .imageUrl(img == null ? null : img.attr("abs:src"))
+                .inStock(true).build();
     }
 }

@@ -7,8 +7,8 @@ import com.damKemon.dam.kemon.repository.PriceHistoryRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ReviewRepository;
 import com.damKemon.dam.kemon.repository.ScrapingJobRepository;
-import com.damKemon.dam.kemon.scraper.EcommerceScraper;
-import com.damKemon.dam.kemon.scraper.ScraperEngine;
+import com.damKemon.dam.kemon.scraper.ExtractorRegistry;
+import com.damKemon.dam.kemon.scraper.ProductExtractor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,68 +26,79 @@ public class DashboardController {
     private final ReviewRepository reviewRepository;
     private final PriceHistoryRepository priceHistoryRepository;
     private final ScrapingJobRepository scrapingJobRepository;
-    private final ScraperEngine scraperEngine;
+    private final ExtractorRegistry extractors;
 
     public DashboardController(ProductRepository productRepository,
                                ReviewRepository reviewRepository,
                                PriceHistoryRepository priceHistoryRepository,
                                ScrapingJobRepository scrapingJobRepository,
-                               ScraperEngine scraperEngine) {
+                               ExtractorRegistry extractors) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.priceHistoryRepository = priceHistoryRepository;
         this.scrapingJobRepository = scrapingJobRepository;
-        this.scraperEngine = scraperEngine;
+        this.extractors = extractors;
     }
 
-    /**
-     * Cached for ~2 minutes. The previous implementation called
-     * productRepository.findAll() once per scraper (N+1 over the entire
-     * collection), which on Atlas was ~10s. Now we do one findAll() and
-     * compute everything in-memory.
-     */
     @GetMapping("/stats")
     @Cacheable("dashboard-stats")
     public ResponseEntity<DashboardStats> getStats() {
-        long totalProducts    = productRepository.count();
-        long totalReviews     = reviewRepository.count();
-        long totalPricePoints = priceHistoryRepository.count();
+        long totalProducts    = safeCount(productRepository::count);
+        long totalReviews     = safeCount(reviewRepository::count);
+        long totalPricePoints = safeCount(priceHistoryRepository::count);
 
-        // Recent unique queries from scrape jobs
-        List<String> recentSearches = scrapingJobRepository.findTop10ByOrderByStartedAtDesc()
-                .stream()
-                .map(ScrapingJob::getQuery)
-                .filter(Objects::nonNull)
-                .distinct()
-                .limit(5)
-                .collect(Collectors.toList());
-
-        // ONE collection scan, then bucket by site in memory
-        Map<String, Long> productsBySite = new HashMap<>();
-        for (Product p : productRepository.findAll()) {
-            if (p.getPrices() == null) continue;
-            Set<String> sites = new HashSet<>();
-            p.getPrices().forEach(sp -> { if (sp.getSiteName() != null) sites.add(sp.getSiteName()); });
-            sites.forEach(s -> productsBySite.merge(s, 1L, Long::sum));
+        List<String> recentSearches;
+        try {
+            recentSearches = scrapingJobRepository.findTop10ByOrderByStartedAtDesc().stream()
+                    .map(ScrapingJob::getQuery).filter(Objects::nonNull).distinct().limit(5)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            recentSearches = List.of();
         }
 
-        List<DashboardStats.SiteStat> siteStats = scraperEngine.getScrapers().stream()
-                .map(s -> DashboardStats.SiteStat.builder()
-                        .siteName(s.getSiteName())
-                        .productCount(productsBySite.getOrDefault(s.getSiteName(), 0L))
-                        .status("active")
-                        .build())
-                .collect(Collectors.toList());
+        Map<String, Long> productsBySite = new HashMap<>();
+        try {
+            for (Product p : productRepository.findAll()) {
+                if (p.getPrices() == null) continue;
+                Set<String> sites = new HashSet<>();
+                p.getPrices().forEach(sp -> { if (sp.getSiteName() != null) sites.add(sp.getSiteName()); });
+                sites.forEach(s -> productsBySite.merge(s, 1L, Long::sum));
+            }
+        } catch (Exception ignored) {}
+
+        // One row per known site-specific extractor + one synthetic "Generic / other" row
+        // summarising any DDG-discovered hosts.
+        Set<String> knownNames = extractors.knownSiteNames();
+        List<DashboardStats.SiteStat> siteStats = new ArrayList<>();
+        for (ProductExtractor e : extractors.all()) {
+            if ("generic".equals(e.getSiteSlug())) continue;
+            siteStats.add(DashboardStats.SiteStat.builder()
+                    .siteName(e.getSiteName())
+                    .productCount(productsBySite.getOrDefault(e.getSiteName(), 0L))
+                    .status("active").build());
+        }
+        long otherProducts = productsBySite.entrySet().stream()
+                .filter(en -> !knownNames.contains(en.getKey()))
+                .mapToLong(Map.Entry::getValue).sum();
+        if (otherProducts > 0) {
+            siteStats.add(DashboardStats.SiteStat.builder()
+                    .siteName("Other (DDG-discovered)")
+                    .productCount(otherProducts)
+                    .status("active").build());
+        }
 
         DashboardStats stats = DashboardStats.builder()
                 .totalProducts(totalProducts)
-                .totalSites(scraperEngine.getScrapers().size())
+                .totalSites(siteStats.size())
                 .totalReviews(totalReviews)
                 .totalPricePoints(totalPricePoints)
                 .recentSearches(recentSearches)
                 .siteStats(siteStats)
                 .build();
-
         return ResponseEntity.ok(stats);
+    }
+
+    private static long safeCount(java.util.function.LongSupplier supplier) {
+        try { return supplier.getAsLong(); } catch (Exception e) { return 0L; }
     }
 }

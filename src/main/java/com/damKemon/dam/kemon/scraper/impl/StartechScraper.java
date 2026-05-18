@@ -1,69 +1,66 @@
 package com.damKemon.dam.kemon.scraper.impl;
 
 import com.damKemon.dam.kemon.intelligence.PriceParser;
-import com.damKemon.dam.kemon.intelligence.ProductCategory;
 import com.damKemon.dam.kemon.scraper.BaseScraper;
+import com.damKemon.dam.kemon.scraper.GenericProductExtractor;
+import com.damKemon.dam.kemon.scraper.ProductExtractor;
 import com.damKemon.dam.kemon.scraper.ScrapedProduct;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-
+/**
+ * Startech product-page extractor. Startech is fully server-rendered with
+ * stable, simple selectors — the per-site path is the primary; schema.org /
+ * OG are tried only if the selectors miss.
+ */
 @Component
-public class StartechScraper extends BaseScraper {
+public class StartechScraper extends BaseScraper implements ProductExtractor {
 
-    private static final String BASE_URL = "https://www.startech.com.bd";
+    private final GenericProductExtractor generic;
+
+    public StartechScraper(GenericProductExtractor generic) {
+        this.generic = generic;
+    }
 
     @Override public String getSiteName() { return "Startech"; }
     @Override public String getSiteSlug() { return "startech"; }
-    @Override public String getBaseUrl()  { return BASE_URL; }
 
     @Override
-    public Set<ProductCategory> getSupportedCategories() {
-        return EnumSet.of(
-                ProductCategory.LAPTOP, ProductCategory.DESKTOP, ProductCategory.SMARTPHONE,
-                ProductCategory.TABLET, ProductCategory.HEADPHONE, ProductCategory.CAMERA,
-                ProductCategory.GAMING, ProductCategory.SMARTWATCH, ProductCategory.TV,
-                ProductCategory.APPLIANCE);
+    public boolean supports(String url) {
+        return url != null && url.contains("startech.com.bd");
     }
 
     @Override
-    public List<ScrapedProduct> search(String query) {
-        List<ScrapedProduct> products = new ArrayList<>();
+    public ScrapedProduct extract(String url) {
+        Document doc;
         try {
-            Document doc = fetch(BASE_URL + "/product/search?search=" + encode(query));
-
-            Elements cards = doc.select(".p-item");
-            for (Element card : cards) {
-                try {
-                    Element nameEl  = card.selectFirst(".p-item-name a");
-                    Element priceEl = card.selectFirst(".p-item-price span, .p-item-price");
-                    if (nameEl == null) continue;
-
-                    String name = nameEl.text().trim();
-                    Double price = priceEl == null ? null : PriceParser.parseFirst(priceEl.text());
-                    if (name.isBlank() || price == null) continue;
-
-                    Element imgEl = card.selectFirst(".p-item-img img");
-                    String img = imgEl == null ? null : imgEl.attr("src");
-                    String url = nameEl.attr("abs:href");
-
-                    boolean inStock = card.selectFirst(".out-of-stock, .stock-out") == null;
-
-                    products.add(ScrapedProduct.builder()
-                            .name(name).price(price).productUrl(url).imageUrl(img).inStock(inStock).build());
-                } catch (Exception e) {
-                    log.debug("Startech card parse error: {}", e.getMessage());
-                }
-            }
+            doc = fetch(url);
         } catch (Exception e) {
-            log.error("Startech search failed: {}", e.getMessage());
+            log.debug("Startech fetch failed for {}: {}", url, e.getMessage());
+            return null;
         }
-        return products;
+
+        ScrapedProduct sp = parseStartechSpecific(doc);
+        if (GenericProductExtractor.isValid(sp)) { sp.setProductUrl(url); return sp; }
+
+        ScrapedProduct fromLd = generic.parseJsonLd(doc);
+        if (GenericProductExtractor.isValid(fromLd)) { fromLd.setProductUrl(url); return fromLd; }
+        ScrapedProduct fromOg = generic.parseOpenGraph(doc);
+        if (GenericProductExtractor.isValid(fromOg)) { fromOg.setProductUrl(url); return fromOg; }
+        return null;
+    }
+
+    private ScrapedProduct parseStartechSpecific(Document doc) {
+        Element title = doc.selectFirst("h1.product-name, .product-name h1, h1");
+        Element priceTd = doc.selectFirst("td.product-info-data.product-price, .product-price-update, .product-price");
+        if (title == null || priceTd == null) return null;
+        Double parsed = PriceParser.parseFirst(priceTd.text());
+        if (parsed == null) return null;
+        Element img = doc.selectFirst(".product-img-holder img, .product-image img, img.product-image-loader");
+        return ScrapedProduct.builder()
+                .name(title.text().trim()).price(parsed)
+                .imageUrl(img == null ? null : img.attr("abs:src"))
+                .inStock(true).build();
     }
 }

@@ -1,96 +1,84 @@
 package com.damKemon.dam.kemon.scraper.impl;
 
 import com.damKemon.dam.kemon.intelligence.PriceParser;
-import com.damKemon.dam.kemon.intelligence.ProductCategory;
 import com.damKemon.dam.kemon.scraper.BaseScraper;
 import com.damKemon.dam.kemon.scraper.BrowserFetcher;
+import com.damKemon.dam.kemon.scraper.GenericProductExtractor;
+import com.damKemon.dam.kemon.scraper.ProductExtractor;
 import com.damKemon.dam.kemon.scraper.ScrapedProduct;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-
 /**
- * Daraz uses heavy client-side rendering — jsoup gets a near-empty shell.
- * This scraper prefers Playwright when available, falls back to jsoup
- * (which will usually return 0 results but won't crash).
+ * Daraz product-page extractor.
+ *
+ * <p>Daraz uses heavy CSR — without Playwright, jsoup gets the static shell
+ * which still contains the JSON-LD Product block (Daraz writes it inline for
+ * SEO). We try CSS selectors first, then fall back to the generic
+ * schema.org / Open Graph extraction on the same document.
  */
 @Component
-public class DarazScraper extends BaseScraper {
+public class DarazScraper extends BaseScraper implements ProductExtractor {
 
-    private static final String BASE_URL = "https://www.daraz.com.bd";
+    private final BrowserFetcher browser;
+    private final GenericProductExtractor generic;
 
-    private final BrowserFetcher browserFetcher;
-
-    public DarazScraper(BrowserFetcher browserFetcher) {
-        this.browserFetcher = browserFetcher;
+    public DarazScraper(BrowserFetcher browser, GenericProductExtractor generic) {
+        this.browser = browser;
+        this.generic = generic;
     }
 
     @Override public String getSiteName() { return "Daraz"; }
     @Override public String getSiteSlug() { return "daraz"; }
-    @Override public String getBaseUrl()  { return BASE_URL; }
-
-    @Override public boolean handlesGeneralQueries() { return true; }
 
     @Override
-    public Set<ProductCategory> getSupportedCategories() {
-        return EnumSet.allOf(ProductCategory.class);
+    public boolean supports(String url) {
+        return url != null && url.contains("daraz.com.bd");
     }
 
     @Override
-    public List<ScrapedProduct> search(String query) {
-        String url = BASE_URL + "/catalog/?q=" + encode(query);
-        Document doc = null;
+    public ScrapedProduct extract(String url) {
+        Document doc = fetchDoc(url);
+        if (doc == null) return null;
 
-        if (browserFetcher.isAvailable()) {
-            doc = browserFetcher.fetchDocument(url);
-        }
-        if (doc == null) {
-            try {
-                doc = fetch(url);
-                log.debug("Daraz: using jsoup fallback (Playwright unavailable)");
-            } catch (Exception e) {
-                log.warn("Daraz fetch failed: {}", e.getMessage());
-                return new ArrayList<>();
-            }
+        ScrapedProduct sp = parseDarazCard(doc);
+        if (GenericProductExtractor.isValid(sp)) {
+            sp.setProductUrl(url);
+            return sp;
         }
 
-        List<ScrapedProduct> products = new ArrayList<>();
-        Elements cards = doc.select("[data-qa-locator='product-item']");
-        if (cards.isEmpty()) cards = doc.select(".gridItem--Yd0sa, div[data-tracking='product-card']");
-        if (cards.isEmpty()) cards = doc.select("div[data-qa-locator^='product']");
+        // Fallback to schema.org JSON-LD or OpenGraph on the same document
+        ScrapedProduct fromLd = generic.parseJsonLd(doc);
+        if (GenericProductExtractor.isValid(fromLd)) { fromLd.setProductUrl(url); return fromLd; }
+        ScrapedProduct fromOg = generic.parseOpenGraph(doc);
+        if (GenericProductExtractor.isValid(fromOg)) { fromOg.setProductUrl(url); return fromOg; }
+        return null;
+    }
 
-        for (Element card : cards) {
-            try {
-                Element nameEl  = card.selectFirst("a[title]");
-                Element priceEl = card.selectFirst("span.currency--GVKjl, span[class*='currency'], span[class*='price']");
-
-                if (nameEl == null) continue;
-                String name = nameEl.attr("title");
-                if (name.isBlank()) name = nameEl.text().trim();
-                if (name.isBlank()) continue;
-
-                Double price = priceEl == null ? null : PriceParser.parseFirst(priceEl.text());
-                if (price == null) continue;
-
-                Element imgEl = card.selectFirst("img");
-                Element linkEl = card.selectFirst("a[href]");
-                String img = imgEl == null ? null : imgEl.attr("src");
-                String productUrl = linkEl == null ? null : linkEl.attr("abs:href");
-
-                products.add(ScrapedProduct.builder()
-                        .name(name).price(price)
-                        .productUrl(productUrl).imageUrl(img).inStock(true).build());
-            } catch (Exception e) {
-                log.debug("Daraz card parse error: {}", e.getMessage());
-            }
+    private Document fetchDoc(String url) {
+        if (browser.isAvailable()) {
+            Document d = browser.fetchDocument(url);
+            if (d != null) return d;
         }
-        log.info("Daraz returned {} products for '{}'", products.size(), query);
-        return products;
+        try {
+            return fetch(url);
+        } catch (Exception e) {
+            log.debug("Daraz fetch failed for {}: {}", url, e.getMessage());
+            return null;
+        }
+    }
+
+    private ScrapedProduct parseDarazCard(Document doc) {
+        Element title = doc.selectFirst(".pdp-mod-product-badge-title, h1.pdp-product-title");
+        Element price = doc.selectFirst(".pdp-price, .pdp-price_type_normal, span.pdp-price_color_orange");
+        if (title == null || price == null) return null;
+        Double parsedPrice = PriceParser.parseFirst(price.text());
+        if (parsedPrice == null) return null;
+        Element img = doc.selectFirst("img.pdp-mod-common-image, img.gallery-preview-panel__image");
+        return ScrapedProduct.builder()
+                .name(title.text().trim()).price(parsedPrice)
+                .imageUrl(img == null ? null : img.attr("abs:src"))
+                .inStock(true).build();
     }
 }

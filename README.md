@@ -1,82 +1,125 @@
 # dam-kemon-backend
 
-> **Damkemon** is a Bangladesh price comparison engine. Search any product → we scan
-> 10+ Bangladeshi e-commerce sites (Daraz, Pickaboo, Startech, Walton, Chaldal,
-> Rokomari, BD-Shop, Othoba, Priyoshop, Ryans) plus Facebook sellers, validate
-> the results, dedupe across sites, and surface the cheapest.
+> **Damkemon** is a Bangladesh price-comparison engine. We nightly index 60+
+> BD e-commerce shops into MongoDB, then serve user searches instantly from
+> the catalog with cross-shop dedup + grouped pricing.
 >
 > This repo is the **backend** — Spring Boot 4 on Java 17. The companion
 > frontend lives at [Saif64/dam-kemon-frontend](https://github.com/Saif64/dam-kemon-frontend).
 
 ---
 
-## Stack
+## How it works
 
-| Layer | Choice |
-|---|---|
-| Runtime | Java 17 (toolchain) |
-| Framework | Spring Boot 4.0.6 (Web MVC, Security, Validation, Cache) |
-| Build | Gradle (wrapper included) |
-| Database | MongoDB (Atlas in prod, optional locally — the app degrades gracefully) |
-| Scraping | jsoup for static HTML, Playwright + Chromium for JS-rendered sites (Daraz, Walton) |
-| Cache | Caffeine, in-process, 10 min TTL on search responses |
-| Scheduling | Spring `@Scheduled` — daily price snapshot at 03:00 |
+```
+   nightly cron (03:00)
+        │
+        ▼
+┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
+│  BulkIndexer        │───▶│  SitemapCrawler     │───▶│  ExtractorRegistry  │
+│  loop over shops    │    │  shop's sitemap.xml │    │  schema.org/OG +    │
+│  (60 in shops.json) │    │  → product URL list │    │  per-site overrides │
+└─────────────────────┘    └─────────────────────┘    └─────────────────────┘
+                                                                │
+                                                                ▼
+                                                        ┌──────────────┐
+                                                        │  MinHashLSH  │
+                                                        │  cross-shop  │
+                                                        │  dedup       │
+                                                        └──────────────┘
+                                                                │
+                                                                ▼
+                                                        ┌──────────────┐
+                                                        │   MongoDB    │
+                                                        │   products   │
+                                                        └──────┬───────┘
+                                                               │
+                                                               ▼
+                                                  ┌───────────────────────┐
+            user search ──────────────────────▶   │ CatalogSearchService  │
+            (instant)                              │ Mongo $text + rank    │
+                                                  └───────────────────────┘
+```
+
+**Key design choices:**
+
+- **Pre-indexed, not live-scraped.** Search hits the DB, never the network.
+  No rate-limit visibility to users, no flaky live extraction.
+- **Sitemap-driven crawl.** Each shop publishes a `sitemap.xml` listing all
+  product URLs — one fetch per shop discovers thousands of products.
+- **schema.org / Open Graph generic extractor** parses any well-formed
+  WooCommerce / Shopify / Magento product page without site-specific code.
+  Daraz/Pickaboo/Startech have hand-tuned extractors as fast paths.
+- **MinHash + LSH cross-shop dedup.** "Samsung Galaxy S24 12/256GB" on shop A
+  is merged with "Galaxy S24 256GB" on shop B into one product with two
+  prices.
+- **Search runs against MongoDB `$text` index.** Falls back to case-
+  insensitive regex when the index isn't built yet.
+- **Caffeine cache** sits in front of search responses (60s TTL).
 
 ---
 
 ## Quick start
 
-### Prerequisites
+### Prereqs
 
 - **JDK 17** (`java -version` should report 17+)
-- **MongoDB** — Atlas connection string, or skip Mongo entirely; the app will still serve `/api/search` without persistence
-- **Chromium** — auto-downloaded by Playwright on first run. Set `BROWSER_ENABLED=false` to disable JS-rendered scrapers on hosts without a browser
+- **MongoDB** — Atlas connection string. Required.
+- **Chromium (optional)** — auto-downloaded by Playwright on first run if
+  `BROWSER_ENABLED=true`. Off by default.
 
-### 1. Configure environment
+### 1. Set up MongoDB Atlas (free M0, 512MB)
+
+1. Sign up at <https://www.mongodb.com/cloud/atlas/register>.
+2. Create a **Cluster** — pick the free **M0 Shared** tier.
+3. **Database Access** → add a user with username + password (write it down).
+4. **Network Access** → "Allow access from anywhere" (`0.0.0.0/0`) for dev,
+   or your laptop's IP for tighter security.
+5. **Cluster → Connect → Drivers → Java**, copy the URI. Replace `<password>`
+   with the user password and append the db name `/damkemon` before the `?`.
+
+```
+mongodb+srv://damkemon:YOUR_PASSWORD@cluster0.abc123.mongodb.net/damkemon?retryWrites=true&w=majority
+```
+
+### 2. Configure
 
 ```bash
 cp .env.example .env
-# edit .env, set MONGODB_URI + CORS_ALLOWED_ORIGINS
+# paste your MONGODB_URI
+# leave the indexer/scraper tunables alone unless you want to tweak
 ```
 
-Spring Boot picks up `.env` automatically via `spring.config.import`.
-
-### 2. Run
+### 3. Boot
 
 ```bash
 ./gradlew bootRun
 ```
 
-The app starts on **http://localhost:8080**. First boot downloads Chromium (~150 MB) if `BROWSER_ENABLED=true`.
+The app starts on **http://localhost:8080** and on first boot will:
 
-Smoke test:
+1. Load `shops.json` → upsert 60 shops into the `shops` collection.
+2. Create text indexes on `products.name` + `products.description`.
+3. Wait for either the nightly 03:00 cron or a manual `POST /api/admin/index/run`.
 
-```bash
-curl http://localhost:8080/api/sites
-curl "http://localhost:8080/api/search?q=iphone%2015"
-```
-
-### 3. Build a fat jar
+### 4. Trigger the first index manually
 
 ```bash
-./gradlew bootJar
-java -jar build/libs/dam-kemon-backend-0.0.1-SNAPSHOT.jar
+curl -X POST http://localhost:8080/api/admin/index/run
+# poll until done
+watch -n 5 'curl -s http://localhost:8080/api/admin/index/status'
 ```
 
----
+Expect 30–90 minutes for the first full run (60 shops × ~500 products each,
+with politeness throttles). Subsequent runs are incremental (URL match
+→ price refresh instead of re-insert).
 
-## Environment variables
+### 5. Search
 
-Full list in [`.env.example`](.env.example). Required ones:
-
-| Var | Purpose |
-|---|---|
-| `MONGODB_URI` | MongoDB connection string. App boots without it but persistence is disabled. |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated list. Defaults to the Vite dev server (`http://localhost:5173`). |
-| `SERVER_PORT` | HTTP port, defaults `8080`. |
-| `BROWSER_ENABLED` | `true` enables Playwright/Chromium. Set `false` on bare hosts. |
-
-Scraper and browser tunables (timeouts, retries, per-host delay, cron) are all in `.env.example`.
+```bash
+curl 'http://localhost:8080/api/search?q=iphone+17'
+curl 'http://localhost:8080/api/search/suggest?q=iph'
+```
 
 ---
 
@@ -84,38 +127,40 @@ Scraper and browser tunables (timeouts, retries, per-host delay, cron) are all i
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/api/search?q=...` | Live multi-site search. **Cached** 10 min (normalized key). |
+| `GET` | `/api/search?q=...` | DB-first search; cached 60s |
+| `GET` | `/api/search/suggest?q=...&limit=8` | Autocomplete prefix matches |
 | `GET` | `/api/products` | Paginated catalog |
-| `GET` | `/api/products/{id}` | Product detail |
-| `GET` | `/api/products/{id}/history` | Price history series |
-| `GET` | `/api/products/{id}/reviews` | Aggregated reviews |
-| `GET` | `/api/compare?ids=A,B,C` | Side-by-side spec table with per-row winner |
-| `GET` | `/api/sites` | Registered scrapers + their categories |
-| `GET` | `/api/sellers` | Facebook seller directory (filter by `category`, `city`, `verified`) |
-| `GET` | `/api/sellers/{id}` | Seller detail |
-| `GET` | `/api/dashboard/stats` | Cached aggregate stats |
-| `POST` | `/api/scrape` | Trigger an async scrape job |
-| `GET` | `/api/admin/cache/stats` | Cache hit ratio + Playwright stats |
-| `DELETE` | `/api/admin/cache/search` | Manual flush |
+| `GET` | `/api/products/{idOrSlug}` | Product detail (accepts ID or slug) |
+| `GET` | `/api/products/{idOrSlug}/history` | Price history series |
+| `GET` | `/api/compare?ids=A,B,C` | Side-by-side spec table |
+| `GET` | `/api/sellers` | Facebook seller directory (manual) |
+| `GET` | `/api/dashboard/stats` | Catalog stats |
+| `POST`| `/api/admin/index/run` | Kick off nightly indexer manually |
+| `GET` | `/api/admin/index/status` | Last/current indexer run summary |
+| `GET` | `/api/admin/shops` | All shops + per-shop last-indexed stats |
+| `POST`| `/api/scrape` | Legacy — now just triggers the indexer |
 
 ---
 
-## How a search request flows
+## Environment variables
 
-```
-client → SearchController → SearchService
-                                ├── Caffeine cache (10 min, normalized key)
-                                ├── QueryClassifier (Aho-Corasick over 305 kw + 50 brands)
-                                ├── ScraperEngine
-                                │     ├── routes by intent.categories → drops irrelevant sites
-                                │     ├── fans out to N scrapers concurrently (5s per-scraper cap)
-                                │     └── each scraper: jsoup or Playwright → CSS selectors → PriceParser
-                                ├── ResultValidator (price-range + token-coverage + accessory blacklist)
-                                ├── MinHash + LSH dedup (128 hashes / 32 bands)
-                                └── MongoDB upsert (best-effort)
-```
+Full list in [`.env.example`](.env.example). Required:
 
-The routing step is what fixed *"Walton AC was returning Rokomari (a books site) at ৳0.101"*.
+| Var | Purpose |
+|---|---|
+| `MONGODB_URI` | Atlas connection string. Without it the app boots but does nothing useful. |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated. Defaults to the Vite dev server. |
+
+Indexer tunables:
+
+| Var | Default | Purpose |
+|---|---|---|
+| `INDEXER_CRON` | `0 0 3 * * *` | When to auto-run. |
+| `INDEXER_SCHEDULED` | `true` | Set `false` to disable nightly run. |
+| `INDEXER_MAX_URLS_PER_SHOP` | `1500` | Sitemap cap. |
+| `INDEXER_MAX_PRODUCTS_PER_SHOP` | `500` | Effective per-run product cap. |
+| `INDEXER_PER_HOST_PARALLELISM` | `2` | Concurrent fetches against a single shop. |
+| `INDEXER_GLOBAL_PARALLELISM` | `24` | Total concurrent fetches. |
 
 ---
 
@@ -123,28 +168,39 @@ The routing step is what fixed *"Walton AC was returning Rokomari (a books site)
 
 ```
 src/main/java/com/damKemon/dam/kemon/
-├── DamKemonApplication.java   # @EnableCaching @EnableScheduling
-├── config/                    # Security, CORS, cache, Playwright bean
-├── controller/                # REST endpoints (Search, Compare, Seller, Dashboard, Cache)
-├── service/                   # SearchService (cached hot path), CompareService, schedulers
-├── scraper/
-│   ├── EcommerceScraper.java  # interface — getSupportedCategories(), search()
-│   ├── BaseScraper.java       # retries, UA rotation, per-host throttle, jsoup fetch
-│   ├── BrowserFetcher.java    # Playwright + Chromium singleton
-│   ├── ScraperEngine.java     # intent-driven routing + concurrent fan-out
-│   └── impl/                  # 10 site-specific scrapers
-├── intelligence/
-│   ├── QueryClassifier.java   # rule-based intent (category, brands, confidence)
-│   ├── ProductCategory.java   # enum + plausible price ranges
-│   ├── PriceParser.java       # ৳ / commas / Bengali numerals, rejects v0.101
-│   ├── ResultValidator.java   # Jaccard + accessory blacklist + price-range
-│   ├── MinHashLSH.java        # cross-site product dedup (WIRED)
-│   ├── AhoCorasick.java       # single-pass multi-pattern keyword scan (WIRED)
-│   ├── TrigramIndex.java      # typo-tolerant autocomplete (ready, not yet wired)
-│   └── Shingler.java          # k-shingles, used by MinHashLSH + TrigramIndex
-├── model/                     # @Document entities — Product, SitePrice, Review, Seller, ...
-├── repository/                # Spring Data interfaces
-└── dto/                       # request/response shapes
+├── DamKemonApplication.java     # @EnableCaching @EnableScheduling
+├── config/                      # Security, CORS, Mongo, cache
+├── controller/                  # SearchController, AdminController, ...
+├── service/
+│   ├── CatalogSearchService.java   # DB-first search (instant)
+│   ├── CompareService.java         # /api/compare
+│   ├── ProductService.java         # /api/products/{idOrSlug}
+│   ├── PriceSnapshotScheduler.java # daily 04:00 price-history snapshot
+│   └── ScrapingService.java        # legacy /api/scrape (triggers indexer)
+├── indexer/                     # nightly catalog crawl
+│   ├── ShopCatalogBootstrap.java   # seeds shops.json on boot
+│   ├── SitemapCrawler.java         # sitemap.xml(.gz) → product URLs
+│   ├── BulkIndexer.java            # orchestrator (per-host throttled)
+│   └── IndexingScheduler.java      # @Scheduled cron
+├── scraper/                     # per-URL product extraction
+│   ├── BaseScraper.java            # HTTP fetch helpers
+│   ├── BrowserFetcher.java         # Playwright + Chromium (optional)
+│   ├── ProductExtractor.java       # interface
+│   ├── ExtractorRegistry.java      # routes URL → extractor
+│   ├── GenericProductExtractor.java   # schema.org/JSON-LD/OG fallback
+│   └── impl/                       # Daraz, Pickaboo, Startech overrides
+├── intelligence/                # query understanding + dedup
+│   ├── QueryClassifier.java        # Aho-Corasick over 305 kw + 50 brands
+│   ├── MinHashLSH.java             # cross-shop product dedup
+│   ├── ResultValidator.java        # accessory filter + token coverage
+│   ├── PriceParser.java            # ৳, commas, Bengali numerals
+│   └── ProductCategory.java        # enum + plausible price ranges
+├── model/                       # @Document entities
+└── repository/                  # Spring Data interfaces
+
+src/main/resources/
+├── application.yml
+└── shops.json                   # 60-shop BD catalog
 ```
 
 ---
@@ -155,20 +211,13 @@ src/main/java/com/damKemon/dam/kemon/
 ./gradlew bootRun                 # run with dev-tools live reload
 ./gradlew test                    # JUnit 5 test suite
 ./gradlew bootJar                 # build runnable jar
-./gradlew dependencyInsight --dependency caffeine   # debug a dep
 ```
 
 ---
 
-## Production notes
+## Roadmap
 
-- Run behind a reverse proxy that routes `/api/*` to the JVM. The frontend bundle is served as static files.
-- Set `BROWSER_ENABLED=false` if the host lacks Chromium and you can live without Daraz / Walton results.
-- The daily `PriceSnapshotScheduler` writes one row per product per site at 03:00 server time. Disable with `PRICE_HISTORY_ENABLED=false`.
-- One `CacheManager` backs all `@Cacheable` annotations; `unless = "totalResults == 0"` keeps empty failures out of the cache.
-
----
-
-## See also
-
-- [Frontend repo](https://github.com/Saif64/dam-kemon-frontend) — Vite + React UI
+- **Phase 2**: auto-discover new shops (crawl e-cab.com.bd member directory),
+  "submit your shop" form, ~300 shops.
+- **Phase 3**: F-commerce (Facebook sellers) onboarding flow, price-drop
+  alerts via Telegram, search relevance ML (typo tolerance, synonyms).

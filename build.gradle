@@ -25,6 +25,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
 	implementation 'org.jsoup:jsoup:1.18.3'
 
+	// Jackson — JSON-LD parsing in GenericProductExtractor
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+
 	// Caffeine — in-process cache used for /api/search response caching
 	implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
 

@@ -6,10 +6,13 @@ import com.damKemon.dam.kemon.model.Review;
 import com.damKemon.dam.kemon.repository.PriceHistoryRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ReviewRepository;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,42 +32,35 @@ public class ProductService {
     }
 
     public Page<Product> getAllProducts(Pageable pageable) {
-        return productRepository.findAll(pageable);
+        try { return productRepository.findAll(pageable); }
+        catch (DataAccessException e) { return new PageImpl<>(Collections.emptyList(), pageable, 0); }
     }
 
-    public Optional<Product> getProductById(String id) {
-        return productRepository.findById(id);
+    /**
+     * Look up by Mongo {@code _id} first, then by {@code slug}. Returns
+     * empty (not a 5xx) if MongoDB is unreachable, so the caller can show
+     * a clean "not found" rather than "scraper unreachable".
+     */
+    public Optional<Product> findByIdOrSlug(String idOrSlug) {
+        if (idOrSlug == null || idOrSlug.isBlank()) return Optional.empty();
+        try {
+            Optional<Product> byId = productRepository.findById(idOrSlug);
+            if (byId.isPresent()) return byId;
+        } catch (DataAccessException ignored) {}
+        try {
+            return productRepository.findBySlug(idOrSlug);
+        } catch (DataAccessException e) {
+            return Optional.empty();
+        }
     }
 
-    public Optional<Product> getProductBySlug(String slug) {
-        return productRepository.findBySlug(slug);
+    public List<PriceHistory> getPriceHistory(String productIdOrSlug) {
+        try { return priceHistoryRepository.findByProductIdOrderByRecordedAtDesc(productIdOrSlug); }
+        catch (DataAccessException e) { return Collections.emptyList(); }
     }
 
-    public List<Product> searchProducts(String query) {
-        return productRepository.findByNameContainingIgnoreCase(query);
-    }
-
-    public List<Product> getProductsByCategory(String category) {
-        return productRepository.findByCategory(category);
-    }
-
-    public Product saveProduct(Product product) {
-        return productRepository.save(product);
-    }
-
-    public void deleteProduct(String id) {
-        productRepository.deleteById(id);
-    }
-
-    public List<PriceHistory> getPriceHistory(String productId) {
-        return priceHistoryRepository.findByProductIdOrderByRecordedAtDesc(productId);
-    }
-
-    public List<Review> getReviews(String productId) {
-        return reviewRepository.findByProductId(productId);
-    }
-
-    public List<Review> getReviewsBySite(String productId, String siteName) {
-        return reviewRepository.findByProductIdAndSiteName(productId, siteName);
+    public List<Review> getReviews(String productIdOrSlug) {
+        try { return reviewRepository.findByProductId(productIdOrSlug); }
+        catch (DataAccessException e) { return Collections.emptyList(); }
     }
 }

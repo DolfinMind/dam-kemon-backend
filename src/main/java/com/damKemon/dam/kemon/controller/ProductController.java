@@ -30,20 +30,21 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAllProducts(pageable));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable String id) {
-        return productService.getProductById(id)
+    /** Accepts either a Mongo {@code _id} or a {@code slug}. */
+    @GetMapping("/{idOrSlug}")
+    public ResponseEntity<Product> getProductById(@PathVariable String idOrSlug) {
+        return productService.findByIdOrSlug(idOrSlug)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/{id}/history")
-    public ResponseEntity<List<PriceHistory>> getPriceHistory(@PathVariable String id) {
-        return ResponseEntity.ok(productService.getPriceHistory(id));
+    @GetMapping("/{idOrSlug}/history")
+    public ResponseEntity<List<PriceHistory>> getPriceHistory(@PathVariable String idOrSlug) {
+        return ResponseEntity.ok(productService.getPriceHistory(idOrSlug));
     }
 
-    @GetMapping("/{id}/reviews")
-    public ResponseEntity<List<Review>> getReviews(@PathVariable String id) {
-        return ResponseEntity.ok(productService.getReviews(id));
+    @GetMapping("/{idOrSlug}/reviews")
+    public ResponseEntity<List<Review>> getReviews(@PathVariable String idOrSlug) {
+        return ResponseEntity.ok(productService.getReviews(idOrSlug));
     }
 }
