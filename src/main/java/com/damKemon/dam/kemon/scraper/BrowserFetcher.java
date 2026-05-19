@@ -62,8 +62,14 @@ public class BrowserFetcher {
     /**
      * Fetch rendered HTML. Returns null on failure — callers should check and
      * fall back to a jsoup fetch (which will work for static sites).
+     *
+     * <p>Playwright's Java binding is single-threaded; concurrent calls to
+     * the same Browser hit "Cannot find object to call __adopt__" errors.
+     * We serialise every fetch behind a global lock. Throughput drops to
+     * one render at a time, which is acceptable since we only use Playwright
+     * for a small set of SPA shops.
      */
-    public String fetchHtml(String url) {
+    public synchronized String fetchHtml(String url) {
         if (!enabled) return null;
         try {
             ensureBrowser();

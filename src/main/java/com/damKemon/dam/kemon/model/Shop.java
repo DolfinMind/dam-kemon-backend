@@ -54,6 +54,14 @@ public class Shop {
     private String platform;
 
     /**
+     * True for SPA shops (Daraz, Pickaboo, Chaldal, Aarong) where prices /
+     * product cards are hydrated by JavaScript. The crawler/extractor uses
+     * Playwright (BrowserFetcher) for these instead of jsoup.
+     */
+    @Builder.Default
+    private Boolean requiresJs = false;
+
+    /**
      * Categories the shop is known to carry, lower-case. Used by the search
      * router to prefer shops matching the detected query category.
      */

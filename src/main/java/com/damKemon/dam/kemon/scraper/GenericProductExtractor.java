@@ -46,7 +46,12 @@ public class GenericProductExtractor extends BaseScraper implements ProductExtra
 
     @Override
     public ScrapedProduct extract(String url) {
-        Document doc = fetchDoc(url);
+        return extract(url, false);
+    }
+
+    @Override
+    public ScrapedProduct extract(String url, boolean useJs) {
+        Document doc = useJs ? fetchDocWithJs(url) : fetchDoc(url);
         if (doc == null) return null;
 
         ScrapedProduct fromJsonLd = parseJsonLd(doc);
@@ -115,16 +120,25 @@ public class GenericProductExtractor extends BaseScraper implements ProductExtra
     }
 
     private Document fetchDoc(String url) {
-        if (browser.isAvailable()) {
-            Document d = browser.fetchDocument(url);
-            if (d != null) return d;
-        }
+        // Default: jsoup only. Don't auto-escalate to Playwright globally
+        // — that would 10× the nightly indexer runtime. SPA shops opt in
+        // via fetchDocWithJs(url) called from the JS-aware overload.
         try {
             return fetch(url);
         } catch (Exception e) {
             logger.debug("Generic fetch failed for {}: {}", url, e.getMessage());
             return null;
         }
+    }
+
+    private Document fetchDocWithJs(String url) {
+        if (browser.isAvailable()) {
+            Document d = browser.fetchDocument(url);
+            if (d != null) return d;
+        }
+        // Fall back to jsoup if Playwright is unavailable. Better to get
+        // a partial parse than nothing.
+        return fetchDoc(url);
     }
 
     // ---------- JSON-LD ----------

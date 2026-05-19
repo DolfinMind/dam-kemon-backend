@@ -224,17 +224,19 @@ public class BulkIndexer {
                           MinHashLSH lsh,
                           AtomicInteger inserted,
                           AtomicInteger merged) {
+        boolean js = Boolean.TRUE.equals(shop.getRequiresJs());
         List<String> urls = new ArrayList<>();
         if (shop.getSitemapUrl() != null && !shop.getSitemapUrl().isBlank()) {
             urls = sitemapCrawler.crawl(shop.getSitemapUrl());
         }
         // Fallback: crawl homepage + category pages for shops without a
         // useful sitemap (BD-Shop, Pickaboo, Othoba, Walton, etc).
+        // For SPA shops, use Playwright to render the homepage.
         if (urls.isEmpty() && shop.getBaseUrl() != null && !shop.getBaseUrl().isBlank()) {
-            urls = homepageCrawler.crawl(shop.getBaseUrl());
+            urls = homepageCrawler.crawl(shop.getBaseUrl(), js);
             if (!urls.isEmpty()) {
-                log.info("Indexer: shop '{}' falling back to homepage crawl ({} URLs)",
-                        shop.getSlug(), urls.size());
+                log.info("Indexer: shop '{}' falling back to homepage crawl ({} URLs{})",
+                        shop.getSlug(), urls.size(), js ? " [js-rendered]" : "");
             }
         }
         if (urls.isEmpty()) {
@@ -264,7 +266,7 @@ public class BulkIndexer {
                 }
                 try {
                     ProductExtractor extractor = extractors.pick(url);
-                    ScrapedProduct sp = extractor.extract(url);
+                    ScrapedProduct sp = extractor.extract(url, js);
                     if (sp == null || sp.getName() == null || sp.getPrice() == null) return;
                     // Sanity: BD products under ৳10 are almost always parse errors
                     // (currency unit confusion, leading zeros, etc).

@@ -62,6 +62,7 @@ public class ShopCatalogBootstrap {
                 shop.setSearchUrlTemplate(e.searchUrlTemplate);
                 shop.setPlatform(e.platform);
                 shop.setCategories(e.categories == null ? new ArrayList<>() : e.categories);
+                shop.setRequiresJs(Boolean.TRUE.equals(e.requiresJs));
                 shop.setUpdatedAt(LocalDateTime.now());
                 shopRepository.save(shop);
                 if (existing.isPresent()) updated++; else inserted++;
@@ -95,5 +96,6 @@ public class ShopCatalogBootstrap {
         public String searchUrlTemplate;
         public String platform;
         public List<String> categories;
+        public Boolean requiresJs;
     }
 }

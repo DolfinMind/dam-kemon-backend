@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.indexer;
 
+import com.damKemon.dam.kemon.scraper.BrowserFetcher;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -58,6 +59,16 @@ public class HomepageCrawler {
     private static final Pattern CATEGORY_QS = Pattern.compile(
             "route=product/category", Pattern.CASE_INSENSITIVE);
 
+    /**
+     * "Long descriptive root slug" heuristic for shops like Startech,
+     * Ryans, BinaryLogic where products live at root path (no /product/
+     * prefix). A root-level path with 4+ hyphens and 20+ chars is much more
+     * likely a product (e.g. /acer-aspire-15-as15-42-ryzen-5-7430u-laptop)
+     * than a category (/acer-laptop, /access-control-accessories).
+     */
+    private static final Pattern LONG_ROOT_SLUG = Pattern.compile(
+            "^/[a-z0-9][a-z0-9-]{19,}$", Pattern.CASE_INSENSITIVE);
+
     /** Obvious non-product paths we never want to recurse into. */
     private static final Pattern JUNK_PATH = Pattern.compile(
             "/(login|register|cart|checkout|account|wishlist|track|order|"
@@ -78,7 +89,17 @@ public class HomepageCrawler {
     @Value("${indexer.user-agent:Mozilla/5.0 DamKemon/1.0}")
     private String userAgent;
 
+    private final BrowserFetcher browser;
+
+    public HomepageCrawler(BrowserFetcher browser) {
+        this.browser = browser;
+    }
+
     public List<String> crawl(String baseUrl) {
+        return crawl(baseUrl, false);
+    }
+
+    public List<String> crawl(String baseUrl, boolean useJsRender) {
         if (baseUrl == null || baseUrl.isBlank()) return List.of();
         String host;
         try { host = new URI(baseUrl).getHost(); } catch (Exception e) { return List.of(); }
@@ -89,7 +110,7 @@ public class HomepageCrawler {
         Set<String> visited = new LinkedHashSet<>();
 
         // Phase 1: scan homepage
-        Document home = fetchDoc(baseUrl);
+        Document home = fetchDoc(baseUrl, useJsRender);
         if (home == null) {
             log.debug("Homepage crawl: {} unreachable", baseUrl);
             return List.of();
@@ -105,7 +126,7 @@ public class HomepageCrawler {
             if (visited.contains(canon(catUrl))) continue;
             visited.add(canon(catUrl));
 
-            Document catDoc = fetchDoc(catUrl);
+            Document catDoc = fetchDoc(catUrl, useJsRender);
             cats++;
             if (catDoc == null) continue;
             // From category pages we ONLY pick product URLs — no further recursion
@@ -114,8 +135,8 @@ public class HomepageCrawler {
         }
 
         List<String> out = new ArrayList<>(products);
-        log.info("HomepageCrawler {}: home + {} categories → {} product URLs",
-                baseUrl, cats, out.size());
+        log.info("HomepageCrawler {}{}: home + {} categories → {} product URLs",
+                baseUrl, useJsRender ? " [js]" : "", cats, out.size());
         return out;
     }
 
@@ -145,11 +166,26 @@ public class HomepageCrawler {
             } else if (categoryAcc != null
                     && (CATEGORY_PATH.matcher(path).find() || CATEGORY_QS.matcher(qs).find())) {
                 categoryAcc.add(stripFragment(absUrl));
+            } else if (LONG_ROOT_SLUG.matcher(path).matches() && hyphenCount(path) >= 4) {
+                // Root-level long-descriptive slug — likely a product on
+                // Startech / Ryans / BinaryLogic style sites.
+                productAcc.add(stripFragment(absUrl));
             }
         }
     }
 
-    private Document fetchDoc(String url) {
+    private static int hyphenCount(String s) {
+        int n = 0;
+        for (int i = 0; i < s.length(); i++) if (s.charAt(i) == '-') n++;
+        return n;
+    }
+
+    private Document fetchDoc(String url, boolean useJsRender) {
+        // SPA shops: render via Playwright when available.
+        if (useJsRender && browser.isAvailable()) {
+            Document d = browser.fetchDocument(url);
+            if (d != null) return d;
+        }
         try {
             HttpClient client = HttpClient.newBuilder()
                     .followRedirects(HttpClient.Redirect.NORMAL)

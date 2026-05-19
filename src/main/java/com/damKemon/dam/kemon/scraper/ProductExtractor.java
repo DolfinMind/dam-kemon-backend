@@ -30,4 +30,15 @@ public interface ProductExtractor {
      * (404, bot block, missing price, etc).
      */
     ScrapedProduct extract(String url);
+
+    /**
+     * Variant that asks for JS rendering (Playwright). The default impl
+     * ignores the flag; {@link GenericProductExtractor} and the per-site
+     * extractors that opt in route the fetch through {@code BrowserFetcher}
+     * when this is {@code true}. Used for SPA shops (Daraz, Pickaboo,
+     * Chaldal, Aarong) whose product pages hydrate prices client-side.
+     */
+    default ScrapedProduct extract(String url, boolean useJs) {
+        return extract(url);
+    }
 }
