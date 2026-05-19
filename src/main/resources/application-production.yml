@@ -34,3 +34,13 @@ logging:
     com.damKemon: INFO
     org.springframework.web: WARN
     org.mongodb.driver: ERROR
+
+# Tighter actuator exposure in prod — health probes only, no /metrics surface
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: never  # don't leak Mongo connection details to anonymous health checks

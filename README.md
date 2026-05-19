@@ -172,6 +172,17 @@ file on disk.
 | `GET` | `/api/admin/index/status` | Last/current indexer run summary |
 | `GET` | `/api/admin/shops` | All shops + per-shop last-indexed stats |
 | `POST`| `/api/scrape` | Legacy — now just triggers the indexer |
+| `GET` | `/actuator/health` | Liveness + readiness (Mongo connectivity) |
+| `GET` | `/actuator/info` | App name + version |
+
+**`/api/admin/*` requires `X-Admin-Key` header** when `ADMIN_API_KEY` is set
+in the environment. Local dev leaves it blank (a `WARN` on boot reminds
+you). Staging + production must set it:
+
+```bash
+ADMIN_API_KEY=$(openssl rand -hex 24)
+curl -H "X-Admin-Key: $ADMIN_API_KEY" -X POST https://api/admin/index/run
+```
 
 ---
 

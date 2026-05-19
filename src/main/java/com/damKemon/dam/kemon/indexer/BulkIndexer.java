@@ -208,7 +208,7 @@ public class BulkIndexer {
             int count = 0;
             for (Product p : productRepository.findAll()) {
                 if (p.getName() != null && p.getId() != null) {
-                    lsh.add(p.getId(), p.getName(), p);
+                    lsh.add(p.getId(), normaliseForMatching(p.getName()), p);
                     count++;
                 }
             }
@@ -332,8 +332,13 @@ public class BulkIndexer {
             return;
         }
 
-        // 2. Fuzzy match across shops via LSH (Samsung S24 on shop A == Samsung Galaxy S24 on shop B)
-        MinHashLSH.Match match = lsh.findBest(sp.getName(), 0.55);
+        // 2. Fuzzy match across shops via LSH. Match on a NORMALISED name so
+        //    "Apple AirPods Pro 3 (USB-C)" matches "Apple Airpods Pro 3" matches
+        //    "Airpods Pro 3 USB-C". Threshold loosened to 0.42 — most BD shops
+        //    pad product names with brand/colour/storage variants that drag
+        //    Jaccard down even when the underlying product is the same.
+        String normName = normaliseForMatching(sp.getName());
+        MinHashLSH.Match match = lsh.findBest(normName, 0.42);
         if (match != null) {
             Product existing = (Product) match.payload();
             existing.getPrices().removeIf(p -> Objects.equals(p.getSiteSlug(), shop.getSlug()));
@@ -344,7 +349,8 @@ public class BulkIndexer {
             existing.setUpdatedAt(LocalDateTime.now());
             Product saved = safeSave(existing);
             if (saved != null && saved.getId() != null) {
-                lsh.add(saved.getId(), saved.getName(), saved);
+                // Re-add to LSH under the canonical (possibly upgraded) name
+                lsh.add(saved.getId(), normaliseForMatching(saved.getName()), saved);
             }
             merged.incrementAndGet();
             return;
@@ -366,9 +372,36 @@ public class BulkIndexer {
         recomputeAggregates(p);
         Product saved = safeSave(p);
         if (saved != null && saved.getId() != null) {
-            lsh.add(saved.getId(), saved.getName(), saved);
+            lsh.add(saved.getId(), normaliseForMatching(saved.getName()), saved);
         }
         inserted.incrementAndGet();
+    }
+
+    /**
+     * Strip the noise that wrecks Jaccard similarity across shops:
+     * parenthetical specs, colour suffixes, "with cable / with case" tails,
+     * storage qualifiers, marketing words. The output is only used for LSH
+     * keying — the original name remains on the Product for display.
+     */
+    static String normaliseForMatching(String name) {
+        if (name == null) return "";
+        String s = name.toLowerCase();
+        // Drop parenthetical content: "(8/256GB)", "(2nd Generation)", "(USB-C)"
+        s = s.replaceAll("\\([^)]*\\)", " ");
+        s = s.replaceAll("\\[[^\\]]*\\]", " ");
+        // Drop common spec tails: "with cable", "with charging case", etc.
+        s = s.replaceAll("\\b(with|w/?)\\s+(retractable\\s+)?(usb[- ]?c\\s+)?cable\\b", " ");
+        s = s.replaceAll("\\bwith\\s+charging\\s+case\\b", " ");
+        s = s.replaceAll("\\b(price|in)\\s+bangladesh\\b", " ");
+        // Drop storage variants — they vary across shops for the same model.
+        s = s.replaceAll("\\b\\d+\\s*[/\\\\]\\s*\\d+\\s*(gb|tb|mb)\\b", " ");
+        s = s.replaceAll("\\b\\d{2,4}\\s*(gb|tb)\\b", " ");
+        s = s.replaceAll("\\b\\d{1,2}\\s*gb\\b", " ");
+        // Drop colour suffixes when at end-of-name (titanium, black, white, etc.)
+        s = s.replaceAll("\\b(titanium|black|white|silver|gold|blue|red|green|graphite|onyx|natural|desert|midnight)\\b", " ");
+        // Drop punctuation, collapse whitespace
+        s = s.replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
+        return s.isBlank() ? name.toLowerCase() : s;
     }
 
     private void applyDescriptiveFieldsIfMissing(Product existing, ScrapedProduct sp) {

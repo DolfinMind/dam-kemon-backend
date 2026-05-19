@@ -115,8 +115,87 @@ public class GenericProductExtractor extends BaseScraper implements ProductExtra
               + "[itemprop=image], img[class*=product]");
         if (imgEl != null) image = imgEl.hasAttr("src") ? imgEl.attr("src") : imgEl.attr("data-src");
 
+        // Common rating + review-count markup. Each shop pattern tried in
+        // turn; first hit wins. Skipped silently if none match.
+        Double rating = readRating(doc);
+        Integer reviewCount = readReviewCount(doc);
+
         return ScrapedProduct.builder()
-                .name(name).price(price).imageUrl(image).inStock(true).build();
+                .name(name).price(price).imageUrl(image)
+                .rating(rating).reviewCount(reviewCount)
+                .inStock(true).build();
+    }
+
+    private static Double readRating(Document doc) {
+        // schema.org meta on the page (separate from JSON-LD)
+        Element m = doc.selectFirst("[itemprop=ratingValue][content], meta[itemprop=ratingValue]");
+        if (m != null) {
+            Double v = parseFractional(m.hasAttr("content") ? m.attr("content") : m.text());
+            if (v != null) return v;
+        }
+        // WooCommerce star block uses aria-label / title like "Rated 4.5 out of 5"
+        for (String sel : new String[]{
+                ".star-rating", "[class*=star-rating]", ".woocommerce-product-rating .rating",
+                ".spr-badge-starrating", ".jdgm-prev-badge", "[data-rating]"
+        }) {
+            Element e = doc.selectFirst(sel);
+            if (e == null) continue;
+            for (String attr : new String[]{"aria-label", "title", "data-rating", "data-score"}) {
+                String v = e.attr(attr);
+                if (v != null && !v.isBlank()) {
+                    Double parsed = parseFractional(v);
+                    if (parsed != null) return parsed;
+                }
+            }
+            // Some star blocks encode rating as "width: 90%" inline style → 4.5/5
+            Element span = e.selectFirst("span[style*=width]");
+            if (span != null) {
+                String style = span.attr("style").replaceAll("\\s+", "");
+                java.util.regex.Matcher pct = java.util.regex.Pattern.compile("width:(\\d+(?:\\.\\d+)?)%").matcher(style);
+                if (pct.find()) {
+                    try { return Math.round(Double.parseDouble(pct.group(1)) / 20.0 * 10.0) / 10.0; }
+                    catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Integer readReviewCount(Document doc) {
+        Element m = doc.selectFirst("[itemprop=reviewCount][content], meta[itemprop=reviewCount], [itemprop=ratingCount]");
+        if (m != null) {
+            try { return Integer.parseInt((m.hasAttr("content") ? m.attr("content") : m.text()).trim()); }
+            catch (Exception ignored) {}
+        }
+        // Common review-count text: "(123 reviews)", "12 customer reviews"
+        for (String sel : new String[]{
+                ".woocommerce-review-link", ".reviews-count", ".reviewCount",
+                ".spr-badge-caption", ".jdgm-prev-badge__text", "[class*=review-count]"
+        }) {
+            Element e = doc.selectFirst(sel);
+            if (e == null) continue;
+            java.util.regex.Matcher num = java.util.regex.Pattern.compile("(\\d[\\d,]*)").matcher(e.text());
+            if (num.find()) {
+                try { return Integer.parseInt(num.group(1).replace(",", "")); }
+                catch (NumberFormatException ignored) {}
+            }
+        }
+        return null;
+    }
+
+    private static Double parseFractional(String s) {
+        if (s == null) return null;
+        // "4.5 out of 5", "Rated 4.5 stars", "4.5", "4,5"
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+[.,]?\\d*)").matcher(s);
+        if (!m.find()) return null;
+        try {
+            double v = Double.parseDouble(m.group(1).replace(",", "."));
+            // If on a 100-point scale ("90% → 4.5"), rescale.
+            if (v > 5 && v <= 100) return Math.round(v / 20.0 * 10.0) / 10.0;
+            if (v >= 0 && v <= 5) return Math.round(v * 10.0) / 10.0;
+            if (v > 5 && v <= 10) return Math.round(v / 2.0 * 10.0) / 10.0;
+        } catch (NumberFormatException ignored) {}
+        return null;
     }
 
     private Document fetchDoc(String url) {

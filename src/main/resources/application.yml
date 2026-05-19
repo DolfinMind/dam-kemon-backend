@@ -65,3 +65,32 @@ price-history:
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+
+# ───── Admin endpoints lockdown ─────
+# Leave blank in dev (admin endpoints stay open). MUST be set in staging
+# and production. Rotate via secrets manager. 32+ chars recommended.
+admin:
+  api-key: ${ADMIN_API_KEY:}
+
+# ───── Spring Boot Actuator (health, info) ─────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    mongo:
+      enabled: true
+  info:
+    env:
+      enabled: true
+info:
+  app:
+    name: dam-kemon
+    description: Bangladesh price-comparison engine
