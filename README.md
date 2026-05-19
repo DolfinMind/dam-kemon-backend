@@ -261,7 +261,107 @@ src/main/resources/
 
 ## Roadmap
 
-- **Phase 2**: auto-discover new shops (crawl e-cab.com.bd member directory),
-  "submit your shop" form, ~300 shops.
-- **Phase 3**: F-commerce (Facebook sellers) onboarding flow, price-drop
-  alerts via Telegram, search relevance ML (typo tolerance, synonyms).
+Shipped (Phase 1): pre-indexed catalog over 69 BD shops, sitemap +
+homepage-walk + Playwright discovery, schema.org/JSON-LD/OG/CSS extractor
+chain, cross-shop MinHash/LSH dedup with normalised matching keys, DB-first
+search with `$text` + partial-regex + substring fallback, autosuggest,
+admin-key gate, actuator health, staging + production Spring profiles.
+
+What's left to make this an honest product, ordered by impact.
+
+### Phase 2 — operate the catalog
+
+| | Item | Notes |
+|---|---|---|
+| ⬜ | **Admin console** (separate from public `/dashboard`) at `/admin` | Operator-only UI. Sits behind the `X-Admin-Key` gate. See "Admin console scope" below. |
+| ⬜ | Per-shop quality scoring | Roll the last 7 runs of `lastIndexedCount` + `lastError` into an `active / degraded / dormant` score; auto-disable shops failing 3 runs in a row. |
+| ⬜ | Retry queue for partial shops | Daraz, Dazzle and Aarong time out on first crawl; should re-fire in a background retry pass instead of waiting for next nightly. |
+| ⬜ | Shop-discovery crawler | Walk `e-cab.com.bd` / BASIS member lists / Daraz seller pages → propose new shops into a `pending_shops` collection for human review. |
+| ⬜ | "Submit your shop" public form | Shop owner pastes base URL + sitemap; we test-crawl, show preview, queue for admin approval. |
+| ⬜ | Price-history visualisation | The daily snapshot already writes to `price_history`; need a per-product line chart endpoint + frontend chart that handles missing days. |
+| ⬜ | Drop the search-time `$text` index requirement | Switch to Mongo Atlas Search (free tier supports it) for typo tolerance, synonyms, n-gram autocomplete. |
+| ⬜ | F-commerce onboarding | Manual flow: shop owner submits Facebook page URL + product CSV; we render their listings inline. Skip scraping (Facebook ToS). |
+
+### Phase 3 — analytics + telemetry
+
+These are the user-traffic features you mentioned. None are wired yet.
+
+**Anonymous event tracking** (no PII, no cookies-required):
+
+| | Item | Where |
+|---|---|---|
+| ⬜ | `search_event { query, totalResults, ts, anonId }` | New `events` collection. Write on every `/api/search` hit. |
+| ⬜ | `click_event { productId, sellerSlug, anonId, ts }` | Fire from the per-seller chip on `SearchProductCard` (`navigator.sendBeacon`). |
+| ⬜ | `view_event { productId, anonId, ts }` | ProductDetail page mount. |
+| ⬜ | Anonymous user id | First visit sets a `localStorage` UUID — no PII tied to it, just lets us count uniques without auth. |
+| ⬜ | Server-side rate limiter | Token bucket per IP on `/api/search`, `/api/search/suggest`. Cap public access so the indexer's nightly hit budget isn't blown by scrapers. |
+
+**Live counters on the public site** (driven by the event collection):
+
+| | Item | Behaviour |
+|---|---|---|
+| ⬜ | "X users searching now" pill on Home | Window of `search_event`s in the last 60 seconds, distinct `anonId` count. Refresh every 5s via `GET /api/stats/live`. |
+| ⬜ | Trending searches | Top 10 search terms in the last 24 h with click-through > 30%, surfaced on Home + as autosuggest seed when input is empty. |
+| ⬜ | "Hot drops" feed | Products whose `min(lowestPrice over last 7 days) > current lowestPrice * 1.10`. Backend job rolls this nightly into `hot_drops`. |
+| ⬜ | "Recently viewed" rail | Per-`anonId` last 8 `view_event`s, render on Home for returning visitors. |
+
+**Operator-facing counters** (in the admin console):
+
+| | Item |
+|---|---|
+| ⬜ | DAU / MAU (unique anonIds per day / month) |
+| ⬜ | Searches with 0 results — leaderboard of unmet demand → drives shop-catalog priorities |
+| ⬜ | Click-through rate per shop (signals which sellers actually convert) |
+| ⬜ | Indexer run history (last 30 nights, per-shop success/fail timeline) |
+| ⬜ | Top products by view + by click |
+| ⬜ | Search latency p50 / p95 |
+
+### Admin console scope
+
+A dedicated `/admin` SPA (separate from the current `/dashboard`, which
+stays public). All endpoints behind `X-Admin-Key`.
+
+| | Item |
+|---|---|
+| ⬜ | Login screen that exchanges the key for a short-lived session cookie |
+| ⬜ | Indexer page: live progress bar (SSE), per-shop status grid, "wipe + reindex" button, "reindex one shop" button |
+| ⬜ | Shop manager: CRUD on the `shops` collection (no redeploy to add a shop), bulk-disable, override sitemap URL, mark `requiresJs` |
+| ⬜ | Catalog browser: search/filter the products collection, click → product detail editor (rename, fix category, merge duplicates, flag spam) |
+| ⬜ | Search log: last 1k searches with totalResults — clickable to re-run + inspect |
+| ⬜ | Cache controls: hit ratio per cache, flush button per cache, TTL editor |
+| ⬜ | Background jobs: enable/disable each `@Scheduled`, run-now button, last-N-runs history |
+| ⬜ | Audit log: who hit which admin endpoint when |
+
+### Phase 4 — user accounts
+
+| | Item |
+|---|---|
+| ⬜ | Sign-up / sign-in (Google + email magic link; skip passwords) |
+| ⬜ | Saved searches (alerts when the result set changes) |
+| ⬜ | Price-drop alerts via email / Telegram bot |
+| ⬜ | Wishlist (per-user) |
+| ⬜ | Per-user search history (visible only when signed in, never sold) |
+
+### Phase 5 — SEO + growth
+
+| | Item |
+|---|---|
+| ⬜ | Server-side render product detail pages (or pre-render via Vite SSG) |
+| ⬜ | `/sitemap.xml` of our own products + categories so Google can index us |
+| ⬜ | Open Graph image generator per product (so WhatsApp/FB shares look real) |
+| ⬜ | Schema.org `Product` markup on our pages → Google Shopping eligibility |
+| ⬜ | `robots.txt` policy |
+| ⬜ | Bundle code-splitting (single 700KB JS bundle is fine for dev, not for prod) |
+| ⬜ | Image CDN / on-the-fly resize for product images |
+
+### Operational hardening (cross-cutting)
+
+| | Item |
+|---|---|
+| ⬜ | Backup MongoDB Atlas nightly to S3 (Atlas free tier has no backups) |
+| ⬜ | Sentry (or similar) for backend exceptions + frontend errors |
+| ⬜ | Per-IP rate limit on `/api/search*` (bucket4j) |
+| ⬜ | Health-check based deploys (k8s readiness uses `/actuator/health/readiness`) |
+| ⬜ | Log shipping to Loki / Datadog |
+| ⬜ | Synthetic monitoring (`curl /api/search?q=iphone` from outside, alert if 0 results) |
+| ⬜ | JUnit + WebMvcTest coverage for SearchController, AdminController, BulkIndexer, GenericProductExtractor (currently 0% covered) |
