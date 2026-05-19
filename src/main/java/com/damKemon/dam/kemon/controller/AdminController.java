@@ -2,12 +2,16 @@ package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.indexer.BulkIndexer;
 import com.damKemon.dam.kemon.indexer.BulkIndexer.RunSummary;
+import com.damKemon.dam.kemon.indexer.ShopDiscoveryService;
+import com.damKemon.dam.kemon.model.AuditLogEntry;
 import com.damKemon.dam.kemon.model.PendingShop;
 import com.damKemon.dam.kemon.model.Shop;
+import com.damKemon.dam.kemon.repository.AuditLogRepository;
 import com.damKemon.dam.kemon.repository.PendingShopRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
 import com.damKemon.dam.kemon.service.HotDropsService;
+import org.springframework.data.domain.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -37,17 +41,39 @@ public class AdminController {
     private final ProductRepository productRepository;
     private final PendingShopRepository pendingShopRepository;
     private final HotDropsService hotDrops;
+    private final ShopDiscoveryService discovery;
+    private final AuditLogRepository auditRepo;
 
     public AdminController(BulkIndexer indexer,
                            ShopRepository shopRepository,
                            ProductRepository productRepository,
                            PendingShopRepository pendingShopRepository,
-                           HotDropsService hotDrops) {
+                           HotDropsService hotDrops,
+                           ShopDiscoveryService discovery,
+                           AuditLogRepository auditRepo) {
         this.indexer = indexer;
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.pendingShopRepository = pendingShopRepository;
         this.hotDrops = hotDrops;
+        this.discovery = discovery;
+        this.auditRepo = auditRepo;
+    }
+
+    @GetMapping("/audit-log")
+    public ResponseEntity<List<AuditLogEntry>> auditLog(
+            @RequestParam(value = "limit", defaultValue = "200") int limit) {
+        try {
+            return ResponseEntity.ok(auditRepo.findAllByOrderByTsDesc(
+                    PageRequest.of(0, Math.max(1, Math.min(limit, 1000)))));
+        } catch (org.springframework.dao.DataAccessException e) {
+            return ResponseEntity.ok(List.of());
+        }
+    }
+
+    @PostMapping("/discover-shops")
+    public ResponseEntity<Map<String, Object>> discoverShops() {
+        return ResponseEntity.ok(discovery.discover());
     }
 
     @PostMapping("/index/run")

@@ -52,6 +52,11 @@ indexer:
 # ───── Search behaviour ─────
 search:
   page-size: ${SEARCH_PAGE_SIZE:30}
+  # Atlas Search ($search aggregation). Requires an Atlas cluster with an
+  # Atlas Search index named below. Falls back to $text when disabled or
+  # the index doesn't exist.
+  atlas-enabled: ${SEARCH_ATLAS_ENABLED:false}
+  atlas-index: ${SEARCH_ATLAS_INDEX:default}
 
 # ───── Headless browser (Playwright + Chromium) ─────
 # Off by default. Enable if you want JS-rendered shop coverage (Daraz, Chaldal).
@@ -69,6 +74,15 @@ price-history:
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 
+# ───── Sentry — backend exceptions ─────
+# Leave dsn blank to disable. When set, every unhandled exception + a slice
+# of traces will report to Sentry.
+sentry:
+  dsn: ${SENTRY_DSN:}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
+  environment: ${SENTRY_ENV:dev}
+  send-default-pii: false
+
 # ───── Admin endpoints lockdown ─────
 # Leave blank in dev (admin endpoints stay open). MUST be set in staging
 # and production. Rotate via secrets manager. 32+ chars recommended.
@@ -81,6 +95,37 @@ admin:
 ratelimit:
   capacity: ${RATE_LIMIT_CAPACITY:60}
   refill-per-sec: ${RATE_LIMIT_REFILL_PER_SEC:1.0}
+
+# ───── User accounts (magic-link sign-in) ─────
+auth:
+  # 32+ char random string — used as the HMAC secret for JWTs. MUST be set in prod.
+  jwt-secret: ${AUTH_JWT_SECRET:}
+  jwt-ttl-days: ${AUTH_JWT_TTL_DAYS:30}
+  # Where the magic link points back to (the SPA verify page reads ?email=&token=).
+  web-url: ${AUTH_WEB_URL:http://localhost:5173}
+  from-email: ${AUTH_FROM_EMAIL:no-reply@damkemon.com}
+  # Dev convenience: returns the raw token in /api/auth/request-link response
+  # so you can sign in without an SMTP server. NEVER true in staging/prod.
+  dev-expose-token: ${AUTH_DEV_EXPOSE_TOKEN:false}
+
+# ───── SMTP for magic-link + price-drop emails ─────
+# Leave host blank to log emails to stdout instead. Works out of the box
+# with Gmail (host=smtp.gmail.com port=587, app password as password).
+spring.mail:
+  host: ${SMTP_HOST:}
+  port: ${SMTP_PORT:587}
+  username: ${SMTP_USER:}
+  password: ${SMTP_PASS:}
+  properties.mail.smtp.starttls.enable: true
+  properties.mail.smtp.auth: true
+
+# ───── Saved-search price-drop alert ─────
+saved-search:
+  alert-cron: ${SAVED_SEARCH_ALERT_CRON:0 30 5 * * *}
+
+# ───── Hot-drops rebuild ─────
+hot-drops:
+  cron: ${HOT_DROPS_CRON:0 0 5 * * *}
 
 # ───── Spring Boot Actuator (health, info) ─────
 management:

@@ -1,5 +1,7 @@
 package com.damKemon.dam.kemon.config;
 
+import com.damKemon.dam.kemon.service.JwtService;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -24,18 +25,10 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Public endpoints stay open. The {@code /api/admin/**} surface (manual
- * indexer triggers, wipe-and-reindex, shop edits) is gated behind an
- * {@code X-Admin-Key} header that must match {@code ADMIN_API_KEY} from
- * the environment.
- *
- * <p>Local dev: leave {@code ADMIN_API_KEY} blank — admin endpoints stay
- * open but we WARN on boot so it's not silent.
- *
- * <p>Staging / production: set {@code ADMIN_API_KEY} to a random 32-char
- * value (use a secrets manager). Operators send it on every admin call:
- *
- * <pre>curl -H "X-Admin-Key: $ADMIN_API_KEY" -X POST https://api/admin/index/run</pre>
+ * Public endpoints stay open. {@code /api/admin/**} is gated behind either
+ * a valid admin JWT (issued by the magic-link flow to users with role
+ * {@code admin}) OR the legacy {@code X-Admin-Key} header. Either is
+ * accepted so existing curl-based operator scripts continue to work.
  */
 @Configuration
 @EnableWebSecurity
@@ -61,12 +54,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   JwtService jwtService,
+                                                   AuditLogFilter auditLog) throws Exception {
         if (adminApiKey == null || adminApiKey.isBlank()) {
-            log.warn("ADMIN_API_KEY is not set — /api/admin/** endpoints are PUBLIC. "
-                    + "Set the env var before deploying to staging or production.");
+            log.warn("ADMIN_API_KEY is not set — /api/admin/** endpoints accept any JWT-authenticated admin "
+                    + "OR run open in dev. Set the env var before deploying.");
         } else {
-            log.info("Admin API key is set ({} chars) — /api/admin/** requires X-Admin-Key header.", adminApiKey.length());
+            log.info("Admin API key is set ({} chars) — /api/admin/** requires either an admin JWT or X-Admin-Key.", adminApiKey.length());
         }
 
         http
@@ -75,8 +70,11 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
             .addFilterBefore(new RateLimitFilter(searchRateLimiter()),
                     UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(new AdminKeyFilter(adminApiKey),
-                    UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(new JwtAuthFilter(jwtService),
+                    UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(new AdminGateFilter(adminApiKey),
+                    UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(auditLog, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
@@ -88,7 +86,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("X-Admin-Key", "X-Anon-Id"));
+        configuration.setExposedHeaders(List.of("X-Admin-Key", "X-Anon-Id", "Authorization"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
@@ -96,13 +94,16 @@ public class SecurityConfig {
     }
 
     /**
-     * Gates every request to /api/admin/** behind the {@code X-Admin-Key}
-     * header. No-op when {@code adminApiKey} is blank (dev mode).
+     * Gate every request to /api/admin/** behind either:
+     *   - a valid {@code X-Admin-Key} header matching {@code ADMIN_API_KEY}, OR
+     *   - an admin-role JWT (set on the request by {@link JwtAuthFilter}).
+     *
+     * No-op when {@code adminApiKey} is blank AND no JWT is present (dev mode).
      */
-    static class AdminKeyFilter extends OncePerRequestFilter {
+    static class AdminGateFilter extends OncePerRequestFilter {
         private final String expectedKey;
 
-        AdminKeyFilter(String expectedKey) {
+        AdminGateFilter(String expectedKey) {
             this.expectedKey = expectedKey;
         }
 
@@ -110,19 +111,35 @@ public class SecurityConfig {
         protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
                 throws ServletException, IOException {
             String path = req.getRequestURI();
-            if (path != null && path.startsWith("/api/admin/") && expectedKey != null && !expectedKey.isBlank()) {
+            if (path == null || !path.startsWith("/api/admin/")) {
+                chain.doFilter(req, res);
+                return;
+            }
+
+            // JWT path: a signed-in admin user passes through.
+            Object role = req.getAttribute("authUserRole");
+            if ("admin".equals(role)) {
+                chain.doFilter(req, res);
+                return;
+            }
+
+            // Legacy key path: existing operator scripts.
+            if (expectedKey != null && !expectedKey.isBlank()) {
                 String sent = req.getHeader("X-Admin-Key");
-                if (sent == null || !constantTimeEquals(sent, expectedKey)) {
-                    res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    res.setContentType("application/json");
-                    res.getWriter().write("{\"error\":\"missing or invalid X-Admin-Key header\"}");
+                if (sent != null && constantTimeEquals(sent, expectedKey)) {
+                    chain.doFilter(req, res);
                     return;
                 }
+                res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                res.setContentType("application/json");
+                res.getWriter().write("{\"error\":\"sign in as an admin or send X-Admin-Key\"}");
+                return;
             }
+
+            // Dev mode: no key set, no JWT — let it through but it's logged on boot.
             chain.doFilter(req, res);
         }
 
-        /** Constant-time compare to avoid trivial timing attacks. */
         private static boolean constantTimeEquals(String a, String b) {
             if (a == null || b == null || a.length() != b.length()) return false;
             int diff = 0;

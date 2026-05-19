@@ -48,13 +48,17 @@ public class CatalogSearchService {
 
     private final ProductRepository productRepository;
     private final QueryClassifier classifier;
+    private final AtlasSearchService atlasSearch;
 
     @Value("${search.page-size:30}")
     private int pageSize;
 
-    public CatalogSearchService(ProductRepository productRepository, QueryClassifier classifier) {
+    public CatalogSearchService(ProductRepository productRepository,
+                                QueryClassifier classifier,
+                                AtlasSearchService atlasSearch) {
         this.productRepository = productRepository;
         this.classifier = classifier;
+        this.atlasSearch = atlasSearch;
     }
 
     @Cacheable(
@@ -145,6 +149,20 @@ public class CatalogSearchService {
         Pageable page = PageRequest.of(0, pageSize);
 
         Map<String, Product> merged = new LinkedHashMap<>();
+
+        // Pass 0: Atlas Search if enabled and reachable. Falls through silently
+        // when the cluster is on the free tier without an Atlas Search index.
+        if (atlasSearch.isEnabled()) {
+            List<Product> atlasHits = atlasSearch.search(query, pageSize);
+            if (atlasHits != null) {
+                for (Product p : atlasHits) {
+                    if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
+                }
+                if (merged.size() >= pageSize) {
+                    return new ArrayList<>(merged.values());
+                }
+            }
+        }
 
         // Pass 1: Mongo $text
         try {

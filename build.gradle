@@ -24,6 +24,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.jsoup:jsoup:1.18.3'
 
 	// Jackson — JSON-LD parsing in GenericProductExtractor
@@ -35,10 +37,22 @@ dependencies {
 	// Playwright — headless browser for JS-rendered sites (Daraz, Walton)
 	implementation 'com.microsoft.playwright:playwright:1.50.0'
 
+	// JWT for user-account session tokens
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+	// BCrypt password hashing (used for refresh-token storage)
+	implementation 'org.springframework.security:spring-security-crypto'
+
+	// Sentry (optional). No-op when SENTRY_DSN is unset.
+	implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.16.0'
+
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'
 
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testCompileOnly 'org.projectlombok:lombok'

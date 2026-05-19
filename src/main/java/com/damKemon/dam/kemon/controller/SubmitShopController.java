@@ -81,11 +81,11 @@ public class SubmitShopController {
                     .build();
             pendingRepo.save(p);
             log.info("Submit-shop: queued '{}' ({}) for review", name, normalised);
-            return ResponseEntity.accepted().body(Map.of(
-                    "submitted", true,
-                    "id", p.getId(),
-                    "message", "Thanks! We'll review and email you when it's live."
-            ));
+            java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
+            out.put("submitted", true);
+            if (p.getId() != null) out.put("id", p.getId());
+            out.put("message", "Thanks! We'll review and email you when it's live.");
+            return ResponseEntity.accepted().body(out);
         } catch (DataAccessException e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "could not save submission"));
         }

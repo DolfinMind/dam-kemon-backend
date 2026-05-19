@@ -30,6 +30,21 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAllProducts(pageable));
     }
 
+    /**
+     * Bulk hydration for the "recently viewed" rail. Client passes the
+     * IDs it remembers in localStorage, we return only those that still
+     * exist. Order is preserved.
+     */
+    @GetMapping("/by-ids")
+    public ResponseEntity<List<Product>> getByIds(@RequestParam("ids") String ids) {
+        if (ids == null || ids.isBlank()) return ResponseEntity.ok(List.of());
+        List<String> idList = java.util.Arrays.stream(ids.split(","))
+                .map(String::trim).filter(s -> !s.isEmpty())
+                .limit(50)
+                .toList();
+        return ResponseEntity.ok(productService.findByIds(idList));
+    }
+
     /** Accepts either a Mongo {@code _id} or a {@code slug}. */
     @GetMapping("/{idOrSlug}")
     public ResponseEntity<Product> getProductById(@PathVariable String idOrSlug) {
@@ -41,6 +56,17 @@ public class ProductController {
     @GetMapping("/{idOrSlug}/history")
     public ResponseEntity<List<PriceHistory>> getPriceHistory(@PathVariable String idOrSlug) {
         return ResponseEntity.ok(productService.getPriceHistory(idOrSlug));
+    }
+
+    /**
+     * Gap-free daily-bucketed price series, ready to drop into a recharts
+     * line chart. {@code days} bounded to 1..365.
+     */
+    @GetMapping("/{idOrSlug}/history/daily")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getDailyPriceHistory(
+            @PathVariable String idOrSlug,
+            @RequestParam(value = "days", defaultValue = "30") int days) {
+        return ResponseEntity.ok(productService.getDailyPriceSeries(idOrSlug, days));
     }
 
     @GetMapping("/{idOrSlug}/reviews")

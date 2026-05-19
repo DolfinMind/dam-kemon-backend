@@ -1,0 +1,53 @@
+package com.damKemon.dam.kemon.controller;
+
+import com.damKemon.dam.kemon.dto.SearchResponse;
+import com.damKemon.dam.kemon.service.AnalyticsService;
+import com.damKemon.dam.kemon.service.CatalogSearchService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+class SearchControllerTest {
+
+    @Test
+    void searchDelegatesToCatalogAndRecordsAnalytics() {
+        CatalogSearchService catalog = mock(CatalogSearchService.class);
+        AnalyticsService analytics = mock(AnalyticsService.class);
+        SearchResponse fake = SearchResponse.builder().query("iphone").totalResults(12).build();
+        when(catalog.search("iphone")).thenReturn(fake);
+
+        HttpServletRequest req = mock(HttpServletRequest.class);
+        when(req.getRemoteAddr()).thenReturn("203.0.113.5");
+
+        SearchController ctrl = new SearchController(catalog, analytics);
+        var resp = ctrl.search("iphone", "anon-id-123", req);
+
+        assertEquals(200, resp.getStatusCode().value());
+        assertNotNull(resp.getBody());
+        assertEquals(12, resp.getBody().getTotalResults());
+
+        ArgumentCaptor<String> ipCap = ArgumentCaptor.forClass(String.class);
+        verify(analytics).recordSearch(eq("iphone"), eq(12), eq("anon-id-123"), ipCap.capture());
+        assertEquals("203.0.113.5", ipCap.getValue());
+    }
+
+    @Test
+    void searchUsesXForwardedForWhenPresent() {
+        CatalogSearchService catalog = mock(CatalogSearchService.class);
+        AnalyticsService analytics = mock(AnalyticsService.class);
+        when(catalog.search(anyString())).thenReturn(SearchResponse.builder().totalResults(0).build());
+
+        HttpServletRequest req = mock(HttpServletRequest.class);
+        when(req.getHeader("X-Forwarded-For")).thenReturn("1.2.3.4, 5.6.7.8");
+
+        SearchController ctrl = new SearchController(catalog, analytics);
+        ctrl.search("x", null, req);
+
+        verify(analytics).recordSearch(eq("x"), eq(0), eq(null), eq("1.2.3.4"));
+    }
+}
