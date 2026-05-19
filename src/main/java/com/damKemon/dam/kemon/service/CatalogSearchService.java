@@ -125,24 +125,69 @@ public class CatalogSearchService {
         }
     }
 
+    /**
+     * Three-pass search to balance precision and recall:
+     *
+     * <ol>
+     *   <li>Mongo {@code $text} index — high precision, fast, ranks by tf-idf
+     *       across name + description. Whole-word match only.</li>
+     *   <li>Per-token regex {@code AND} — handles partial words ("tecno"
+     *       inside "Tecno Spark 30") that {@code $text} misses, and lets
+     *       multi-word queries combine. Results merged into the same pool.</li>
+     *   <li>Single-blob substring regex — last resort when neither matches.</li>
+     * </ol>
+     *
+     * <p>We always run pass 2 and merge with pass 1 so partial-prefix hits
+     * complement the text-index hits.
+     */
     private List<Product> textOrRegexSearch(String query) {
         if (query == null || query.isBlank()) return List.of();
         Pageable page = PageRequest.of(0, pageSize);
+
+        Map<String, Product> merged = new LinkedHashMap<>();
+
+        // Pass 1: Mongo $text
         try {
-            List<Product> hits = productRepository.textSearch(query, page);
-            if (!hits.isEmpty()) return hits;
-        } catch (DataAccessException e) {
-            log.debug("Mongo $text search failed ({}), falling back to regex", e.getMessage());
+            for (Product p : productRepository.textSearch(query, page)) {
+                if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
+            }
         } catch (Exception e) {
-            log.debug("Mongo $text search threw ({}), falling back to regex", e.getMessage());
+            log.debug("Mongo $text search failed ({}), continuing with regex", e.getMessage());
         }
-        // Fallback: case-insensitive regex on name. Slower but doesn't need the text index.
-        try {
-            return productRepository.findByNameContainingIgnoreCase(query);
-        } catch (DataAccessException e) {
-            log.warn("Catalog search: Mongo unreachable ({})", e.getMessage());
-            return List.of();
+
+        // Pass 2: per-token AND regex (so "tecno spark" matches "Tecno Spark 30")
+        List<String> tokens = tokens(normalise(query));
+        if (!tokens.isEmpty() && merged.size() < pageSize) {
+            try {
+                for (Product p : productRepository.findByNamePrefix(buildAndRegex(tokens), page)) {
+                    if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
+                }
+            } catch (Exception e) {
+                log.debug("Per-token regex failed: {}", e.getMessage());
+            }
         }
+
+        // Pass 3: case-insensitive substring on the raw query
+        if (merged.size() < pageSize) {
+            try {
+                for (Product p : productRepository.findByNameContainingIgnoreCase(query)) {
+                    if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
+                }
+            } catch (DataAccessException e) {
+                log.warn("Catalog search: Mongo unreachable ({})", e.getMessage());
+            }
+        }
+        return new ArrayList<>(merged.values());
+    }
+
+    /** Build a Mongo regex that requires every token to appear (in any order). */
+    private static String buildAndRegex(List<String> tokens) {
+        StringBuilder sb = new StringBuilder();
+        for (String t : tokens) {
+            sb.append("(?=.*").append(Pattern.quote(t)).append(")");
+        }
+        sb.append(".+");
+        return sb.toString();
     }
 
     private static double tokenCoverage(String name, List<String> queryTokens) {
