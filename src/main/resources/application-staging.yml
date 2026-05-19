@@ -1,0 +1,34 @@
+# Staging profile — activated with SPRING_PROFILES_ACTIVE=staging
+# Overlays application.yml. Anything not declared here inherits dev defaults.
+
+spring:
+  data:
+    mongodb:
+      auto-index-creation: true
+  cache:
+    caffeine:
+      # Shorter cache TTL in staging so changes show up quickly
+      spec: maximumSize=300,expireAfterWrite=30s,recordStats
+
+# Smaller indexer footprint — staging usually has fewer resources
+indexer:
+  global-parallelism: 16
+  per-host-parallelism: 2
+  max-products-per-shop: 100
+  max-urls-per-shop: 200
+  scheduled: true
+  # Keep the 03:00 cron but a different time avoids dev/prod overlap
+  cron: 0 30 3 * * *
+
+browser:
+  enabled: false       # staging usually runs without Chromium
+
+price-history:
+  enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.damKemon: DEBUG
+    org.springframework.web: INFO
+    org.mongodb.driver: WARN

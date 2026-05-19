@@ -1,6 +1,9 @@
-# Env (never commit — has secrets)
+# Env (never commit — has secrets).
+# Ignore every .env*, then re-allow the *.example templates.
 .env
-.env.local
+.env.*
+!.env.example
+!.env.*.example
 
 HELP.md
 .gradle

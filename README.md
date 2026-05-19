@@ -98,7 +98,7 @@ cp .env.example .env
 
 The app starts on **http://localhost:8080** and on first boot will:
 
-1. Load `shops.json` → upsert 60 shops into the `shops` collection.
+1. Load `shops.json` → upsert 70 shops into the `shops` collection.
 2. Create text indexes on `products.name` + `products.description`.
 3. Wait for either the nightly 03:00 cron or a manual `POST /api/admin/index/run`.
 
@@ -120,6 +120,39 @@ with politeness throttles). Subsequent runs are incremental (URL match
 curl 'http://localhost:8080/api/search?q=iphone+17'
 curl 'http://localhost:8080/api/search/suggest?q=iph'
 ```
+
+---
+
+## Environments
+
+Three Spring profiles + matching `.env` templates ship with the repo:
+
+| Profile | YAML overlay | Env template | Use for |
+|---|---|---|---|
+| _(default)_ | `application.yml` | `.env.example` | local dev with `./gradlew bootRun` |
+| `staging` | `application-staging.yml` | `.env.staging.example` | shared QA/staging box (lighter indexer, DEBUG logs, no Chromium) |
+| `production` | `application-production.yml` | `.env.production.example` | live (full-throttle indexer, Chromium for SPA shops, WARN root log) |
+
+Activate a profile via `SPRING_PROFILES_ACTIVE`:
+
+```bash
+# Staging
+cp .env.staging.example .env.staging
+# fill in MONGODB_URI etc.
+export $(cat .env.staging | xargs) && SPRING_PROFILES_ACTIVE=staging ./gradlew bootRun
+
+# Production (typically from a built jar in Docker / k8s)
+SPRING_PROFILES_ACTIVE=production java -jar build/libs/dam-kemon-backend-0.0.1-SNAPSHOT.jar
+```
+
+The profile-specific YAML overlays the dev defaults — anything not declared
+in `application-staging.yml` / `application-production.yml` falls through.
+Env vars always win over YAML, so secrets stay outside source control.
+
+**Never commit the populated `.env*` files** — `.gitignore` keeps every
+`.env*` except `.env.example` and `.env.*.example`. In production you should
+use a secrets manager (AWS / GCP / Vault) for `MONGODB_URI` rather than a
+file on disk.
 
 ---
 

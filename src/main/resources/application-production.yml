@@ -1,0 +1,36 @@
+# Production profile — activated with SPRING_PROFILES_ACTIVE=production
+# Overlays application.yml. Anything not declared here inherits dev defaults.
+
+spring:
+  data:
+    mongodb:
+      auto-index-creation: true
+  cache:
+    caffeine:
+      # Longer cache in prod — search load benefits from hot keys staying warm
+      spec: maximumSize=5000,expireAfterWrite=300s,recordStats
+
+# Full-throttle indexer — assumes a dedicated host with bandwidth headroom
+indexer:
+  global-parallelism: 64
+  per-host-parallelism: 3
+  max-products-per-shop: 500
+  max-urls-per-shop: 1500
+  per-extract-timeout-ms: 30000
+  scheduled: true
+  cron: 0 0 3 * * *
+  user-agent: "Mozilla/5.0 (compatible; DamKemonBot/1.0; +https://damkemon.com/bot)"
+
+browser:
+  enabled: true        # SPA shops (Daraz, Pickaboo, Aarong) need Playwright
+
+price-history:
+  enabled: true
+  snapshot-cron: 0 0 4 * * *
+
+logging:
+  level:
+    root: WARN
+    com.damKemon: INFO
+    org.springframework.web: WARN
+    org.mongodb.driver: ERROR
