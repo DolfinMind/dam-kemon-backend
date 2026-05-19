@@ -160,7 +160,7 @@ file on disk.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/api/search?q=...` | DB-first search; cached 60s |
+| `GET` | `/api/search?q=...` | DB-first search; cached 60s; rate-limited per IP |
 | `GET` | `/api/search/suggest?q=...&limit=8` | Autocomplete prefix matches |
 | `GET` | `/api/products` | Paginated catalog |
 | `GET` | `/api/products/{idOrSlug}` | Product detail (accepts ID or slug) |
@@ -168,9 +168,22 @@ file on disk.
 | `GET` | `/api/compare?ids=A,B,C` | Side-by-side spec table |
 | `GET` | `/api/sellers` | Facebook seller directory (manual) |
 | `GET` | `/api/dashboard/stats` | Catalog stats |
+| `GET` | `/api/stats/live` | Active anon users, searches in last 60s/24h |
+| `GET` | `/api/stats/trending?limit=10` | Top search terms in last 24h |
+| `GET` | `/api/stats/hot-drops?limit=12` | Products with current price ≥10% below 7-day peak |
+| `POST`| `/api/events/view` | Anon product-view beacon (no PII) |
+| `POST`| `/api/events/click` | Anon outbound-seller-click beacon |
+| `POST`| `/api/shops/submit` | Public shop submission → `pending_shops` |
 | `POST`| `/api/admin/index/run` | Kick off nightly indexer manually |
+| `POST`| `/api/admin/index/retry` | Re-fire just the shops with `needsRetry=true` |
+| `POST`| `/api/admin/index/shop/{slug}` | Re-index a single shop |
 | `GET` | `/api/admin/index/status` | Last/current indexer run summary |
-| `GET` | `/api/admin/shops` | All shops + per-shop last-indexed stats |
+| `GET` | `/api/admin/shops` | All shops + per-shop health, recent runs, stats |
+| `POST`| `/api/admin/shops/{slug}/status` | Operator override of shop status |
+| `GET` | `/api/admin/pending-shops` | Awaiting-review submissions |
+| `POST`| `/api/admin/pending-shops/{id}/approve` | Promote to `shops` collection |
+| `POST`| `/api/admin/pending-shops/{id}/reject` | Reject with optional note |
+| `POST`| `/api/admin/hot-drops/rebuild` | Manual hot-drops rebuild |
 | `POST`| `/api/scrape` | Legacy — now just triggers the indexer |
 | `GET` | `/actuator/health` | Liveness + readiness (Mongo connectivity) |
 | `GET` | `/actuator/info` | App name + version |
@@ -273,11 +286,11 @@ What's left to make this an honest product, ordered by impact.
 
 | | Item | Notes |
 |---|---|---|
-| ⬜ | **Admin console** (separate from public `/dashboard`) at `/admin` | Operator-only UI. Sits behind the `X-Admin-Key` gate. See "Admin console scope" below. |
-| ⬜ | Per-shop quality scoring | Roll the last 7 runs of `lastIndexedCount` + `lastError` into an `active / degraded / dormant` score; auto-disable shops failing 3 runs in a row. |
-| ⬜ | Retry queue for partial shops | Daraz, Dazzle and Aarong time out on first crawl; should re-fire in a background retry pass instead of waiting for next nightly. |
-| ⬜ | Shop-discovery crawler | Walk `e-cab.com.bd` / BASIS member lists / Daraz seller pages → propose new shops into a `pending_shops` collection for human review. |
-| ⬜ | "Submit your shop" public form | Shop owner pastes base URL + sitemap; we test-crawl, show preview, queue for admin approval. |
+| ⬜ | **Admin console** (separate from public `/dashboard`) at `/admin` | Operator-only UI. Sits behind the `X-Admin-Key` gate. See "Admin console scope" below. Backend endpoints shipped; UI still TODO. |
+| ✅ | Per-shop quality scoring | Last 7 runs roll into `active / degraded / dormant` on each `Shop`. Auto-disable after 3 consecutive failures. |
+| ✅ | Retry queue for partial shops | Shops that failed or returned 0 products are flagged `needsRetry=true` and re-fired by `POST /api/admin/index/retry` (and a 04:00 cron pass). |
+| ⬜ | Shop-discovery crawler | Walk `e-cab.com.bd` / BASIS member lists / Daraz seller pages → propose new shops into the `pending_shops` collection for human review. |
+| ✅ | "Submit your shop" public form | `POST /api/shops/submit` writes to `pending_shops`; admin approves/rejects via `POST /api/admin/pending-shops/{id}/approve\|reject`. Frontend page at `/submit-shop`. |
 | ⬜ | Price-history visualisation | The daily snapshot already writes to `price_history`; need a per-product line chart endpoint + frontend chart that handles missing days. |
 | ⬜ | Drop the search-time `$text` index requirement | Switch to Mongo Atlas Search (free tier supports it) for typo tolerance, synonyms, n-gram autocomplete. |
 | ⬜ | F-commerce onboarding | Manual flow: shop owner submits Facebook page URL + product CSV; we render their listings inline. Skip scraping (Facebook ToS). |
@@ -290,19 +303,19 @@ These are the user-traffic features you mentioned. None are wired yet.
 
 | | Item | Where |
 |---|---|---|
-| ⬜ | `search_event { query, totalResults, ts, anonId }` | New `events` collection. Write on every `/api/search` hit. |
-| ⬜ | `click_event { productId, sellerSlug, anonId, ts }` | Fire from the per-seller chip on `SearchProductCard` (`navigator.sendBeacon`). |
-| ⬜ | `view_event { productId, anonId, ts }` | ProductDetail page mount. |
-| ⬜ | Anonymous user id | First visit sets a `localStorage` UUID — no PII tied to it, just lets us count uniques without auth. |
-| ⬜ | Server-side rate limiter | Token bucket per IP on `/api/search`, `/api/search/suggest`. Cap public access so the indexer's nightly hit budget isn't blown by scrapers. |
+| ✅ | `search_event { query, totalResults, ts, anonId }` | `events` collection. Async write on every `/api/search` hit, TTL 30d. |
+| ✅ | `click_event { productId, sellerSlug, anonId, ts }` | `POST /api/events/click` from `SearchProductCard` + `PriceComparisonTable` via `sendBeacon`. |
+| ✅ | `view_event { productId, anonId, ts }` | `POST /api/events/view` fired on ProductDetail mount. |
+| ✅ | Anonymous user id | `localStorage` UUID, sent on every request via `X-Anon-Id` header. |
+| ✅ | Server-side rate limiter | In-memory token bucket per IP on `/api/search*` — `RATE_LIMIT_CAPACITY` / `RATE_LIMIT_REFILL_PER_SEC` envs. |
 
 **Live counters on the public site** (driven by the event collection):
 
 | | Item | Behaviour |
 |---|---|---|
-| ⬜ | "X users searching now" pill on Home | Window of `search_event`s in the last 60 seconds, distinct `anonId` count. Refresh every 5s via `GET /api/stats/live`. |
-| ⬜ | Trending searches | Top 10 search terms in the last 24 h with click-through > 30%, surfaced on Home + as autosuggest seed when input is empty. |
-| ⬜ | "Hot drops" feed | Products whose `min(lowestPrice over last 7 days) > current lowestPrice * 1.10`. Backend job rolls this nightly into `hot_drops`. |
+| ✅ | "X users searching now" pill on Home | Distinct `anonId` count of search events in the last 60s, served from `GET /api/stats/live`. |
+| ✅ | Trending searches | Top search terms in the last 24h with hit counts, surfaced as `TrendingStrip` on Home. `GET /api/stats/trending`. |
+| ✅ | "Hot drops" feed | Products whose current `lowestPrice` is ≥10% below the 7-day peak. Rebuilt nightly at 05:00. `GET /api/stats/hot-drops`. |
 | ⬜ | "Recently viewed" rail | Per-`anonId` last 8 `view_event`s, render on Home for returning visitors. |
 
 **Operator-facing counters** (in the admin console):

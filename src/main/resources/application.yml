@@ -18,6 +18,9 @@ spring:
     cache-names:
       - search
       - dashboard-stats
+      - live-stats
+      - trending-searches
+      - hot-drops
     caffeine:
       spec: maximumSize=500,expireAfterWrite=60s,recordStats
 
@@ -71,6 +74,13 @@ cors:
 # and production. Rotate via secrets manager. 32+ chars recommended.
 admin:
   api-key: ${ADMIN_API_KEY:}
+
+# ───── Per-IP rate limit on /api/search* ─────
+# Token bucket: capacity tokens, refilled at refill-per-sec tokens/sec.
+# Defaults ≈ 60 req/min sustained per IP, brief burst to 60.
+ratelimit:
+  capacity: ${RATE_LIMIT_CAPACITY:60}
+  refill-per-sec: ${RATE_LIMIT_REFILL_PER_SEC:1.0}
 
 # ───── Spring Boot Actuator (health, info) ─────
 management:

@@ -49,6 +49,17 @@ public class SecurityConfig {
     @Value("${cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;
 
+    @Value("${ratelimit.capacity:60}")
+    private long rateLimitCapacity;
+
+    @Value("${ratelimit.refill-per-sec:1.0}")
+    private double rateLimitRefillPerSec;
+
+    @Bean
+    public RateLimiter searchRateLimiter() {
+        return new RateLimiter(rateLimitCapacity, rateLimitRefillPerSec);
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         if (adminApiKey == null || adminApiKey.isBlank()) {
@@ -62,6 +73,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            .addFilterBefore(new RateLimitFilter(searchRateLimiter()),
+                    UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new AdminKeyFilter(adminApiKey),
                     UsernamePasswordAuthenticationFilter.class);
         return http.build();
@@ -75,7 +88,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("X-Admin-Key"));
+        configuration.setExposedHeaders(List.of("X-Admin-Key", "X-Anon-Id"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

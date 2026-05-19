@@ -40,4 +40,22 @@ public class IndexingScheduler {
             log.error("Indexer scheduler crashed", e);
         }
     }
+
+    /**
+     * One hour after the full run, re-fire the indexer just for shops that
+     * failed or returned no products. Picks up Daraz/Aarong-style timeouts
+     * that would otherwise wait 24h for the next nightly.
+     */
+    @Scheduled(cron = "${indexer.retry-cron:0 0 4 * * *}")
+    public void retryPass() {
+        if (!enabled) return;
+        log.info("Indexer retry pass firing");
+        try {
+            BulkIndexer.RunSummary s = indexer.runRetry();
+            log.info("Indexer retry finished: shops={}/{} urls={} inserted={} merged={}",
+                    s.shopsSucceeded, s.shopsAttempted, s.urlsScraped, s.productsInserted, s.productsMerged);
+        } catch (Exception e) {
+            log.error("Indexer retry crashed", e);
+        }
+    }
 }

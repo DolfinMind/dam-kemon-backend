@@ -82,6 +82,43 @@ public class Shop {
     /** Most recent error message, if {@code status == "blocked"}. */
     private String lastError;
 
+    /**
+     * Sliding window of the last 7 runs (most recent first). Drives the
+     * health score and auto-disable rule. Capped at 7 entries.
+     */
+    @Builder.Default
+    private List<RunStat> recentRuns = new ArrayList<>();
+
+    /**
+     * Rolled-up health from {@link #recentRuns}: "active", "degraded",
+     * "dormant", "blocked". {@link #status} stays operator-controlled;
+     * this field is recomputed every run.
+     */
+    @Builder.Default
+    private String health = "active";
+
+    /**
+     * Consecutive failed runs. Reset to 0 on any success. Used to trigger
+     * the retry queue + auto-disable after 3 in a row.
+     */
+    @Builder.Default
+    private Integer consecutiveFailures = 0;
+
+    /** True when this shop should be retried in the next retry pass. */
+    @Builder.Default
+    private Boolean needsRetry = false;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    /** One row of the sliding window in {@link #recentRuns}. */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class RunStat {
+        private LocalDateTime at;
+        private Integer count;
+        private String error;
+    }
 }

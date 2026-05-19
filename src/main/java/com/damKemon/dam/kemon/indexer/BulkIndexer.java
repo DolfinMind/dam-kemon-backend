@@ -10,6 +10,7 @@ import com.damKemon.dam.kemon.repository.ShopRepository;
 import com.damKemon.dam.kemon.scraper.ExtractorRegistry;
 import com.damKemon.dam.kemon.scraper.ProductExtractor;
 import com.damKemon.dam.kemon.scraper.ScrapedProduct;
+import com.damKemon.dam.kemon.service.ShopHealthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,6 +63,7 @@ public class BulkIndexer {
     private final HomepageCrawler homepageCrawler;
     private final ExtractorRegistry extractors;
     private final QueryClassifier classifier;
+    private final ShopHealthService shopHealth;
 
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
@@ -83,13 +85,15 @@ public class BulkIndexer {
                        SitemapCrawler sitemapCrawler,
                        HomepageCrawler homepageCrawler,
                        ExtractorRegistry extractors,
-                       QueryClassifier classifier) {
+                       QueryClassifier classifier,
+                       ShopHealthService shopHealth) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
         this.homepageCrawler = homepageCrawler;
         this.extractors = extractors;
         this.classifier = classifier;
+        this.shopHealth = shopHealth;
     }
 
     /** Snapshot of the latest indexer run, surfaced by the admin endpoint. */
@@ -164,11 +168,13 @@ public class BulkIndexer {
                     shop.setLastIndexedAt(LocalDateTime.now());
                     shop.setLastIndexedCount(got);
                     shop.setLastError(null);
+                    shopHealth.recordRun(shop, got, got == 0 ? "no products extracted" : null);
                     safeSave(shop);
                     succeeded.incrementAndGet();
                 } catch (Exception e) {
                     log.warn("Indexer: shop '{}' failed: {}", shop.getSlug(), e.getMessage());
                     shop.setLastError(e.getMessage());
+                    shopHealth.recordRun(shop, 0, e.getMessage());
                     safeSave(shop);
                     failed.incrementAndGet();
                 }
@@ -199,6 +205,97 @@ public class BulkIndexer {
                 summary.shopsSucceeded, summary.shopsAttempted, summary.shopsFailed,
                 summary.urlsScraped, summary.productsInserted, summary.productsMerged,
                 (summary.finishedAtEpochMs - summary.startedAtEpochMs) / 1000);
+        return summary;
+    }
+
+    /**
+     * Re-index just the shops whose previous run failed or returned 0 URLs.
+     * Cheaper than waiting for the next nightly full pass.
+     */
+    public RunSummary runRetry() {
+        List<Shop> retryShops = shopHealth.shopsNeedingRetry();
+        if (retryShops.isEmpty()) {
+            log.info("Indexer: retry pass — no shops queued");
+            RunSummary empty = new RunSummary();
+            empty.startedAtEpochMs = System.currentTimeMillis();
+            empty.finishedAtEpochMs = empty.startedAtEpochMs;
+            return empty;
+        }
+        log.info("Indexer: retry pass over {} shops", retryShops.size());
+        return runSubset(retryShops);
+    }
+
+    /** Synchronously re-index a single shop by slug. */
+    public int runOne(String slug) {
+        Shop shop;
+        try { shop = shopRepository.findBySlug(slug).orElse(null); }
+        catch (DataAccessException e) {
+            log.warn("Indexer: runOne lookup failed for {}: {}", slug, e.getMessage());
+            return 0;
+        }
+        if (shop == null) {
+            log.warn("Indexer: runOne — unknown shop slug '{}'", slug);
+            return 0;
+        }
+        runSubset(List.of(shop));
+        return shop.getLastIndexedCount() == null ? 0 : shop.getLastIndexedCount();
+    }
+
+    private RunSummary runSubset(List<Shop> shops) {
+        RunSummary summary = new RunSummary();
+        summary.startedAtEpochMs = System.currentTimeMillis();
+        summary.inProgress = true;
+        summary.shopsAttempted = shops.size();
+
+        MinHashLSH lsh = new MinHashLSH();
+        warmLsh(lsh);
+
+        ConcurrentHashMap<String, Semaphore> hostLocks = new ConcurrentHashMap<>();
+        ExecutorService pool = Executors.newFixedThreadPool(Math.max(2, Math.min(globalParallelism, shops.size() * 4)));
+        AtomicInteger inserted = new AtomicInteger();
+        AtomicInteger merged = new AtomicInteger();
+        AtomicInteger urlsTotal = new AtomicInteger();
+        AtomicInteger succeeded = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
+
+        List<java.util.concurrent.CompletableFuture<Void>> futures = new ArrayList<>(shops.size());
+        for (Shop shop : shops) {
+            futures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
+                try {
+                    int got = indexShop(shop, pool, hostLocks, lsh, inserted, merged);
+                    urlsTotal.addAndGet(got);
+                    shop.setLastIndexedAt(LocalDateTime.now());
+                    shop.setLastIndexedCount(got);
+                    shop.setLastError(null);
+                    shopHealth.recordRun(shop, got, got == 0 ? "no products extracted" : null);
+                    safeSave(shop);
+                    succeeded.incrementAndGet();
+                } catch (Exception e) {
+                    log.warn("Indexer: shop '{}' retry failed: {}", shop.getSlug(), e.getMessage());
+                    shop.setLastError(e.getMessage());
+                    shopHealth.recordRun(shop, 0, e.getMessage());
+                    safeSave(shop);
+                    failed.incrementAndGet();
+                }
+            }, pool));
+        }
+        try {
+            java.util.concurrent.CompletableFuture.allOf(futures.toArray(new java.util.concurrent.CompletableFuture[0]))
+                    .get(20, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            log.warn("Indexer: subset wait timed out ({})", e.getClass().getSimpleName());
+        }
+        pool.shutdown();
+        try { pool.awaitTermination(1, TimeUnit.MINUTES); }
+        catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+
+        summary.shopsSucceeded = succeeded.get();
+        summary.shopsFailed = failed.get();
+        summary.productsInserted = inserted.get();
+        summary.productsMerged = merged.get();
+        summary.urlsScraped = urlsTotal.get();
+        summary.finishedAtEpochMs = System.currentTimeMillis();
+        summary.inProgress = false;
         return summary;
     }
 
