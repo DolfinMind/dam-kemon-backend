@@ -52,9 +52,9 @@ indexer:
 # ───── Search behaviour ─────
 search:
   page-size: ${SEARCH_PAGE_SIZE:30}
-  # Atlas Search ($search aggregation). Requires an Atlas cluster with an
-  # Atlas Search index named below. Falls back to $text when disabled or
-  # the index doesn't exist.
+  # Atlas Search ($search aggregation). Requires a Mongo Atlas cluster with
+  # an Atlas Search index named below. Falls back to $text when disabled or
+  # the index doesn't exist — no external service requirement.
   atlas-enabled: ${SEARCH_ATLAS_ENABLED:false}
   atlas-index: ${SEARCH_ATLAS_INDEX:default}
 
@@ -74,27 +74,9 @@ price-history:
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 
-# ───── Sentry — backend exceptions ─────
-# Leave dsn blank to disable. When set, every unhandled exception + a slice
-# of traces will report to Sentry.
-sentry:
-  dsn: ${SENTRY_DSN:}
-  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
-  environment: ${SENTRY_ENV:dev}
-  send-default-pii: false
-
-# ───── Mongo → S3 nightly backup ─────
-# Leave s3-bucket blank to disable. With it set, AWS SDK picks up creds
-# from the standard chain (env vars, IAM role, ~/.aws/credentials).
-backup:
-  s3-bucket: ${BACKUP_S3_BUCKET:}
-  s3-prefix: ${BACKUP_S3_PREFIX:damkemon-backup}
-  s3-region: ${BACKUP_S3_REGION:us-east-1}
-  cron: ${BACKUP_CRON:0 0 2 * * *}
-
 # ───── Admin endpoints lockdown ─────
-# Leave blank in dev (admin endpoints stay open). MUST be set in staging
-# and production. Rotate via secrets manager. 32+ chars recommended.
+# Leave blank in dev (admin endpoints stay open with a WARN log). MUST be set
+# in staging and production. 32+ chars recommended (openssl rand -hex 24).
 admin:
   api-key: ${ADMIN_API_KEY:}
 
@@ -107,39 +89,19 @@ ratelimit:
 
 # ───── Fixed-credential owner sign-in ─────
 # The owner signs in with this username + password via POST /api/auth/login.
-# Override both env vars in staging+prod. The password is BCrypt-hashed
-# at boot before anything reaches Mongo, never stored raw.
+# Override both env vars in staging+prod. The password is BCrypt-hashed at
+# boot before anything reaches Mongo, never stored raw.
 owner:
   username: "${OWNER_USERNAME:ssm@2026}"
   password: "${OWNER_PASSWORD:$Sm7406.2025}"
   email: "${OWNER_EMAIL:}"
 
-# ───── User accounts (magic-link sign-in) ─────
+# ───── JWT session signing ─────
+# Used to sign the bearer token issued by POST /api/auth/login. No external
+# service — HMAC-SHA256 with this secret. 32+ chars in prod.
 auth:
-  # 32+ char random string — used as the HMAC secret for JWTs. MUST be set in prod.
   jwt-secret: ${AUTH_JWT_SECRET:}
   jwt-ttl-days: ${AUTH_JWT_TTL_DAYS:30}
-  # Where the magic link points back to (the SPA verify page reads ?email=&token=).
-  web-url: ${AUTH_WEB_URL:http://localhost:5173}
-  from-email: ${AUTH_FROM_EMAIL:no-reply@damkemon.com}
-  # Dev convenience: returns the raw token in /api/auth/request-link response
-  # so you can sign in without an SMTP server. NEVER true in staging/prod.
-  dev-expose-token: ${AUTH_DEV_EXPOSE_TOKEN:false}
-
-# ───── SMTP for magic-link + price-drop emails ─────
-# Leave host blank to log emails to stdout instead. Works out of the box
-# with Gmail (host=smtp.gmail.com port=587, app password as password).
-spring.mail:
-  host: ${SMTP_HOST:}
-  port: ${SMTP_PORT:587}
-  username: ${SMTP_USER:}
-  password: ${SMTP_PASS:}
-  properties.mail.smtp.starttls.enable: true
-  properties.mail.smtp.auth: true
-
-# ───── Saved-search price-drop alert ─────
-saved-search:
-  alert-cron: ${SAVED_SEARCH_ALERT_CRON:0 30 5 * * *}
 
 # ───── Hot-drops rebuild ─────
 hot-drops:

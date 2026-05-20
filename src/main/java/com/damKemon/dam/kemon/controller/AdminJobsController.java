@@ -3,7 +3,6 @@ package com.damKemon.dam.kemon.controller;
 import com.damKemon.dam.kemon.indexer.BulkIndexer;
 import com.damKemon.dam.kemon.indexer.ShopDiscoveryService;
 import com.damKemon.dam.kemon.service.HotDropsService;
-import com.damKemon.dam.kemon.service.SavedSearchAlertScheduler;
 import com.damKemon.dam.kemon.service.SyntheticMonitorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +31,6 @@ public class AdminJobsController {
     private final BulkIndexer indexer;
     private final ShopDiscoveryService discovery;
     private final HotDropsService hotDrops;
-    private final SavedSearchAlertScheduler savedSearchAlerts;
     private final SyntheticMonitorService synthetic;
 
     /** id → ring-buffer of last N run timestamps (manual only). */
@@ -42,12 +40,10 @@ public class AdminJobsController {
     public AdminJobsController(BulkIndexer indexer,
                                ShopDiscoveryService discovery,
                                HotDropsService hotDrops,
-                               SavedSearchAlertScheduler savedSearchAlerts,
                                SyntheticMonitorService synthetic) {
         this.indexer = indexer;
         this.discovery = discovery;
         this.hotDrops = hotDrops;
-        this.savedSearchAlerts = savedSearchAlerts;
         this.synthetic = synthetic;
     }
 
@@ -62,8 +58,8 @@ public class AdminJobsController {
                         "Writes per-shop current price into price_history"),
                 jobRow("hot-drops-rebuild", "Hot-drops rebuild", "0 0 5 * * *",
                         "Recomputes products with ≥10% drop vs 7d peak"),
-                jobRow("saved-search-alerts", "Saved-search alerts", "0 30 5 * * *",
-                        "Emails users whose saved-search cheapest price dropped"),
+                jobRow("shop-discovery", "Shop discovery", "manual",
+                        "Walks e-cab + BASIS, queues new shops into pending_shops"),
                 jobRow("synthetic-monitor", "Synthetic search canary", "every 15 min",
                         "Runs sample queries; flips /actuator/health/synthetic")
         ));
@@ -78,7 +74,6 @@ public class AdminJobsController {
                     case "indexer-retry" -> indexer.runRetry();
                     case "shop-discovery" -> discovery.discover();
                     case "hot-drops-rebuild" -> hotDrops.rebuild();
-                    case "saved-search-alerts" -> savedSearchAlerts.run();
                     case "synthetic-monitor" -> synthetic.run();
                     default -> {
                         log.warn("AdminJobs: unknown job '{}'", id);

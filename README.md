@@ -185,10 +185,9 @@ file on disk.
 | `POST`| `/api/admin/pending-shops/{id}/reject` | Reject with optional note |
 | `POST`| `/api/admin/hot-drops/rebuild` | Manual hot-drops rebuild |
 | `POST`| `/api/scrape` | Legacy — now just triggers the indexer |
-| `POST`| `/api/auth/login` | Fixed-credential owner sign-in — `{username, password}` → 30d admin JWT |
-| `POST`| `/api/auth/request-link` | Email-magic-link sign-in start (rate-limited per email) |
-| `POST`| `/api/auth/verify` | Exchange `{email, token}` for a 30d JWT |
+| `POST`| `/api/auth/login` | Fixed-credential owner sign-in — `{username, password}` → 30d JWT |
 | `GET` | `/api/auth/me` | Current signed-in user from `Authorization: Bearer …` |
+| `POST`| `/api/auth/sign-out` | Client-side token drop (JWTs are self-contained) |
 | `GET` | `/api/account/saved-searches` | Per-user saved searches |
 | `POST`| `/api/account/saved-searches` | Save a new search to alert on |
 | `GET` | `/api/account/wishlist` | Per-user wishlist with hydrated products |
@@ -389,10 +388,8 @@ flow or the magic-link flow) or the legacy `X-Admin-Key` header.
 
 | | Item |
 |---|---|
-| ✅ | Owner sign-in via fixed `OWNER_USERNAME` / `OWNER_PASSWORD`. BCrypt-hashed at boot; never written raw. `POST /api/auth/login` issues a 30d admin JWT. |
-| ✅ | Magic-link sign-in for regular users (no passwords). Auto-creates accounts on first verify. |
+| ✅ | Owner sign-in via fixed `OWNER_USERNAME` / `OWNER_PASSWORD`. BCrypt-hashed at boot; never written raw. `POST /api/auth/login` issues a 30d JWT. Only auth path — no email, no OAuth, fully self-contained. |
 | ✅ | Saved searches — `/api/account/saved-searches`, surfaced on `/account` |
-| ✅ | Price-drop alerts via email (daily cron diffs current vs `lastSeenLowest`) |
 | ✅ | Wishlist — per-user, with heart toggle on ProductDetail |
 | ✅ | Per-user search history — `/api/account/search-history` populated when signed in, last 30 days |
 
@@ -410,12 +407,13 @@ flow or the magic-link flow) or the legacy `X-Admin-Key` header.
 
 ### Operational hardening (cross-cutting)
 
+This product is intentionally self-contained: zero external integrations
+beyond Mongo and the shop CDNs it crawls. No SMTP, no S3, no APM, no log
+aggregators. Add those when you have the team to operate them.
+
 | | Item |
 |---|---|
-| ✅ | Backup MongoDB Atlas nightly to S3 (`MongoBackupService`, gzipped JSONL per collection; no-op without `BACKUP_S3_BUCKET`) |
-| ✅ | Sentry wired via `spring-boot-starter-sentry-jakarta`; no-op until `SENTRY_DSN` is set |
 | ✅ | Per-IP rate limit on `/api/search*` (in-memory token bucket — see `RateLimiter`) |
 | ✅ | `/actuator/health` includes a `synthetic` indicator that flips DOWN when canary searches regress |
-| ✅ | Structured JSON logging in `production` profile via `logback-spring.xml` — Loki/Datadog ready, stdout-scrape friendly |
 | ✅ | Synthetic monitoring fires every 15 min over multiple canary queries |
-| ✅ | JUnit + Mockito coverage for `JwtService`, `AuthService`, `ShopHealthService`, `RateLimiter`, `SearchController`, `SubmitShopController` |
+| ✅ | JUnit + Mockito coverage for `JwtService`, `ShopHealthService`, `RateLimiter`, `SearchController`, `SubmitShopController` |
