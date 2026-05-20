@@ -28,8 +28,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.jsoup:jsoup:1.18.3'
 
-	// Jackson — JSON-LD parsing in GenericProductExtractor
+	// Jackson — JSON-LD parsing in GenericProductExtractor + JSR310 for backups
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
 	// Caffeine — in-process cache used for /api/search response caching
 	implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
@@ -47,6 +48,13 @@ dependencies {
 
 	// Sentry (optional). No-op when SENTRY_DSN is unset.
 	implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.16.0'
+
+	// AWS S3 — nightly Mongo backups. No-op when BACKUP_S3_BUCKET is unset.
+	implementation platform('software.amazon.awssdk:bom:2.28.6')
+	implementation 'software.amazon.awssdk:s3'
+
+	// Structured JSON logging for Loki / Datadog ingestion.
+	implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
 
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'

@@ -31,6 +31,17 @@ public class User {
     @Indexed(unique = true)
     private String email;
 
+    /**
+     * Optional username for fixed-credential operators. Distinct from
+     * {@link #email}: the owner signs in with this and a password instead
+     * of the magic-link flow regular users get.
+     */
+    @Indexed(unique = true, sparse = true)
+    private String username;
+
+    /** BCrypt hash of the owner's password. Null for magic-link-only users. */
+    private String passwordHash;
+
     private String displayName;
 
     /** "user" | "admin" */

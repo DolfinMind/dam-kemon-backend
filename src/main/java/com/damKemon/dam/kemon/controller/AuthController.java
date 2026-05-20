@@ -8,6 +8,7 @@ import com.damKemon.dam.kemon.service.MagicLinkMailer;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -33,6 +34,7 @@ public class AuthController {
     private final JwtService jwt;
     private final MagicLinkMailer mailer;
     private final UserRepository users;
+    private final BCryptPasswordEncoder hasher = new BCryptPasswordEncoder();
 
     public AuthController(AuthService auth, JwtService jwt, MagicLinkMailer mailer, UserRepository users) {
         this.auth = auth;
@@ -40,6 +42,39 @@ public class AuthController {
         this.mailer = mailer;
         this.users = users;
     }
+
+    /**
+     * Fixed-credential sign-in for the owner. Magic-link is still available
+     * for regular users; this is the dedicated operator path.
+     */
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> body) {
+        if (body == null) return ResponseEntity.badRequest().body(Map.of("error", "missing body"));
+        String username = trim(body.get("username"));
+        String password = body.get("password");
+        if (username == null || password == null || password.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "username and password required"));
+        }
+        try {
+            User u = users.findByUsername(username).orElse(null);
+            if (u == null || u.getPasswordHash() == null || !hasher.matches(password, u.getPasswordHash())) {
+                // Constant-ish response time + opaque message — no user enumeration leak.
+                return ResponseEntity.status(401).body(Map.of("error", "invalid credentials"));
+            }
+            u.setLastLoginAt(java.time.LocalDateTime.now());
+            try { users.save(u); } catch (DataAccessException ignored) {}
+
+            String token = jwt.issue(u.getId(), u.getEmail(), u.getRole());
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("token", token);
+            out.put("user", publicProfile(u));
+            return ResponseEntity.ok(out);
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "could not sign in"));
+        }
+    }
+
+    private static String trim(String s) { return s == null ? null : s.trim(); }
 
     @PostMapping("/request-link")
     public ResponseEntity<Map<String, Object>> requestLink(@RequestBody Map<String, String> body) {

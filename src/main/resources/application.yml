@@ -83,6 +83,15 @@ sentry:
   environment: ${SENTRY_ENV:dev}
   send-default-pii: false
 
+# ───── Mongo → S3 nightly backup ─────
+# Leave s3-bucket blank to disable. With it set, AWS SDK picks up creds
+# from the standard chain (env vars, IAM role, ~/.aws/credentials).
+backup:
+  s3-bucket: ${BACKUP_S3_BUCKET:}
+  s3-prefix: ${BACKUP_S3_PREFIX:damkemon-backup}
+  s3-region: ${BACKUP_S3_REGION:us-east-1}
+  cron: ${BACKUP_CRON:0 0 2 * * *}
+
 # ───── Admin endpoints lockdown ─────
 # Leave blank in dev (admin endpoints stay open). MUST be set in staging
 # and production. Rotate via secrets manager. 32+ chars recommended.
@@ -95,6 +104,15 @@ admin:
 ratelimit:
   capacity: ${RATE_LIMIT_CAPACITY:60}
   refill-per-sec: ${RATE_LIMIT_REFILL_PER_SEC:1.0}
+
+# ───── Fixed-credential owner sign-in ─────
+# The owner signs in with this username + password via POST /api/auth/login.
+# Override both env vars in staging+prod. The password is BCrypt-hashed
+# at boot before anything reaches Mongo, never stored raw.
+owner:
+  username: "${OWNER_USERNAME:ssm@2026}"
+  password: "${OWNER_PASSWORD:$Sm7406.2025}"
+  email: "${OWNER_EMAIL:}"
 
 # ───── User accounts (magic-link sign-in) ─────
 auth:
