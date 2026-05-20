@@ -55,6 +55,13 @@ public class AnalyticsEvent {
     @Indexed
     private String anonId;
 
+    /** Authenticated user id, populated only for signed-in users. */
+    @Indexed
+    private String userId;
+
+    /** Search latency in milliseconds (only set for type=search). */
+    private Long latencyMs;
+
     /** Rough hash of the client IP, only used for rate-limiter audit. */
     private String ipHash;
 

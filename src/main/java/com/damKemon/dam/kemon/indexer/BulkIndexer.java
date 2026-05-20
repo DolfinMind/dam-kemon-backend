@@ -2,15 +2,18 @@ package com.damKemon.dam.kemon.indexer;
 
 import com.damKemon.dam.kemon.intelligence.MinHashLSH;
 import com.damKemon.dam.kemon.intelligence.QueryClassifier;
+import com.damKemon.dam.kemon.model.IndexerRunRecord;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.Shop;
 import com.damKemon.dam.kemon.model.SitePrice;
+import com.damKemon.dam.kemon.repository.IndexerRunRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
 import com.damKemon.dam.kemon.scraper.ExtractorRegistry;
 import com.damKemon.dam.kemon.scraper.ProductExtractor;
 import com.damKemon.dam.kemon.scraper.ScrapedProduct;
 import com.damKemon.dam.kemon.service.ShopHealthService;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,6 +67,7 @@ public class BulkIndexer {
     private final ExtractorRegistry extractors;
     private final QueryClassifier classifier;
     private final ShopHealthService shopHealth;
+    private final IndexerRunRepository indexerRunRepository;
 
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
@@ -86,7 +90,8 @@ public class BulkIndexer {
                        HomepageCrawler homepageCrawler,
                        ExtractorRegistry extractors,
                        QueryClassifier classifier,
-                       ShopHealthService shopHealth) {
+                       ShopHealthService shopHealth,
+                       IndexerRunRepository indexerRunRepository) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
@@ -94,6 +99,28 @@ public class BulkIndexer {
         this.extractors = extractors;
         this.classifier = classifier;
         this.shopHealth = shopHealth;
+        this.indexerRunRepository = indexerRunRepository;
+    }
+
+    private void persistRunRecord(String kind, RunSummary s) {
+        try {
+            long secs = (s.finishedAtEpochMs - s.startedAtEpochMs) / 1000;
+            indexerRunRepository.save(IndexerRunRecord.builder()
+                    .kind(kind)
+                    .shopsAttempted(s.shopsAttempted)
+                    .shopsSucceeded(s.shopsSucceeded)
+                    .shopsFailed(s.shopsFailed)
+                    .urlsScraped(s.urlsScraped)
+                    .productsInserted(s.productsInserted)
+                    .productsMerged(s.productsMerged)
+                    .startedAt(Instant.ofEpochMilli(s.startedAtEpochMs))
+                    .finishedAt(Instant.ofEpochMilli(s.finishedAtEpochMs))
+                    .tookSeconds(secs)
+                    .expireAt(Instant.ofEpochMilli(s.finishedAtEpochMs).plusSeconds(60L * 60 * 24 * 90))
+                    .build());
+        } catch (Exception e) {
+            log.debug("IndexerRunRecord persist failed: {}", e.getMessage());
+        }
     }
 
     /** Snapshot of the latest indexer run, surfaced by the admin endpoint. */
@@ -205,6 +232,7 @@ public class BulkIndexer {
                 summary.shopsSucceeded, summary.shopsAttempted, summary.shopsFailed,
                 summary.urlsScraped, summary.productsInserted, summary.productsMerged,
                 (summary.finishedAtEpochMs - summary.startedAtEpochMs) / 1000);
+        persistRunRecord("full", summary);
         return summary;
     }
 
@@ -296,6 +324,7 @@ public class BulkIndexer {
         summary.urlsScraped = urlsTotal.get();
         summary.finishedAtEpochMs = System.currentTimeMillis();
         summary.inProgress = false;
+        persistRunRecord(shops.size() == 1 ? "single" : "retry", summary);
         return summary;
     }
 

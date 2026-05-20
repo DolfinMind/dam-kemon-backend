@@ -4,9 +4,11 @@ import com.damKemon.dam.kemon.indexer.BulkIndexer;
 import com.damKemon.dam.kemon.indexer.BulkIndexer.RunSummary;
 import com.damKemon.dam.kemon.indexer.ShopDiscoveryService;
 import com.damKemon.dam.kemon.model.AuditLogEntry;
+import com.damKemon.dam.kemon.model.IndexerRunRecord;
 import com.damKemon.dam.kemon.model.PendingShop;
 import com.damKemon.dam.kemon.model.Shop;
 import com.damKemon.dam.kemon.repository.AuditLogRepository;
+import com.damKemon.dam.kemon.repository.IndexerRunRepository;
 import com.damKemon.dam.kemon.repository.PendingShopRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
@@ -43,6 +45,7 @@ public class AdminController {
     private final HotDropsService hotDrops;
     private final ShopDiscoveryService discovery;
     private final AuditLogRepository auditRepo;
+    private final IndexerRunRepository indexerRunRepo;
 
     public AdminController(BulkIndexer indexer,
                            ShopRepository shopRepository,
@@ -50,7 +53,8 @@ public class AdminController {
                            PendingShopRepository pendingShopRepository,
                            HotDropsService hotDrops,
                            ShopDiscoveryService discovery,
-                           AuditLogRepository auditRepo) {
+                           AuditLogRepository auditRepo,
+                           IndexerRunRepository indexerRunRepo) {
         this.indexer = indexer;
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
@@ -58,6 +62,18 @@ public class AdminController {
         this.hotDrops = hotDrops;
         this.discovery = discovery;
         this.auditRepo = auditRepo;
+        this.indexerRunRepo = indexerRunRepo;
+    }
+
+    @GetMapping("/index/history")
+    public ResponseEntity<List<IndexerRunRecord>> indexHistory(
+            @RequestParam(value = "limit", defaultValue = "30") int limit) {
+        try {
+            return ResponseEntity.ok(indexerRunRepo.findAllByOrderByStartedAtDesc(
+                    PageRequest.of(0, Math.max(1, Math.min(limit, 200)))));
+        } catch (org.springframework.dao.DataAccessException e) {
+            return ResponseEntity.ok(List.of());
+        }
     }
 
     @GetMapping("/audit-log")
@@ -175,6 +191,59 @@ public class AdminController {
         } catch (DataAccessException e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    /**
+     * Edit shop metadata in place. Operators use this to fix a wrong sitemap URL,
+     * toggle the {@code requiresJs} flag, or tweak categories without redeploying.
+     */
+    @PatchMapping("/shops/{slug}")
+    public ResponseEntity<?> editShop(@PathVariable String slug, @RequestBody Map<String, Object> body) {
+        try {
+            Shop s = shopRepository.findBySlug(slug).orElse(null);
+            if (s == null) return ResponseEntity.notFound().build();
+            if (body.containsKey("name")) s.setName(String.valueOf(body.get("name")));
+            if (body.containsKey("baseUrl")) s.setBaseUrl(String.valueOf(body.get("baseUrl")));
+            if (body.containsKey("sitemapUrl")) {
+                Object v = body.get("sitemapUrl");
+                s.setSitemapUrl(v == null || String.valueOf(v).isBlank() ? null : String.valueOf(v));
+            }
+            if (body.containsKey("platform")) s.setPlatform(String.valueOf(body.get("platform")));
+            if (body.containsKey("requiresJs")) s.setRequiresJs(Boolean.parseBoolean(String.valueOf(body.get("requiresJs"))));
+            if (body.containsKey("categories") && body.get("categories") instanceof List<?> cats) {
+                s.setCategories(cats.stream().map(String::valueOf).toList());
+            }
+            s.setUpdatedAt(LocalDateTime.now());
+            shopRepository.save(s);
+            return ResponseEntity.ok(s);
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** Bulk-disable many shops at once. Body: {"slugs": [...], "status": "blocked"}. */
+    @PostMapping("/shops/bulk-status")
+    public ResponseEntity<?> bulkStatus(@RequestBody Map<String, Object> body) {
+        Object rawSlugs = body.get("slugs");
+        String status = (String) body.get("status");
+        if (!(rawSlugs instanceof List<?> slugs) || slugs.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "slugs must be a non-empty array"));
+        }
+        if (status == null || !List.of("active", "blocked", "dormant", "draft").contains(status)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "status required"));
+        }
+        int updated = 0;
+        for (Object o : slugs) {
+            try {
+                Shop s = shopRepository.findBySlug(String.valueOf(o)).orElse(null);
+                if (s == null) continue;
+                s.setStatus(status);
+                if ("active".equals(status)) s.setConsecutiveFailures(0);
+                shopRepository.save(s);
+                updated++;
+            } catch (DataAccessException ignored) {}
+        }
+        return ResponseEntity.ok(Map.of("updated", updated, "status", status));
     }
 
     // ───── Pending-shop submissions (Phase 2 "Submit your shop") ─────

@@ -126,6 +126,51 @@ public class OperatorStatsService {
         }
     }
 
+    /** Search latency p50 / p95 / p99 from events in the last 24h. */
+    public Map<String, Object> searchLatency() {
+        Map<String, Object> out = new LinkedHashMap<>();
+        try {
+            Instant day = Instant.now().minus(1, ChronoUnit.DAYS);
+            java.util.List<Long> samples = new java.util.ArrayList<>();
+            for (AnalyticsEvent e : events.findByTypeAndTsAfter("search", day)) {
+                if (e.getLatencyMs() != null && e.getLatencyMs() >= 0) samples.add(e.getLatencyMs());
+            }
+            java.util.Collections.sort(samples);
+            int n = samples.size();
+            out.put("samples", n);
+            out.put("p50", n == 0 ? null : samples.get(Math.min(n - 1, n / 2)));
+            out.put("p95", n == 0 ? null : samples.get((int) Math.min(n - 1L, Math.round(n * 0.95))));
+            out.put("p99", n == 0 ? null : samples.get((int) Math.min(n - 1L, Math.round(n * 0.99))));
+        } catch (DataAccessException e) {
+            out.put("samples", 0);
+        }
+        return out;
+    }
+
+    /** Last N searches with their result count + latency — feeds the search log tab. */
+    public java.util.List<Map<String, Object>> recentSearches(int limit) {
+        try {
+            Instant week = Instant.now().minus(7, ChronoUnit.DAYS);
+            java.util.List<AnalyticsEvent> all = events.findByTypeAndTsAfter("search", week);
+            all.sort((a, b) -> b.getTs().compareTo(a.getTs()));
+            java.util.List<Map<String, Object>> out = new java.util.ArrayList<>();
+            for (AnalyticsEvent e : all) {
+                if (out.size() >= limit) break;
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("query", e.getQuery());
+                row.put("resultCount", e.getResultCount());
+                row.put("latencyMs", e.getLatencyMs());
+                row.put("ts", e.getTs());
+                row.put("anonId", e.getAnonId());
+                row.put("userId", e.getUserId());
+                out.add(row);
+            }
+            return out;
+        } catch (DataAccessException e) {
+            return java.util.List.of();
+        }
+    }
+
     /** Top viewed and top clicked products in the last 7 days. */
     public Map<String, Object> topProducts(int limit) {
         Map<String, Object> out = new LinkedHashMap<>();

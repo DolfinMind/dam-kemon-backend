@@ -50,4 +50,15 @@ public class OperatorStatsController {
             @RequestParam(value = "limit", defaultValue = "10") int limit) {
         return ResponseEntity.ok(stats.topProducts(Math.max(1, Math.min(limit, 50))));
     }
+
+    @GetMapping("/latency")
+    public ResponseEntity<Map<String, Object>> latency() {
+        return ResponseEntity.ok(stats.searchLatency());
+    }
+
+    @GetMapping("/recent-searches")
+    public ResponseEntity<List<Map<String, Object>>> recentSearches(
+            @RequestParam(value = "limit", defaultValue = "200") int limit) {
+        return ResponseEntity.ok(stats.recentSearches(Math.max(1, Math.min(limit, 1000))));
+    }
 }

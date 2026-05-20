@@ -1,11 +1,15 @@
 package com.damKemon.dam.kemon.controller;
 
+import com.damKemon.dam.kemon.model.AnalyticsEvent;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.SavedSearch;
 import com.damKemon.dam.kemon.model.WishlistItem;
+import com.damKemon.dam.kemon.repository.AnalyticsEventRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.SavedSearchRepository;
 import com.damKemon.dam.kemon.repository.WishlistItemRepository;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -30,13 +34,38 @@ public class AccountController {
     private final SavedSearchRepository savedSearches;
     private final WishlistItemRepository wishlist;
     private final ProductRepository products;
+    private final AnalyticsEventRepository events;
 
     public AccountController(SavedSearchRepository savedSearches,
                              WishlistItemRepository wishlist,
-                             ProductRepository products) {
+                             ProductRepository products,
+                             AnalyticsEventRepository events) {
         this.savedSearches = savedSearches;
         this.wishlist = wishlist;
         this.products = products;
+        this.events = events;
+    }
+
+    @GetMapping("/search-history")
+    public ResponseEntity<?> searchHistory(HttpServletRequest req) {
+        String userId = requireUserId(req);
+        if (userId == null) return unauthorised();
+        try {
+            Instant month = Instant.now().minus(30, ChronoUnit.DAYS);
+            List<Map<String, Object>> out = new ArrayList<>();
+            for (AnalyticsEvent e : events.findByTypeAndTsAfter("search", month)) {
+                if (!userId.equals(e.getUserId())) continue;
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("query", e.getQuery());
+                row.put("resultCount", e.getResultCount());
+                row.put("ts", e.getTs());
+                out.add(row);
+            }
+            out.sort((a, b) -> ((Instant) b.get("ts")).compareTo((Instant) a.get("ts")));
+            return ResponseEntity.ok(out.size() > 50 ? out.subList(0, 50) : out);
+        } catch (DataAccessException e) {
+            return ResponseEntity.ok(List.of());
+        }
     }
 
     @GetMapping("/saved-searches")

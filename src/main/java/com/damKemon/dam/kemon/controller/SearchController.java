@@ -26,9 +26,13 @@ public class SearchController {
     public ResponseEntity<SearchResponse> search(@RequestParam("q") String query,
                                                  @RequestHeader(value = "X-Anon-Id", required = false) String anonId,
                                                  HttpServletRequest req) {
+        long start = System.nanoTime();
         SearchResponse resp = catalog.search(query);
-        analytics.recordSearch(query, resp.getTotalResults() == null ? 0 : resp.getTotalResults(),
-                anonId, clientIp(req));
+        long latencyMs = (System.nanoTime() - start) / 1_000_000;
+        String userId = (String) req.getAttribute("authUserId");
+        analytics.recordSearch(query,
+                resp.getTotalResults() == null ? 0 : resp.getTotalResults(),
+                anonId, clientIp(req), userId, latencyMs);
         return ResponseEntity.ok(resp);
     }
 

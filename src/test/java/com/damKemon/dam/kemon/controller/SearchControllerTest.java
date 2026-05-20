@@ -23,6 +23,7 @@ class SearchControllerTest {
 
         HttpServletRequest req = mock(HttpServletRequest.class);
         when(req.getRemoteAddr()).thenReturn("203.0.113.5");
+        when(req.getAttribute("authUserId")).thenReturn("user-7");
 
         SearchController ctrl = new SearchController(catalog, analytics);
         var resp = ctrl.search("iphone", "anon-id-123", req);
@@ -32,8 +33,12 @@ class SearchControllerTest {
         assertEquals(12, resp.getBody().getTotalResults());
 
         ArgumentCaptor<String> ipCap = ArgumentCaptor.forClass(String.class);
-        verify(analytics).recordSearch(eq("iphone"), eq(12), eq("anon-id-123"), ipCap.capture());
+        ArgumentCaptor<Long> latencyCap = ArgumentCaptor.forClass(Long.class);
+        verify(analytics).recordSearch(eq("iphone"), eq(12), eq("anon-id-123"),
+                ipCap.capture(), eq("user-7"), latencyCap.capture());
         assertEquals("203.0.113.5", ipCap.getValue());
+        // latency should be a small non-negative number for a mocked call
+        assertNotNull(latencyCap.getValue());
     }
 
     @Test
@@ -48,6 +53,7 @@ class SearchControllerTest {
         SearchController ctrl = new SearchController(catalog, analytics);
         ctrl.search("x", null, req);
 
-        verify(analytics).recordSearch(eq("x"), eq(0), eq(null), eq("1.2.3.4"));
+        verify(analytics).recordSearch(eq("x"), eq(0), eq(null), eq("1.2.3.4"),
+                eq(null), org.mockito.ArgumentMatchers.anyLong());
     }
 }

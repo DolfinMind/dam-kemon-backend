@@ -36,6 +36,12 @@ public class AnalyticsService {
 
     @Async
     public void recordSearch(String query, int resultCount, String anonId, String ip) {
+        recordSearch(query, resultCount, anonId, ip, null, null);
+    }
+
+    @Async
+    public void recordSearch(String query, int resultCount, String anonId, String ip,
+                             String userId, Long latencyMs) {
         if (query == null) return;
         String q = query.trim();
         if (q.isEmpty()) return;
@@ -45,6 +51,8 @@ public class AnalyticsService {
                 .query(q.toLowerCase())
                 .resultCount(resultCount)
                 .anonId(safe(anonId))
+                .userId(safe(userId))
+                .latencyMs(latencyMs)
                 .ipHash(hashIp(ip))
                 .ts(Instant.now())
                 .build());

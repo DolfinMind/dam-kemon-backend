@@ -203,8 +203,24 @@ file on disk.
 | `GET` | `/api/admin/stats/shop-ctr` | Click-through rate per shop |
 | `GET` | `/api/admin/stats/top-products` | Top viewed + top clicked |
 | `GET` | `/api/img?u=URL` | Image proxy with CDN-friendly cache headers |
+| `GET` | `/api/og/product/{id}.png` | Server-rendered 1200×630 OG preview image |
 | `GET` | `/sitemap.xml` | Sitemap of every product page + static routes |
 | `GET` | `/robots.txt` | Crawler policy with sitemap link |
+| `GET` | `/api/admin/index/history` | Last N persisted indexer-run records |
+| `PATCH`| `/api/admin/shops/{slug}` | Edit shop metadata (name, sitemap, requiresJs, categories) |
+| `POST`| `/api/admin/shops/bulk-status` | Bulk enable/disable many shops |
+| `GET` | `/api/admin/catalog` | Paginated catalog browser with q + category filters |
+| `PATCH`| `/api/admin/catalog/{id}` | Edit product (rename, fix category, image, brands) |
+| `DELETE`| `/api/admin/catalog/{id}` | Flag as spam — delete product |
+| `POST`| `/api/admin/catalog/{toId}/merge` | Merge duplicate `{from}` into `{toId}` |
+| `GET` | `/api/admin/cache` | List Caffeine caches with hit/miss/eviction stats |
+| `POST`| `/api/admin/cache/{name}/flush` | Flush one cache |
+| `POST`| `/api/admin/cache/flush-all` | Flush every cache |
+| `GET` | `/api/admin/jobs` | List every `@Scheduled` job with last manual runs |
+| `POST`| `/api/admin/jobs/{id}/run` | Trigger a job synchronously (async background) |
+| `GET` | `/api/admin/stats/latency` | Search latency p50 / p95 / p99 (last 24h) |
+| `GET` | `/api/admin/stats/recent-searches` | Last N searches with result count + latency |
+| `GET` | `/api/account/search-history` | Per-user search history (signed in) |
 | `GET` | `/actuator/health` | Liveness + readiness (Mongo + `synthetic` canary) |
 | `GET` | `/actuator/info` | App name + version |
 
@@ -345,8 +361,9 @@ These are the user-traffic features you mentioned. None are wired yet.
 | ✅ | DAU / MAU (unique anonIds per day / month) — `GET /api/admin/stats/overview` |
 | ✅ | Zero-result searches — `GET /api/admin/stats/zero-results` |
 | ✅ | Click-through rate per shop — `GET /api/admin/stats/shop-ctr` |
-| ✅ | Indexer run summary (latest) — shown on `/admin/indexer` |
+| ✅ | Indexer run history — last 30 nights persisted to `indexer_runs`, `GET /api/admin/index/history` |
 | ✅ | Top products by view + by click — `GET /api/admin/stats/top-products` |
+| ✅ | Search latency p50 / p95 / p99 — `GET /api/admin/stats/latency`, surfaced on `/admin/search-log` |
 | ✅ | Synthetic monitor (canary searches) surfaced on `/actuator/health` |
 
 ### Admin console scope
@@ -357,8 +374,12 @@ or the legacy `X-Admin-Key` header.
 | | Item |
 |---|---|
 | ✅ | Sign-in via magic-link flow — first registered user becomes admin automatically |
-| ✅ | Indexer page: live status polling, "run nightly", "retry failed", "discover shops", "rebuild hot drops" |
-| ✅ | Shop manager: per-shop health, recent runs, manual reindex, enable/disable |
+| ✅ | Indexer page: live status polling, run/retry/discover/rebuild buttons, persisted 30-night run history |
+| ✅ | Shop manager: full CRUD (name / baseUrl / sitemap / platform / requiresJs / categories), bulk-disable, per-shop reindex |
+| ✅ | Catalog browser at `/admin/catalog`: filter by name + category, edit name/category/image/description/brands, merge duplicates, flag spam |
+| ✅ | Search log at `/admin/search-log`: last 200 queries with result count, latency, actor — clickable to re-run |
+| ✅ | Cache controls at `/admin/cache`: per-cache hit rate + size + evictions, flush button per cache, "flush all" |
+| ✅ | Background jobs at `/admin/jobs`: list every `@Scheduled` task with cadence, run-now button, last-10 manual runs |
 | ✅ | Pending shops: review queue, one-click approve/reject for both submitted + auto-discovered shops |
 | ✅ | Operator stats: DAU/MAU, zero-result leaderboard, CTR per shop, top viewed/clicked products |
 | ✅ | Audit log: append-only record of every admin endpoint hit (TTL 90d) |
@@ -371,7 +392,7 @@ or the legacy `X-Admin-Key` header.
 | ✅ | Saved searches — `/api/account/saved-searches`, surfaced on `/account` |
 | ✅ | Price-drop alerts via email (daily cron diffs current vs `lastSeenLowest`) |
 | ✅ | Wishlist — per-user, with heart toggle on ProductDetail |
-| ⬜ | Per-user search history (visible only when signed in, never sold) |
+| ✅ | Per-user search history — `/api/account/search-history` populated when signed in, last 30 days |
 | ⬜ | Google OAuth — requires external credentials, not yet wired |
 
 ### Phase 5 — SEO + growth
@@ -380,7 +401,7 @@ or the legacy `X-Admin-Key` header.
 |---|---|
 | ⬜ | Server-side render product detail pages (or pre-render via Vite SSG) |
 | ✅ | `/sitemap.xml` of every product + static pages (served by the backend) |
-| ⬜ | Open Graph image generator per product (so WhatsApp/FB shares look real) |
+| ✅ | Open Graph image generator per product — server-rendered 1200×630 PNG at `/api/og/product/{id}.png`, wired into `<meta property="og:image">` |
 | ✅ | Schema.org `Product` markup on product pages → Google Shopping eligibility |
 | ✅ | `robots.txt` policy with sitemap reference |
 | ✅ | Bundle code-splitting (React.lazy + suspense on every non-hot-path route) |
