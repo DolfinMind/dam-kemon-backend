@@ -1,0 +1,64 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - feature/finance-guru
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build with Gradle (clean build)
+        run: |
+          ./gradlew clean bootJar
+          # Remove the plain JAR to avoid confusion
+          rm -f build/libs/*-plain.jar
+
+      - name: Copy JAR to production server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "build/libs/*.jar"
+          target: "/home/${{ vars.SERVER_USER }}/server/"
+          strip_components: 2
+
+      - name: Deploy and restart application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Restart the service to load the new JAR
+            sudo systemctl restart dolfin-app.service
+            sleep 5
+
+            # Check status
+            sudo systemctl status dolfin-app.service
+
+      - name: Show recent application logs
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            echo "=== Last 50 lines of application logs ==="
+            sudo journalctl -u dolfin-app.service -n 50 --no-pager
+
+            echo ""
+            echo "=== Checking for errors in last 100 lines ==="
+            sudo journalctl -u dolfin-app.service -n 100 --no-pager | grep -i "error\|exception\|failed" || echo "No errors found"
