@@ -3,7 +3,7 @@ name: Deploy to Production
 on:
   push:
     branches:
-      - feature/finance-guru
+      - deployment-prod
 
 jobs:
   deploy-production:
