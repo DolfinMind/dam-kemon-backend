@@ -43,11 +43,11 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             # Restart the service to load the new JAR
-            sudo systemctl restart dolfin-app.service
+            sudo systemctl restart damkemon-prod-app.service
             sleep 5
 
             # Check status
-            sudo systemctl status dolfin-app.service
+            sudo systemctl status damkemon-prod-app.service
 
       - name: Show recent application logs
         uses: appleboy/ssh-action@v1.0.3
@@ -57,8 +57,8 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             echo "=== Last 50 lines of application logs ==="
-            sudo journalctl -u dolfin-app.service -n 50 --no-pager
+            sudo journalctl -u damkemon-prod-app.service -n 50 --no-pager
 
             echo ""
             echo "=== Checking for errors in last 100 lines ==="
-            sudo journalctl -u dolfin-app.service -n 100 --no-pager | grep -i "error\|exception\|failed" || echo "No errors found"
+            sudo journalctl -u damkemon-prod-app.service -n 100 --no-pager | grep -i "error\|exception\|failed" || echo "No errors found"
