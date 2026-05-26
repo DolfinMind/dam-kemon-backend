@@ -27,4 +27,20 @@ public class SearchResponse {
 
     @Builder.Default
     private List<String> sitesSkipped = new ArrayList<>();
+
+    /**
+     * Set when the literal regex/text passes returned nothing usable and we
+     * fell back to fuzzy matching — e.g. user typed "ipone 15" and we
+     * served "iPhone 15 Pro Max" via trigram similarity. Frontend renders a
+     * "Did you mean …?" suggestion above the results.
+     */
+    private String didYouMean;
+
+    /**
+     * IDs of products in {@link #products} that are paid placements. Frontend
+     * renders a "Sponsored" chip on these. We surface IDs (not a separate
+     * list) so the existing sort/filter UI keeps working unchanged.
+     */
+    @Builder.Default
+    private List<String> sponsoredProductIds = new ArrayList<>();
 }

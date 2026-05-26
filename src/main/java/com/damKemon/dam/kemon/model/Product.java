@@ -56,4 +56,22 @@ public class Product {
     private LocalDateTime lastScraped;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    /**
+     * True when an advertiser has paid for placement. Sponsored products are
+     * still ranked alongside organic results but the API surfaces them
+     * separately so the UI can render a "Sponsored" chip.
+     */
+    @Indexed
+    private Boolean sponsored;
+
+    /**
+     * UTC instant the sponsorship expires. We cheaply gate visibility on
+     * read instead of running a cleanup job — Mongo TTL would also work but
+     * we want to keep the historical record for billing reconciliation.
+     */
+    private LocalDateTime sponsoredUntil;
+
+    /** Sponsor tier (1=top of all, 2=top of category, 3=anywhere). Higher = lower priority. */
+    private Integer sponsorTier;
 }

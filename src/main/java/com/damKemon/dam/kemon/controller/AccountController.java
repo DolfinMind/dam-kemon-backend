@@ -1,10 +1,12 @@
 package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.model.AnalyticsEvent;
+import com.damKemon.dam.kemon.model.PriceAlertNotification;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.SavedSearch;
 import com.damKemon.dam.kemon.model.WishlistItem;
 import com.damKemon.dam.kemon.repository.AnalyticsEventRepository;
+import com.damKemon.dam.kemon.repository.PriceAlertNotificationRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.SavedSearchRepository;
 import com.damKemon.dam.kemon.repository.WishlistItemRepository;
@@ -12,6 +14,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,15 +38,18 @@ public class AccountController {
     private final WishlistItemRepository wishlist;
     private final ProductRepository products;
     private final AnalyticsEventRepository events;
+    private final PriceAlertNotificationRepository notifications;
 
     public AccountController(SavedSearchRepository savedSearches,
                              WishlistItemRepository wishlist,
                              ProductRepository products,
-                             AnalyticsEventRepository events) {
+                             AnalyticsEventRepository events,
+                             PriceAlertNotificationRepository notifications) {
         this.savedSearches = savedSearches;
         this.wishlist = wishlist;
         this.products = products;
         this.events = events;
+        this.notifications = notifications;
     }
 
     @GetMapping("/search-history")
@@ -127,17 +133,22 @@ public class AccountController {
                 row.put("id", w.getId());
                 row.put("addedAt", w.getAddedAt());
                 row.put("priceAtAdd", w.getPriceAtAdd());
+                row.put("targetPrice", w.getTargetPrice());
+                row.put("alertOnDropPercent", w.getAlertOnDropPercent());
+                row.put("notifyChannel", w.getNotifyChannel());
+                row.put("alertsEnabled", Boolean.TRUE.equals(w.getAlertsEnabled()));
+                row.put("lastNotifiedAt", w.getLastNotifiedAt());
                 Product p = products.findById(w.getProductId()).orElse(null);
                 if (p != null) {
-                    row.put("product", Map.of(
-                            "id", p.getId(),
-                            "slug", p.getSlug(),
-                            "name", p.getName(),
-                            "imageUrl", p.getImageUrl(),
-                            "category", p.getCategory(),
-                            "lowestPrice", p.getLowestPrice(),
-                            "sellerCount", p.getPrices() == null ? 0 : p.getPrices().size()
-                    ));
+                    Map<String, Object> pmap = new LinkedHashMap<>();
+                    pmap.put("id", p.getId());
+                    pmap.put("slug", p.getSlug());
+                    pmap.put("name", p.getName());
+                    pmap.put("imageUrl", p.getImageUrl());
+                    pmap.put("category", p.getCategory());
+                    pmap.put("lowestPrice", p.getLowestPrice());
+                    pmap.put("sellerCount", p.getPrices() == null ? 0 : p.getPrices().size());
+                    row.put("product", pmap);
                 } else {
                     row.put("productId", w.getProductId());
                     row.put("missing", true);
@@ -148,6 +159,85 @@ public class AccountController {
         } catch (DataAccessException e) {
             return ResponseEntity.ok(List.of());
         }
+    }
+
+    /**
+     * Update the alert settings for a wishlist item. Body is a partial JSON
+     * patch — any of: {@code targetPrice}, {@code alertOnDropPercent},
+     * {@code notifyChannel}, {@code alertsEnabled}. Missing keys leave the
+     * existing value untouched.
+     */
+    @PatchMapping("/wishlist/{productId}")
+    public ResponseEntity<?> updateWishlistAlert(@PathVariable String productId,
+                                                 @RequestBody Map<String, Object> body,
+                                                 HttpServletRequest req) {
+        String userId = requireUserId(req);
+        if (userId == null) return unauthorised();
+        try {
+            WishlistItem w = wishlist.findByUserIdAndProductId(userId, productId).orElse(null);
+            if (w == null) return ResponseEntity.notFound().build();
+
+            if (body.containsKey("targetPrice"))
+                w.setTargetPrice(asDouble(body.get("targetPrice")));
+            if (body.containsKey("alertOnDropPercent"))
+                w.setAlertOnDropPercent(asDouble(body.get("alertOnDropPercent")));
+            if (body.containsKey("notifyChannel"))
+                w.setNotifyChannel(asString(body.get("notifyChannel")));
+            if (body.containsKey("alertsEnabled"))
+                w.setAlertsEnabled(Boolean.TRUE.equals(body.get("alertsEnabled")));
+
+            return ResponseEntity.ok(wishlist.save(w));
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "could not update"));
+        }
+    }
+
+    /** In-app notification feed for the bell dropdown. Most recent first. */
+    @GetMapping("/notifications")
+    public ResponseEntity<?> listNotifications(@RequestParam(value = "limit", defaultValue = "20") int limit,
+                                               HttpServletRequest req) {
+        String userId = requireUserId(req);
+        if (userId == null) return unauthorised();
+        try {
+            int capped = Math.max(1, Math.min(limit, 100));
+            List<PriceAlertNotification> rows =
+                    notifications.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(0, capped));
+            long unread = notifications.countByUserIdAndUnreadTrue(userId);
+            return ResponseEntity.ok(Map.of("items", rows, "unread", unread));
+        } catch (DataAccessException e) {
+            return ResponseEntity.ok(Map.of("items", List.of(), "unread", 0));
+        }
+    }
+
+    @PostMapping("/notifications/read")
+    public ResponseEntity<?> markAllRead(HttpServletRequest req) {
+        String userId = requireUserId(req);
+        if (userId == null) return unauthorised();
+        try {
+            // Lazy implementation: read + update each. Volumes are tiny (per-user list).
+            List<PriceAlertNotification> rows =
+                    notifications.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(0, 200));
+            for (PriceAlertNotification n : rows) {
+                if (Boolean.TRUE.equals(n.getUnread())) {
+                    n.setUnread(false);
+                    notifications.save(n);
+                }
+            }
+            return ResponseEntity.noContent().build();
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "could not update"));
+        }
+    }
+
+    private static Double asDouble(Object v) {
+        if (v == null) return null;
+        if (v instanceof Number n) return n.doubleValue();
+        try { return Double.parseDouble(v.toString()); }
+        catch (NumberFormatException e) { return null; }
+    }
+
+    private static String asString(Object v) {
+        return v == null ? null : v.toString();
     }
 
     @PostMapping("/wishlist")

@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,4 +29,15 @@ public interface ProductRepository extends MongoRepository<Product, String> {
     /** Used by autosuggest — prefix match on name. Case-insensitive via regex. */
     @Query("{ 'name': { $regex: ?0, $options: 'i' } }")
     List<Product> findByNamePrefix(String prefix, Pageable pageable);
+
+    /** Active sponsored placements in a specific category. */
+    @Query("{ 'sponsored': true, 'sponsoredUntil': { $gt: ?0 }, 'category': ?1 }")
+    List<Product> findActiveSponsoredByCategory(LocalDateTime now, String category, Pageable pageable);
+
+    /** Active sponsored placements regardless of category. */
+    @Query("{ 'sponsored': true, 'sponsoredUntil': { $gt: ?0 } }")
+    List<Product> findActiveSponsored(LocalDateTime now, Pageable pageable);
+
+    @Query("{ 'sponsored': true }")
+    List<Product> findAllSponsored(Pageable pageable);
 }
