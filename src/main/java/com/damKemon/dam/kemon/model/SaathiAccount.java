@@ -55,6 +55,29 @@ public class SaathiAccount {
     private String facebookUrl;
     private String messengerUrl;
     private String whatsapp;          // BD sellers do most ops via WhatsApp + Messenger
+
+    /**
+     * Facebook Page ID (numeric, from Graph API). Required for the bot
+     * to identify inbound webhook events as belonging to this Saathi
+     * and to POST replies back via {@code /me/messages}.
+     */
+    @Indexed(sparse = true)
+    private String facebookPageId;
+
+    /** Human-readable Page name as returned by Graph. Used in dashboard UI. */
+    private String facebookPageName;
+
+    /**
+     * Long-lived Page Access Token. Production should encrypt at rest
+     * (e.g. via Jasypt or AWS KMS); we store raw on the assumption that
+     * the operator runs Mongo inside a private VPC with auth-only access.
+     * If the field is null the bot stays in "compute-only" mode — webhook
+     * receives + logs the suggested reply but never POSTs back.
+     */
+    private String pageAccessToken;
+
+    /** When the operator successfully connected this Page. Null = never. */
+    private LocalDateTime messengerConnectedAt;
     private String pickupAddress;     // for "visit our shop" CTA
     private String city;
     private String area;

@@ -56,8 +56,106 @@ public class SaathiMessengerController {
     @Value("${saathi.fb.app-secret:}")
     private String appSecret;
 
-    public SaathiMessengerController(SaathiService saathi) {
+    private final com.damKemon.dam.kemon.service.SaathiMessengerService messenger;
+    private final com.damKemon.dam.kemon.repository.SaathiAccountRepository accounts;
+
+    public SaathiMessengerController(SaathiService saathi,
+                                     com.damKemon.dam.kemon.service.SaathiMessengerService messenger,
+                                     com.damKemon.dam.kemon.repository.SaathiAccountRepository accounts) {
         this.saathi = saathi;
+        this.messenger = messenger;
+        this.accounts = accounts;
+    }
+
+    /**
+     * Connect a Facebook Page to this Saathi. Body: {@code {"pageId":"...","pageAccessToken":"..."}}.
+     * Validates the token against Graph before persisting. Stored token
+     * enables actual send-back in the webhook handler.
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/connect")
+    public ResponseEntity<?> connect(@org.springframework.web.bind.annotation.RequestBody Map<String, String> body,
+                                     HttpServletRequest req) {
+        String userId = userId(req);
+        if (userId == null) return unauth();
+        SaathiAccount acc = saathi.findByUser(userId).orElse(null);
+        if (acc == null) return ResponseEntity.status(404).body(Map.of("error", "no_saathi_account"));
+
+        String pageId = body == null ? null : body.get("pageId");
+        String token  = body == null ? null : body.get("pageAccessToken");
+        if (pageId == null || pageId.isBlank() || token == null || token.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "missing_fields",
+                    "message", "Both pageId and pageAccessToken are required."));
+        }
+        String pageName = messenger.validateAndGetPageName(pageId.trim(), token.trim());
+        if (pageName == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "token_invalid",
+                    "message", "Facebook rejected this token. Generate a new Page Access Token in Meta Business Suite and try again."));
+        }
+        acc.setFacebookPageId(pageId.trim());
+        acc.setFacebookPageName(pageName);
+        acc.setPageAccessToken(token.trim());
+        acc.setMessengerConnectedAt(java.time.LocalDateTime.now());
+        acc.setUpdatedAt(java.time.LocalDateTime.now());
+        accounts.save(acc);
+        return ResponseEntity.ok(Map.of(
+                "connected", true,
+                "pageId", pageId.trim(),
+                "pageName", pageName));
+    }
+
+    /** Disconnect — wipes the stored token. Webhook continues to receive but stops sending replies. */
+    @org.springframework.web.bind.annotation.PostMapping("/disconnect")
+    public ResponseEntity<?> disconnect(HttpServletRequest req) {
+        String userId = userId(req);
+        if (userId == null) return unauth();
+        SaathiAccount acc = saathi.findByUser(userId).orElse(null);
+        if (acc == null) return ResponseEntity.status(404).body(Map.of("error", "no_saathi_account"));
+        acc.setPageAccessToken(null);
+        acc.setMessengerConnectedAt(null);
+        acc.setUpdatedAt(java.time.LocalDateTime.now());
+        accounts.save(acc);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Test endpoint — given a customer question, return the exact reply
+     * the bot would send right now. Does not POST to Facebook. Used by
+     * the dashboard's "Test bot" widget so sellers can preview what
+     * customers will receive without firing real messages.
+     */
+    @org.springframework.web.bind.annotation.GetMapping("/test")
+    public ResponseEntity<?> testReply(@org.springframework.web.bind.annotation.RequestParam("q") String q,
+                                       HttpServletRequest req) {
+        String userId = userId(req);
+        if (userId == null) return unauth();
+        SaathiAccount acc = saathi.findByUser(userId).orElse(null);
+        if (acc == null) return ResponseEntity.status(404).body(Map.of("error", "no_saathi_account"));
+        if (q == null || q.trim().length() < 2) {
+            return ResponseEntity.badRequest().body(Map.of("error", "q must be ≥ 2 chars"));
+        }
+        SaathiService.LiveAssistResult result = saathi.liveAssist(acc, q.trim(), "test");
+        String reply = messenger.buildReply(result);
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("query", q.trim());
+        out.put("reply", reply);
+        out.put("matched", result.getMatch() != null);
+        out.put("matchName", result.getMatch() == null ? null : result.getMatch().getName());
+        out.put("yourPrice", result.getYourListing() == null ? null : result.getYourListing().getListedPrice());
+        out.put("marketLowest", result.getMatch() == null ? null : result.getMatch().getLowestPrice());
+        out.put("connected", acc.getPageAccessToken() != null);
+        out.put("pageName", acc.getFacebookPageName());
+        return ResponseEntity.ok(out);
+    }
+
+    private static String userId(HttpServletRequest req) {
+        Object id = req.getAttribute("authUserId");
+        return id instanceof String ? (String) id : null;
+    }
+
+    private static ResponseEntity<Map<String, Object>> unauth() {
+        return ResponseEntity.status(401).body(Map.of("error", "sign in to use Saathi"));
     }
 
     /** Webhook verification handshake — Meta calls this when you set the URL. */
@@ -103,12 +201,23 @@ public class SaathiMessengerController {
                         for (com.fasterxml.jackson.databind.JsonNode m : messaging) {
                             String text = m.path("message").path("text").asText(null);
                             if (text == null || text.isBlank()) continue;
-                            // Surface the would-be reply in the response so the bridge
-                            // worker (or a future direct Graph call) can post it back.
+                            String senderId = m.path("sender").path("id").asText(null);
+
                             SaathiService.LiveAssistResult result = saathi.liveAssist(acc, text, "messenger");
-                            log.info("saathi/messenger: slug={} q='{}' -> match={}",
-                                    slug, text,
-                                    result.getMatch() == null ? "none" : result.getMatch().getId());
+                            String reply = messenger.buildReply(result);
+
+                            // Real send-back: only attempted when the Saathi has
+                            // connected a Page Access Token. Otherwise the
+                            // computed reply still lives in the SaathiQuery log
+                            // for dashboard preview.
+                            boolean sent = false;
+                            if (acc.getPageAccessToken() != null && senderId != null) {
+                                sent = messenger.sendReply(acc, senderId, reply);
+                            }
+                            log.info("saathi/messenger: slug={} sender={} q='{}' match={} sent={}",
+                                    slug, senderId, text,
+                                    result.getMatch() == null ? "none" : result.getMatch().getId(),
+                                    sent);
                         }
                     }
                 }
