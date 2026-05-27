@@ -44,6 +44,23 @@ public class SellersBootstrap {
     private static final Logger log = LoggerFactory.getLogger(SellersBootstrap.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /**
+     * Hand-named demo sellers from earliest dev runs that ship as
+     * {@code source=portal} (the same source legitimate submissions use).
+     * We can't blanket-delete the portal source, so we delete by name.
+     * Keep this list as it is — adding to it auto-cleans on next boot.
+     */
+    private static final java.util.Set<String> LEGACY_DEMO_NAMES = java.util.Set.of(
+            "Gadget Lounge BD",
+            "Sundori Kothon",
+            "Bookworm Bangla",
+            "Walton AC Hub",
+            "Aarong Fashion Hub",
+            "Dhaka Kitchen Wares",
+            "Smart Buy 24",
+            "Dhaka Cycle Shop"
+    );
+
     private final SellerRepository sellerRepository;
 
     public SellersBootstrap(SellerRepository sellerRepository) {
@@ -56,20 +73,22 @@ public class SellersBootstrap {
         if (entries.isEmpty()) return;
 
         // First pass: clear out the old demo placeholders so the directory
-        // looks credible on first load. Demos are anything with source other
-        // than "curated"/"saathi"/"portal" — i.e. the fb_scrape + manual
-        // seeds that we never sourced from real data.
+        // looks credible on first load. Two sources of demos:
+        //   1. {@code fb_scrape}/{@code manual}/null source — never seeded
+        //      from real data, always demo placeholders.
+        //   2. Five hand-named originals submitted as {@code portal} during
+        //      early dev (Gadget Lounge BD etc). Explicit denylist below
+        //      since {@code portal} is also a legitimate source for real
+        //      SubmitShop submissions.
         try {
             List<Seller> all = sellerRepository.findAll();
             List<Seller> demos = all.stream().filter(s -> {
                 String src = s.getSource();
-                // Old seeds: source=fb_scrape with placeholder names, OR
-                // source=portal that was a demo (kept conservative: only
-                // delete entries whose slug doesn't match any curated entry
-                // and isn't a Saathi-onboarded seller).
                 if (src == null) return true;
-                if ("fb_scrape".equalsIgnoreCase(src)) return true;
-                if ("manual".equalsIgnoreCase(src)) return true;
+                String sx = src.toLowerCase();
+                if (sx.equals("fb_scrape") || sx.equals("manual")) return true;
+                // Legacy portal demos — match by name to be conservative.
+                if (sx.equals("portal") && LEGACY_DEMO_NAMES.contains(s.getName())) return true;
                 return false;
             }).toList();
             if (!demos.isEmpty()) {
