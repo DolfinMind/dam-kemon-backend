@@ -13,11 +13,13 @@ import com.damKemon.dam.kemon.repository.SaathiQueryRepository;
 import com.damKemon.dam.kemon.repository.SellerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -41,6 +43,14 @@ public class SaathiService {
     private static final Logger log = LoggerFactory.getLogger(SaathiService.class);
     private static final Pattern SLUG_SAFE = Pattern.compile("[^a-z0-9]+");
 
+    /** Per-tier daily quota for live-assist + Messenger replies. */
+    private static final Map<String, Integer> DAILY_QUOTA = Map.of(
+            "trial", 50,
+            "lite",  50,
+            "pro",   100_000,
+            "enterprise", 1_000_000
+    );
+
     private final SaathiAccountRepository accounts;
     private final SaathiProductRepository products;
     private final SaathiQueryRepository queries;
@@ -62,7 +72,13 @@ public class SaathiService {
         this.search = search;
     }
 
-    /** Onboarding entry point. Idempotent — re-signing-in returns the existing account. */
+    /**
+     * Onboarding entry point. Idempotent — re-signing-in returns the
+     * existing account. Retries on slug collisions because two users
+     * signing up "Gadget Lounge" at the same instant race past the
+     * uniqueSlug() pre-check and would otherwise hit a Mongo unique
+     * index violation.
+     */
     public SaathiAccount signup(String userId, Map<String, Object> body) {
         if (userId == null) throw new IllegalArgumentException("user required");
         Optional<SaathiAccount> existing = accounts.findByUserId(userId);
@@ -70,23 +86,38 @@ public class SaathiService {
 
         String displayName = str(body.get("displayName"), "My Shop");
         String fbUrl = str(body.get("facebookUrl"), null);
-        String slug = uniqueSlug(displayName);
 
-        SaathiAccount acc = SaathiAccount.builder()
-                .userId(userId)
-                .slug(slug)
-                .displayName(displayName)
-                .facebookUrl(fbUrl)
-                .messengerUrl(str(body.get("messengerUrl"), null))
-                .whatsapp(str(body.get("whatsapp"), null))
-                .city(str(body.get("city"), null))
-                .area(str(body.get("area"), null))
-                .verificationStatus("pending")
-                .trialUntil(LocalDateTime.now().plusDays(14))
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-        return accounts.save(acc);
+        DuplicateKeyException lastErr = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            String slug = uniqueSlug(displayName);
+            SaathiAccount acc = SaathiAccount.builder()
+                    .userId(userId)
+                    .slug(slug)
+                    .displayName(displayName)
+                    .facebookUrl(fbUrl)
+                    .messengerUrl(str(body.get("messengerUrl"), null))
+                    .whatsapp(str(body.get("whatsapp"), null))
+                    .city(str(body.get("city"), null))
+                    .area(str(body.get("area"), null))
+                    .verificationStatus("pending")
+                    .trialUntil(LocalDateTime.now().plusDays(14))
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            try {
+                return accounts.save(acc);
+            } catch (DuplicateKeyException e) {
+                // userId-unique collision means someone else signed up the same user
+                // in between our findByUserId and save. Re-read and return.
+                Optional<SaathiAccount> raced = accounts.findByUserId(userId);
+                if (raced.isPresent()) return raced.get();
+                lastErr = e;
+                // else it was a slug collision — loop and try a new slug
+            }
+        }
+        throw lastErr == null
+                ? new IllegalStateException("could not allocate slug")
+                : lastErr;
     }
 
     public Optional<SaathiAccount> findByUser(String userId) {
@@ -236,6 +267,80 @@ public class SaathiService {
     public List<SaathiQuery> recentQueries(SaathiAccount acc, int limit) {
         return queries.findBySaathiIdOrderByTsDesc(acc.getId(),
                 org.springframework.data.domain.PageRequest.of(0, Math.max(1, Math.min(limit, 100))));
+    }
+
+    /** True if the account can use paid features right now (paid OR within trial). */
+    public boolean isEntitled(SaathiAccount acc) {
+        if (acc == null) return false;
+        LocalDateTime now = LocalDateTime.now();
+        if (acc.getPaidUntil() != null && acc.getPaidUntil().isAfter(now)) return true;
+        if (acc.getTrialUntil() != null && acc.getTrialUntil().isAfter(now)) return true;
+        return false;
+    }
+
+    /** Effective tier name for quota lookup. Trial counts as the lite tier. */
+    public String effectiveTier(SaathiAccount acc) {
+        if (acc == null) return "trial";
+        String t = acc.getTier();
+        if (t != null && DAILY_QUOTA.containsKey(t)) return t;
+        if (acc.getPaidUntil() != null && acc.getPaidUntil().isAfter(LocalDateTime.now())) return "lite";
+        return "trial";
+    }
+
+    /**
+     * Returns null when the seller is within their daily quota. Otherwise
+     * returns a structured "quota_exceeded" map suitable for a 429 body.
+     */
+    public Map<String, Object> checkQuota(SaathiAccount acc) {
+        String tier = effectiveTier(acc);
+        int quota = DAILY_QUOTA.getOrDefault(tier, 50);
+        long usedToday = queries.countBySaathiIdAndTsAfter(
+                acc.getId(), Instant.now().minus(24, ChronoUnit.HOURS));
+        if (usedToday >= quota) {
+            Map<String, Object> err = new LinkedHashMap<>();
+            err.put("error", "quota_exceeded");
+            err.put("tier", tier);
+            err.put("used", usedToday);
+            err.put("limit", quota);
+            err.put("upgradeTo", "pro");
+            return err;
+        }
+        return null;
+    }
+
+    /**
+     * Aggregate stats for the dashboard header — query volume, match rate,
+     * top-searched product. Cheap: two count queries + one bounded scan.
+     */
+    public Map<String, Object> dashboardStats(SaathiAccount acc) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        Instant now = Instant.now();
+        out.put("queries24h", queries.countBySaathiIdAndTsAfter(acc.getId(), now.minus(24, ChronoUnit.HOURS)));
+        out.put("queries7d",  queries.countBySaathiIdAndTsAfter(acc.getId(), now.minus(7,  ChronoUnit.DAYS)));
+        out.put("queries30d", queries.countBySaathiIdAndTsAfter(acc.getId(), now.minus(30, ChronoUnit.DAYS)));
+
+        List<SaathiQuery> recent = queries.findBySaathiIdOrderByTsDesc(acc.getId(),
+                org.springframework.data.domain.PageRequest.of(0, 200));
+        long matched = recent.stream().filter(q -> q.getMatchedProductId() != null).count();
+        out.put("matchRate", recent.isEmpty() ? 0.0 : (double) matched / recent.size());
+
+        // Top searched product (by frequency in recent window).
+        Map<String, Integer> freq = new HashMap<>();
+        for (SaathiQuery q : recent) {
+            if (q.getMatchedProductId() != null) {
+                freq.merge(q.getMatchedProductId(), 1, Integer::sum);
+            }
+        }
+        String topProductId = freq.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
+        out.put("topProductId", topProductId);
+        out.put("totalProducts", products.countBySaathiId(acc.getId()));
+        out.put("tier", effectiveTier(acc));
+        out.put("entitled", isEntitled(acc));
+        out.put("quotaLimit", DAILY_QUOTA.getOrDefault(effectiveTier(acc), 50));
+        return out;
     }
 
     private void upsertSellerRow(SaathiAccount acc) {

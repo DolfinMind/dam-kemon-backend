@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,12 +35,38 @@ public class AdminSaathiController {
                                   @RequestParam(value = "limit", defaultValue = "50") int limit) {
         int capped = Math.max(1, Math.min(limit, 200));
         List<SaathiAccount> rows = accounts.findByVerificationStatus(status, PageRequest.of(0, capped));
+        // Sanitize: never ship the raw NID hash even to admins — they only
+        // need to know whether the seller actually submitted documents.
+        List<Map<String, Object>> safe = rows.stream().map(this::redact).toList();
         return ResponseEntity.ok(Map.of(
                 "status", status,
-                "items", rows,
+                "items", safe,
                 "pendingCount", accounts.countByVerificationStatus("pending"),
                 "verifiedCount", accounts.countByVerificationStatus("verified")
         ));
+    }
+
+    private Map<String, Object> redact(SaathiAccount acc) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", acc.getId());
+        m.put("userId", acc.getUserId());
+        m.put("slug", acc.getSlug());
+        m.put("displayName", acc.getDisplayName());
+        m.put("facebookUrl", acc.getFacebookUrl());
+        m.put("messengerUrl", acc.getMessengerUrl());
+        m.put("city", acc.getCity());
+        m.put("area", acc.getArea());
+        m.put("categories", acc.getCategories());
+        m.put("verificationStatus", acc.getVerificationStatus());
+        m.put("verificationNote", acc.getVerificationNote());
+        m.put("nidSubmitted", acc.getNidHash() != null && !acc.getNidHash().isBlank());
+        m.put("tradeLicense", acc.getTradeLicense()); // not a secret, can be cross-checked
+        m.put("trialUntil", acc.getTrialUntil());
+        m.put("paidUntil", acc.getPaidUntil());
+        m.put("tier", acc.getTier());
+        m.put("totalQueries", acc.getTotalQueries());
+        m.put("createdAt", acc.getCreatedAt());
+        return m;
     }
 
     /**

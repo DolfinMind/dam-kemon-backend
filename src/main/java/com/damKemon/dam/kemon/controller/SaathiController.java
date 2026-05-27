@@ -160,8 +160,11 @@ public class SaathiController {
     /**
      * The live-assist endpoint. Called by the FB-Live sidebar and the
      * Saathi dashboard. Returns the best catalog match + the seller's
-     * own listing (if any) so the UI can render a side-by-side panel
-     * the seller can read out on stream.
+     * own listing (if any) so the UI can render a side-by-side panel.
+     *
+     * <p>Gated by entitlement (trial OR paid) and a per-tier daily quota.
+     * Suspended accounts always 403 — keeps bad actors from continuing to
+     * use the toolkit after we revoke their verification.
      */
     @GetMapping("/live-assist")
     public ResponseEntity<?> liveAssist(@RequestParam("q") String q, HttpServletRequest req) {
@@ -169,10 +172,32 @@ public class SaathiController {
         if (userId == null) return unauth();
         SaathiAccount acc = saathi.findByUser(userId).orElse(null);
         if (acc == null) return ResponseEntity.status(404).body(Map.of("error", "no_saathi_account"));
+        if ("suspended".equals(acc.getVerificationStatus())) {
+            return ResponseEntity.status(403).body(Map.of("error", "account_suspended", "note", acc.getVerificationNote()));
+        }
+        if (!saathi.isEntitled(acc)) {
+            return ResponseEntity.status(402).body(Map.of(
+                    "error", "trial_expired",
+                    "message", "Your free trial has ended. Upgrade to Saathi Lite or Pro to keep using live-assist.",
+                    "upgradeUrl", "/saathi#pricing"));
+        }
+        Map<String, Object> quotaError = saathi.checkQuota(acc);
+        if (quotaError != null) return ResponseEntity.status(429).body(quotaError);
+
         if (q == null || q.trim().length() < 2) {
             return ResponseEntity.badRequest().body(Map.of("error", "q must be ≥ 2 chars"));
         }
         return ResponseEntity.ok(saathi.liveAssist(acc, q.trim(), "live_assist"));
+    }
+
+    /** Aggregate metrics for the dashboard header. */
+    @GetMapping("/stats")
+    public ResponseEntity<?> stats(HttpServletRequest req) {
+        String userId = userId(req);
+        if (userId == null) return unauth();
+        SaathiAccount acc = saathi.findByUser(userId).orElse(null);
+        if (acc == null) return ResponseEntity.status(404).body(Map.of("error", "no_saathi_account"));
+        return ResponseEntity.ok(saathi.dashboardStats(acc));
     }
 
     @GetMapping("/queries")

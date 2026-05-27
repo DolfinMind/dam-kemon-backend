@@ -1,13 +1,18 @@
 package com.damKemon.dam.kemon.controller;
 
+import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.SaathiAccount;
+import com.damKemon.dam.kemon.model.SaathiProduct;
+import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.service.SaathiService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,9 +29,11 @@ import java.util.Map;
 public class SaathiPublicController {
 
     private final SaathiService saathi;
+    private final ProductRepository products;
 
-    public SaathiPublicController(SaathiService saathi) {
+    public SaathiPublicController(SaathiService saathi, ProductRepository products) {
         this.saathi = saathi;
+        this.products = products;
     }
 
     /**
@@ -70,7 +77,11 @@ public class SaathiPublicController {
                 .replace("\"", "&quot;").replace("'", "&#39;");
     }
 
-    /** Public profile JSON for the buyer-facing storefront page. */
+    /**
+     * Public profile JSON for the buyer-facing storefront page. Includes a
+     * hydrated product list (capped at 24) so the storefront can render a
+     * grid of what the seller offers without a second round-trip.
+     */
     @GetMapping("/p/{slug}")
     public ResponseEntity<?> publicProfile(@PathVariable String slug) {
         SaathiAccount acc = saathi.findBySlug(slug).orElse(null);
@@ -89,6 +100,29 @@ public class SaathiPublicController {
         out.put("rating", acc.getRating());
         out.put("ratingCount", acc.getRatingCount());
         out.put("avgReplyTime", acc.getAvgReplyTime());
+
+        // Hydrate up to 24 of their listed products so the buyer page
+        // renders a real storefront, not just a contact card.
+        List<SaathiProduct> sp = saathi.listProducts(acc);
+        List<Map<String, Object>> productList = new ArrayList<>();
+        int cap = Math.min(sp.size(), 24);
+        for (int i = 0; i < cap; i++) {
+            SaathiProduct s = sp.get(i);
+            Product p = products.findById(s.getProductId()).orElse(null);
+            if (p == null) continue;
+            Map<String, Object> pmap = new LinkedHashMap<>();
+            pmap.put("id", p.getId());
+            pmap.put("slug", p.getSlug());
+            pmap.put("name", p.getName());
+            pmap.put("imageUrl", p.getImageUrl());
+            pmap.put("category", p.getCategory());
+            pmap.put("listedPrice", s.getListedPrice());
+            pmap.put("marketLowest", p.getLowestPrice());
+            pmap.put("inStock", s.getInStock());
+            pmap.put("note", s.getNote());
+            productList.add(pmap);
+        }
+        out.put("products", productList);
         return ResponseEntity.ok(out);
     }
 }
