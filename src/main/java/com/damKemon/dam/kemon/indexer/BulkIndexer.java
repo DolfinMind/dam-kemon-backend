@@ -64,6 +64,7 @@ public class BulkIndexer {
     private final ProductRepository productRepository;
     private final SitemapCrawler sitemapCrawler;
     private final HomepageCrawler homepageCrawler;
+    private final SearchSeedCrawler searchSeedCrawler;
     private final ExtractorRegistry extractors;
     private final QueryClassifier classifier;
     private final ShopHealthService shopHealth;
@@ -88,6 +89,7 @@ public class BulkIndexer {
                        ProductRepository productRepository,
                        SitemapCrawler sitemapCrawler,
                        HomepageCrawler homepageCrawler,
+                       SearchSeedCrawler searchSeedCrawler,
                        ExtractorRegistry extractors,
                        QueryClassifier classifier,
                        ShopHealthService shopHealth,
@@ -96,6 +98,7 @@ public class BulkIndexer {
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
         this.homepageCrawler = homepageCrawler;
+        this.searchSeedCrawler = searchSeedCrawler;
         this.extractors = extractors;
         this.classifier = classifier;
         this.shopHealth = shopHealth;
@@ -355,7 +358,7 @@ public class BulkIndexer {
         if (shop.getSitemapUrl() != null && !shop.getSitemapUrl().isBlank()) {
             urls = sitemapCrawler.crawl(shop.getSitemapUrl());
         }
-        // Fallback: crawl homepage + category pages for shops without a
+        // Fallback 1: crawl homepage + category pages for shops without a
         // useful sitemap (BD-Shop, Pickaboo, Othoba, Walton, etc).
         // For SPA shops, use Playwright to render the homepage.
         if (urls.isEmpty() && shop.getBaseUrl() != null && !shop.getBaseUrl().isBlank()) {
@@ -365,8 +368,18 @@ public class BulkIndexer {
                         shop.getSlug(), urls.size(), js ? " [js-rendered]" : "");
             }
         }
+        // Fallback 2: drive the shop's own search URL with category seed
+        // queries. Catches retailers whose homepage doesn't directly link
+        // products (Walton, Singer, Rangs, Esquire, etc).
         if (urls.isEmpty()) {
-            log.info("Indexer: shop '{}' yielded no URLs from sitemap or homepage", shop.getSlug());
+            urls = searchSeedCrawler.crawl(shop, js);
+            if (!urls.isEmpty()) {
+                log.info("Indexer: shop '{}' falling back to search-URL seed crawl ({} URLs)",
+                        shop.getSlug(), urls.size());
+            }
+        }
+        if (urls.isEmpty()) {
+            log.info("Indexer: shop '{}' yielded no URLs from sitemap, homepage, or search seeds", shop.getSlug());
             return 0;
         }
         if (urls.size() > maxProductsPerShop) {

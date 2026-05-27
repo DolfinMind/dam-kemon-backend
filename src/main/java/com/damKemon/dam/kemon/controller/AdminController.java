@@ -92,6 +92,52 @@ public class AdminController {
         return ResponseEntity.ok(discovery.discover());
     }
 
+    /**
+     * Concise "what's broken" report for the operator dashboard. Returns
+     * three buckets: shops that successfully indexed products, shops with
+     * zero products last run, and shops that failed entirely. Cheap to
+     * compute — just walks the shops collection in memory.
+     */
+    @GetMapping("/shops/health")
+    public ResponseEntity<Map<String, Object>> shopsHealth() {
+        try {
+            List<Shop> all = shopRepository.findAll();
+            List<Map<String, Object>> healthy = new ArrayList<>();
+            List<Map<String, Object>> zeroProducts = new ArrayList<>();
+            List<Map<String, Object>> failing = new ArrayList<>();
+            for (Shop s : all) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("slug", s.getSlug());
+                row.put("name", s.getName());
+                row.put("baseUrl", s.getBaseUrl());
+                row.put("platform", s.getPlatform());
+                row.put("requiresJs", s.getRequiresJs());
+                row.put("lastIndexedAt", s.getLastIndexedAt());
+                row.put("lastIndexedCount", s.getLastIndexedCount());
+                row.put("lastError", s.getLastError());
+                row.put("consecutiveFailures", s.getConsecutiveFailures());
+                int count = s.getLastIndexedCount() == null ? 0 : s.getLastIndexedCount();
+                String err = s.getLastError();
+                if (err != null && !err.isBlank()) failing.add(row);
+                else if (count == 0) zeroProducts.add(row);
+                else healthy.add(row);
+            }
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("healthy", healthy);
+            out.put("zeroProducts", zeroProducts);
+            out.put("failing", failing);
+            out.put("counts", Map.of(
+                    "healthy", healthy.size(),
+                    "zeroProducts", zeroProducts.size(),
+                    "failing", failing.size(),
+                    "total", all.size()
+            ));
+            return ResponseEntity.ok(out);
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/index/run")
     public ResponseEntity<Map<String, Object>> kickoff(
             @RequestParam(value = "wipe", defaultValue = "false") boolean wipe) {

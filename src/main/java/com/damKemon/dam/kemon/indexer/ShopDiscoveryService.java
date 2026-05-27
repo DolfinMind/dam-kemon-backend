@@ -35,17 +35,45 @@ public class ShopDiscoveryService {
 
     private static final Logger log = LoggerFactory.getLogger(ShopDiscoveryService.class);
 
+    /**
+     * Public BD-ecommerce directories we follow. e-cab + BASIS are the
+     * two industry associations that publish member lists; the rest are
+     * tech-news archive pages that frequently roundup "Top BD online
+     * shops" — useful for catching newer entrants the associations miss.
+     *
+     * Adding a source is cheap: anything that links to other domains
+     * works. We dedupe by host so re-running the discover is idempotent.
+     */
     private static final List<String> SOURCES = List.of(
             "https://e-cab.net/members/",
-            "https://basis.org.bd/members"
+            "https://basis.org.bd/members",
+            "https://www.thedailystar.net/tech-startup/online-shopping",
+            "https://www.tbsnews.net/tech",
+            "https://www.dhakatribune.com/business/e-commerce",
+            "https://en.prothomalo.com/business",
+            "https://futurestartup.com/ecosystem/ecommerce-bangladesh/",
+            "https://en.wikipedia.org/wiki/E-commerce_in_Bangladesh"
     );
 
     private static final Set<String> BLOCKLIST_HOST_SUBSTRINGS = Set.of(
             "facebook.com", "fb.com", "instagram.com", "twitter.com", "x.com",
             "linkedin.com", "youtube.com", "youtu.be", "wikipedia.org",
             "daraz.com", "google.com", "amazon.com", "alibaba.com",
-            "e-cab.net", "basis.org.bd"
+            "e-cab.net", "basis.org.bd",
+            "thedailystar.net", "tbsnews.net", "dhakatribune.com",
+            "prothomalo.com", "futurestartup.com",
+            "bdnews24.com", "newagebd.net", "thefinancialexpress.com.bd",
+            "bb.org.bd", "btrc.gov.bd"
     );
+
+    /**
+     * TLD heuristic — we want hosts likely to be BD shops. We accept any
+     * {@code .com.bd} / {@code .net.bd} / {@code .bd}, plus generic
+     * {@code .com} hosts that appear in a BD-focused source page. Generic
+     * non-BD links from news articles (apple.com, samsung.com) get
+     * filtered downstream when we look at the host.
+     */
+    private static final Set<String> BD_TLDS = Set.of(".com.bd", ".net.bd", ".bd", ".org.bd");
 
     private final PendingShopRepository pendingRepo;
     private final ShopRepository shopRepo;
