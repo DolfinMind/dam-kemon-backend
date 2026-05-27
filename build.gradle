@@ -44,6 +44,12 @@ dependencies {
 	implementation 'org.springframework.security:spring-security-crypto'
 
 	compileOnly 'org.projectlombok:lombok'
+	// `developmentOnly` keeps DevTools off the bootJar runtime classpath,
+	// so production containers don't get auto-restart-on-classpath-change.
+	// Critical for crons: the indexer is scheduled at 03:00; in dev each
+	// DevTools restart resets the scheduler, which is why catalog data
+	// went stale during long edit sessions. Don't move this to a wider
+	// scope without first reading the cron section of the README.
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'
 

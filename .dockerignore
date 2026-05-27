@@ -1,0 +1,42 @@
+# Files that should never end up in a Docker build context — keeps
+# layer cache hits stable and shrinks the upload. Anything matched
+# here is invisible to the Dockerfile even with COPY . .
+
+# Build artifacts — Gradle rebuilds inside the container anyway.
+build/
+.gradle/
+out/
+bin/
+
+# Secrets (defence in depth — these are also in .gitignore).
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# IDE droppings.
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+
+# OS junk.
+.DS_Store
+Thumbs.db
+
+# Anything generated.
+*.log
+logs/
+*.tmp
+*.swp
+
+# Repo metadata + docs we don't need at runtime.
+.git/
+.github/
+README.md
+HELP.md
+*.md
