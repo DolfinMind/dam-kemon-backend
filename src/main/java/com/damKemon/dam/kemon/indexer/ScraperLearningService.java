@@ -146,10 +146,19 @@ public class ScraperLearningService {
             if (hasOgProduct(doc))     hasOgAny = true;
             if (detectedPlatform == null) detectedPlatform = sniffPlatform(doc, url);
 
-            // Try every registered extractor against this URL (no JS — that's
-            // a separate signal below).
+            // Try the extractors that ACTUALLY claim this URL via supports()
+            // — plus always test Generic as the universal fallback. Earlier
+            // version ran every extractor unconditionally and credited the
+            // Daraz/Pickaboo/etc. scrapers when their internal chain fell
+            // through to GenericProductExtractor.parseJsonLd. Result: any
+            // shop with JSON-LD ended up "matched" by every site-specific
+            // and the learner picked whichever one Spring injected first
+            // (Daraz, in practice). Skipping !supports() ones is the fix.
             Map<String, Boolean> perExtractor = new HashMap<>();
             for (ProductExtractor e : extractors.all()) {
+                boolean isGeneric = "generic".equalsIgnoreCase(e.getSiteSlug());
+                boolean shouldTry = isGeneric || e.supports(url);
+                if (!shouldTry) continue;
                 try {
                     ScrapedProduct sp = e.extract(url, false);
                     boolean ok = GenericProductExtractor.isValid(sp);

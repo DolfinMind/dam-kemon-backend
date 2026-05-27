@@ -121,6 +121,31 @@ public class AdminController {
     }
 
     /**
+     * Wipe every shop's learned {@code preferredExtractor} +
+     * {@code lastLearnedAt}. Use after fixing a learner bug so the next
+     * cron starts from scratch — otherwise shops stay locked to whatever
+     * the buggy version decided. Returns the count cleared.
+     */
+    @PostMapping("/shops/clear-learned")
+    public ResponseEntity<?> clearLearnedExtractors() {
+        try {
+            int cleared = 0;
+            for (Shop s : shopRepository.findAll()) {
+                if (s.getPreferredExtractor() != null || s.getLastLearnedAt() != null) {
+                    s.setPreferredExtractor(null);
+                    s.setLastLearnedAt(null);
+                    s.setUpdatedAt(LocalDateTime.now());
+                    shopRepository.save(s);
+                    cleared++;
+                }
+            }
+            return ResponseEntity.ok(Map.of("cleared", cleared));
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * Force a learning probe right now — useful for testing extractors
      * without waiting for the next 0-product cron run. Synchronous so the
      * response is the diagnostic.
