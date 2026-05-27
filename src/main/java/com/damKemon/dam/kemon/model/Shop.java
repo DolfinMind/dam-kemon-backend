@@ -108,6 +108,35 @@ public class Shop {
     @Builder.Default
     private Boolean needsRetry = false;
 
+    /**
+     * Slug of the extractor the auto-learning service decided works best
+     * for this shop's product pages. Set by {@code ScraperLearningService}
+     * after a probe run; honored by {@code ExtractorRegistry.pickForShop}.
+     * Null means "fall back to URL-based routing in the registry".
+     *
+     * <p>Lets the engine self-heal: when a previously broken shop suddenly
+     * works because a competing extractor (Generic JSON-LD, WooCommerce
+     * theme path) now matches its HTML, future runs lock onto that
+     * extractor without a redeploy.
+     */
+    private String preferredExtractor;
+
+    /**
+     * Auto-detected platform fingerprint from a learning probe. Distinct
+     * from the operator-set {@link #platform} — this is "what the page
+     * actually looks like" (e.g. WordPress body class, Shopify JS globals,
+     * OpenCart route= URLs). Used for diagnostics and to flag mismatches
+     * between {@code shops.json} and reality.
+     */
+    private String detectedPlatform;
+
+    /**
+     * Last time {@code ScraperLearningService} ran a probe on this shop.
+     * Throttled to once per 24h to avoid burning the same shop's quota
+     * on every retry pass.
+     */
+    private LocalDateTime lastLearnedAt;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

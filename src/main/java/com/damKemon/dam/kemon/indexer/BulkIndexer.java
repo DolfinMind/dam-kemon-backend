@@ -69,6 +69,7 @@ public class BulkIndexer {
     private final QueryClassifier classifier;
     private final ShopHealthService shopHealth;
     private final IndexerRunRepository indexerRunRepository;
+    private final ScraperLearningService learner;
 
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
@@ -93,7 +94,8 @@ public class BulkIndexer {
                        ExtractorRegistry extractors,
                        QueryClassifier classifier,
                        ShopHealthService shopHealth,
-                       IndexerRunRepository indexerRunRepository) {
+                       IndexerRunRepository indexerRunRepository,
+                       ScraperLearningService learner) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
@@ -103,6 +105,7 @@ public class BulkIndexer {
         this.classifier = classifier;
         this.shopHealth = shopHealth;
         this.indexerRunRepository = indexerRunRepository;
+        this.learner = learner;
     }
 
     private void persistRunRecord(String kind, RunSummary s) {
@@ -404,7 +407,7 @@ public class BulkIndexer {
                     }
                 }
                 try {
-                    ProductExtractor extractor = extractors.pick(url);
+                    ProductExtractor extractor = extractors.pickForShop(url, shop);
                     ScrapedProduct sp = extractor.extract(url, js);
                     if (sp == null || sp.getName() == null || sp.getPrice() == null) return;
                     // Sanity: BD products under ৳10 are almost always parse errors
@@ -432,6 +435,17 @@ public class BulkIndexer {
                     .get(maxWaitMs, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             log.warn("Indexer: shop '{}' partial ({}): {}", shop.getSlug(), e.getClass().getSimpleName(), e.getMessage());
+        }
+
+        // Auto-learning hook: if the run produced 0 products, ask the
+        // learner to diagnose. Throttled internally to once per 24h so
+        // this is safe to call every run unconditionally.
+        if (localOk.get() == 0) {
+            try { learner.learnFromBrokenShop(shop); }
+            catch (Exception e) {
+                log.debug("Indexer: learner threw on '{}' (ignored): {}",
+                        shop.getSlug(), e.getMessage());
+            }
         }
         return localOk.get();
     }

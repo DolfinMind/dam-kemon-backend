@@ -2,7 +2,10 @@ package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.indexer.BulkIndexer;
 import com.damKemon.dam.kemon.indexer.BulkIndexer.RunSummary;
+import com.damKemon.dam.kemon.indexer.ScraperLearningService;
 import com.damKemon.dam.kemon.indexer.ShopDiscoveryService;
+import com.damKemon.dam.kemon.model.ShopDiagnostic;
+import com.damKemon.dam.kemon.repository.ShopDiagnosticRepository;
 import com.damKemon.dam.kemon.model.AuditLogEntry;
 import com.damKemon.dam.kemon.model.IndexerRunRecord;
 import com.damKemon.dam.kemon.model.PendingShop;
@@ -46,6 +49,8 @@ public class AdminController {
     private final ShopDiscoveryService discovery;
     private final AuditLogRepository auditRepo;
     private final IndexerRunRepository indexerRunRepo;
+    private final ScraperLearningService learner;
+    private final ShopDiagnosticRepository diagnosticRepo;
 
     public AdminController(BulkIndexer indexer,
                            ShopRepository shopRepository,
@@ -54,7 +59,9 @@ public class AdminController {
                            HotDropsService hotDrops,
                            ShopDiscoveryService discovery,
                            AuditLogRepository auditRepo,
-                           IndexerRunRepository indexerRunRepo) {
+                           IndexerRunRepository indexerRunRepo,
+                           ScraperLearningService learner,
+                           ShopDiagnosticRepository diagnosticRepo) {
         this.indexer = indexer;
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
@@ -63,6 +70,8 @@ public class AdminController {
         this.discovery = discovery;
         this.auditRepo = auditRepo;
         this.indexerRunRepo = indexerRunRepo;
+        this.learner = learner;
+        this.diagnosticRepo = diagnosticRepo;
     }
 
     @GetMapping("/index/history")
@@ -90,6 +99,46 @@ public class AdminController {
     @PostMapping("/discover-shops")
     public ResponseEntity<Map<String, Object>> discoverShops() {
         return ResponseEntity.ok(discovery.discover());
+    }
+
+    /**
+     * Latest diagnostic from the auto-learning service for a single shop.
+     * Returns 404 if the learner hasn't run on this shop yet (typically
+     * because it hasn't been at 0 products for a full cron cycle).
+     */
+    @GetMapping("/shops/{slug}/diagnostic")
+    public ResponseEntity<?> shopDiagnostic(@PathVariable String slug) {
+        try {
+            return diagnosticRepo.findTopByShopSlugOrderByTsDesc(slug)
+                    .<ResponseEntity<?>>map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.status(404).body(Map.of(
+                            "error", "no_diagnostic",
+                            "message", "Learner hasn't run a probe on this shop yet — trigger one with POST /api/admin/shops/" + slug + "/learn"
+                    )));
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Force a learning probe right now — useful for testing extractors
+     * without waiting for the next 0-product cron run. Synchronous so the
+     * response is the diagnostic.
+     */
+    @PostMapping("/shops/{slug}/learn")
+    public ResponseEntity<?> learnShop(@PathVariable String slug) {
+        try {
+            Shop shop = shopRepository.findBySlug(slug).orElse(null);
+            if (shop == null) return ResponseEntity.notFound().build();
+            // Bypass the 24h throttle for manual triggers.
+            shop.setLastLearnedAt(null);
+            ShopDiagnostic d = learner.learnFromBrokenShop(shop);
+            if (d == null) return ResponseEntity.ok(Map.of("status", "skipped",
+                    "message", "Learner is disabled (set learner.enabled=true)."));
+            return ResponseEntity.ok(d);
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
     }
 
     /**
