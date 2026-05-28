@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.service;
 
+import com.damKemon.dam.kemon.intelligence.QueryClassifier;
 import com.damKemon.dam.kemon.model.PriceHistory;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.Review;
@@ -33,19 +34,48 @@ public class ProductService {
     private final TrustService trustService;
     private final MongoTemplate mongoTemplate;
     private final AffiliateClickRepository affiliateClicks;
+    private final QueryClassifier classifier;
 
     public ProductService(ProductRepository productRepository,
                           ReviewRepository reviewRepository,
                           PriceHistoryRepository priceHistoryRepository,
                           TrustService trustService,
                           MongoTemplate mongoTemplate,
-                          AffiliateClickRepository affiliateClicks) {
+                          AffiliateClickRepository affiliateClicks,
+                          QueryClassifier classifier) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.priceHistoryRepository = priceHistoryRepository;
         this.trustService = trustService;
         this.mongoTemplate = mongoTemplate;
         this.affiliateClicks = affiliateClicks;
+        this.classifier = classifier;
+    }
+
+    /**
+     * Re-run the (improved) classifier over the whole catalog and update each
+     * product's {@code category}. Fixes rows mis-categorised by an older
+     * classifier (e.g. an "iPhone case" stored as a smartphone). Admin-only,
+     * one-off; returns counts. Best-effort — skips on Mongo errors.
+     */
+    public Map<String, Object> reclassifyAll() {
+        int total = 0, changed = 0;
+        try {
+            for (Product p : productRepository.findAll()) {
+                total++;
+                if (p.getName() == null || p.getName().isBlank()) continue;
+                String cat = classifier.classify(p.getName()).primaryCategory().getLabel().toLowerCase();
+                if (!cat.equalsIgnoreCase(p.getCategory())) {
+                    p.setCategory(cat);
+                    p.setUpdatedAt(LocalDateTime.now());
+                    try { productRepository.save(p); changed++; }
+                    catch (DataAccessException ignored) { /* skip this row */ }
+                }
+            }
+        } catch (DataAccessException e) {
+            return Map.of("error", "catalog read failed", "total", total, "changed", changed);
+        }
+        return Map.of("total", total, "changed", changed);
     }
 
     /**

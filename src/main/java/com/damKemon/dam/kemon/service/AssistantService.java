@@ -64,6 +64,14 @@ public class AssistantService {
             "niche", "nicher", "moddhe", "modhe", "kome", "kom", "taka", "tk", "৳", "price",
             "daam", "dam", "cost", "above", "over", "beshi", "range", "between", "theke", "to"};
     private static final String[] MIN_SIGNALS = {"above", "over", "more than", "beshi", "at least", "minimum"};
+    private static final String[] FACET_WORDS = {
+            "delivery", "koto din", "kobe pabo", "kobe pabe", "shipping", "ship", "warranty", "guarantee",
+            "cod", "cash on delivery", "return", "ferot", "exchange", "emi", "kisti", "installment",
+            "গ্যারান্টি", "কিস্তি", "ডেলিভারি", "ফেরত"};
+    private static final String[] EMI_WORDS = {"emi", "kisti", "installment", "কিস্তি", "monthly payment"};
+
+    /** Compare trigger: "X vs Y", "X versus Y", "X naki Y" (Bangla "or"). */
+    private static final Pattern COMPARE = Pattern.compile("(?i)\\s+(?:vs\\.?|versus|naki|na ki)\\s+");
 
     private static final Pattern NUM = Pattern.compile(
             "(\\d+(?:[.,]\\d+)?)\\s*(k|hazar|hajar|hazaar|hejar|lakh|lac|lacs|lakhs|crore|cr)?",
@@ -76,14 +84,91 @@ public class AssistantService {
 
         String norm = normalize(raw);
 
-        // 1) "Is <shop> trustworthy?" — trust lookup for a named shop.
-        ShopRef shop = detectShop(norm);
-        if (shop != null && containsAny(norm, TRUST_WORDS)) {
-            return shopTrustReply(shop);
+        // 1) "X vs Y" — head-to-head comparison.
+        if (COMPARE.matcher(norm).find()) {
+            Map<String, Object> cmp = compareReply(raw);
+            if (cmp != null) return cmp;
         }
 
-        // 2) Otherwise it's a product/price/budget query.
+        // 2) "Is <shop> trustworthy?" / delivery / warranty / COD / EMI for a shop.
+        ShopRef shop = detectShop(norm);
+        boolean facet = containsAny(norm, FACET_WORDS);
+        if (shop != null && (containsAny(norm, TRUST_WORDS) || facet)) {
+            return shopTrustReply(shop, norm);
+        }
+
+        // 3) Service questions with no shop named (EMI/COD/delivery in general).
+        if (facet && shop == null) {
+            return facetNoShopReply();
+        }
+
+        // 4) Otherwise it's a product/price/budget query.
         return productReply(raw, norm);
+    }
+
+    private Map<String, Object> compareReply(String raw) {
+        String[] parts = raw.split("(?i)\\s+(?:vs\\.?|versus|naki|na ki)\\s+", 2);
+        if (parts.length != 2 || parts[0].trim().length() < 2 || parts[1].trim().length() < 2) return null;
+        Product a = topMatch(parts[0].trim());
+        Product b = topMatch(parts[1].trim());
+        if (a == null && b == null) return null;
+
+        Map<String, Object> out = base("compare");
+        List<Product> products = new ArrayList<>();
+        Set<String> slugs = new LinkedHashSet<>();
+        if (a != null) { products.add(a); String s = cheapestSlug(a); if (s != null) slugs.add(s); }
+        if (b != null) { products.add(b); String s = cheapestSlug(b); if (s != null) slugs.add(s); }
+        Map<String, Map<String, Object>> tv = trust.viewForSlugs(slugs);
+
+        StringBuilder sb = new StringBuilder();
+        Double pa = a == null ? null : a.getLowestPrice();
+        Double pb = b == null ? null : b.getLowestPrice();
+        sb.append(side(parts[0].trim(), a)).append(" ").append(side(parts[1].trim(), b)).append(" ");
+        if (pa != null && pb != null) {
+            if (pa.doubleValue() == pb.doubleValue()) sb.append("Both cost about the same — pick the more trusted seller.");
+            else {
+                Product cheaper = pa < pb ? a : b;
+                sb.append(cheaper.getName().length() > 40 ? cheaper.getName().substring(0, 40) : cheaper.getName())
+                  .append(" is cheaper by ").append(fmt(Math.abs(pa - pb))).append(".");
+            }
+        }
+        out.put("reply", sb.toString().trim());
+        out.put("products", products);
+        out.put("trust", tv);
+        out.put("suggestions", List.of("Cheapest of these", "Is the seller trustworthy?", "Show similar options"));
+        return out;
+    }
+
+    private String side(String label, Product p) {
+        if (p == null) return "Couldn't find \"" + label + "\".";
+        SitePrice cp = cheapestPrice(p);
+        String nm = p.getName().length() > 40 ? p.getName().substring(0, 40) + "…" : p.getName();
+        return nm + ": " + (cp != null && cp.getPrice() != null
+                ? fmt(cp.getPrice()) + (cp.getSiteName() != null ? " at " + cp.getSiteName() : "")
+                : "price N/A") + ".";
+    }
+
+    private Product topMatch(String q) {
+        try {
+            SearchResponse sr = search.search(q);
+            List<Product> ps = sr.getProducts();
+            if (ps == null || ps.isEmpty()) return null;
+            // Prefer a result in the detected category so "iphone 15" returns a
+            // phone, not an iPhone case.
+            String cat = sr.getDetectedCategory();
+            if (cat != null && !cat.isBlank()) {
+                for (Product p : ps) if (cat.equalsIgnoreCase(p.getCategory())) return p;
+            }
+            return ps.get(0);
+        } catch (Exception e) { return null; }
+    }
+
+    private Map<String, Object> facetNoShopReply() {
+        Map<String, Object> out = base("facet");
+        out.put("reply", "Tell me which seller and I'll check it — e.g. \"is Daraz delivery fast?\" or \"Star Tech warranty\". "
+                + "In general: most BD shops offer Cash on Delivery, and larger electronics retailers (Star Tech, Ryans, Pickaboo) usually offer card EMI.");
+        out.put("suggestions", List.of("Is Daraz trustworthy?", "Star Tech delivery time", "Best phone under ৳30,000"));
+        return out;
     }
 
     // ─── product / budget query ───
@@ -200,7 +285,7 @@ public class AssistantService {
 
     // ─── trust-about-shop query ───
 
-    private Map<String, Object> shopTrustReply(ShopRef shop) {
+    private Map<String, Object> shopTrustReply(ShopRef shop, String norm) {
         Map<String, Map<String, Object>> tv = trust.viewForSlugs(List.of(shop.slug));
         Map<String, Object> t = tv.get(shop.slug);
         Map<String, Object> out = base("trust");
@@ -212,6 +297,9 @@ public class AssistantService {
         int score = asInt(t.get("trustScore"));
         String tier = tier(score);
         StringBuilder sb = new StringBuilder();
+        // Lead with the specific facet the buyer asked about, if any.
+        String lead = facetLead(shop, t, norm);
+        if (lead != null) sb.append(lead).append(" ");
         sb.append(shop.name).append(" has a Damkemon trust score of ").append(score).append("/100 — ").append(tier).append(". ");
         String auth = authLabel((String) t.get("authenticity"));
         if (auth != null) sb.append(auth).append(". ");
@@ -412,6 +500,38 @@ public class AssistantService {
         if (Objects.equals(lo, hi)) return lo + (lo == 1 ? " day" : " days");
         if (lo != null && lo == 0) return "same–" + hi + " days";
         return lo + "–" + hi + " days";
+    }
+
+    private static String facetLead(ShopRef shop, Map<String, Object> t, String norm) {
+        if (containsAny(norm, EMI_WORDS)) {
+            return "I don't track EMI per seller yet — ask " + shop.name + " directly; larger electronics retailers usually offer card EMI.";
+        }
+        if (norm.contains("delivery") || norm.contains("koto din") || norm.contains("kobe pab")
+                || norm.contains("shipping") || norm.contains("ডেলিভারি")) {
+            String dt = deliveryText(t);
+            return "Delivery from " + shop.name + " is typically " + (dt != null ? dt : "a few days") + ".";
+        }
+        if (norm.contains("warranty") || norm.contains("guarantee") || norm.contains("গ্যারান্টি")) {
+            Object w = t.get("warranty");
+            return "Warranty at " + shop.name + ": " + (w != null ? w : "varies — confirm with the seller") + ".";
+        }
+        if (norm.contains("cod") || norm.contains("cash on delivery")) {
+            return shop.name + (Boolean.TRUE.equals(t.get("codAvailable"))
+                    ? " offers cash on delivery." : " may not offer cash on delivery — confirm first.");
+        }
+        if (norm.contains("return") || norm.contains("ferot") || norm.contains("exchange") || norm.contains("ফেরত")) {
+            return "Returns at " + shop.name + ": " + returnText(t) + ".";
+        }
+        return null;
+    }
+
+    private static String returnText(Map<String, Object> t) {
+        String ease = (String) t.get("returnEase");
+        Object rw = t.get("returnWindowDays");
+        int d = rw instanceof Number n ? n.intValue() : 0;
+        if ("none".equals(ease) || d == 0) return "no returns accepted";
+        String e = "easy".equals(ease) ? "easy" : "limited";
+        return d + "-day returns (" + e + ")";
     }
 
     private static String fmt(double v) {

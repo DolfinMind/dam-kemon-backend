@@ -22,6 +22,15 @@ public enum ProductCategory {
     SPORTS("Sports & Outdoor",   100.0,    200_000.0),
     AUTOMOTIVE("Automotive",     50.0,     5_000_000.0),
     FURNITURE("Furniture",       500.0,    500_000.0),
+    ACCESSORY("Accessories",     20.0,     100_000.0),
+    STORAGE("Storage & Memory",  150.0,    200_000.0),
+    NETWORKING("Networking",     250.0,    200_000.0),
+    MONITOR("Monitors",          3_000.0,  500_000.0),
+    PRINTER("Printers & Scanners", 1_200.0, 500_000.0),
+    SECURITY("Security & CCTV",  400.0,    300_000.0),
+    HEALTH("Health & Personal Care", 20.0, 300_000.0),
+    TOYS("Toys & Hobbies",       40.0,     200_000.0),
+    STATIONERY("Stationery & Office", 5.0, 100_000.0),
     GENERAL("General",           1.0,      Double.MAX_VALUE);
 
     private final String label;

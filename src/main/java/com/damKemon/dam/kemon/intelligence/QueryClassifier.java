@@ -17,134 +17,276 @@ import java.util.regex.Pattern;
  *   2. Tokenize.
  *   3. Score each ProductCategory by matched keyword hits + brand affinity.
  *   4. Pull out model-like tokens (alphanumeric mixed) for fuzzy matching later.
+ *
+ * <p>Accessories get a heavier keyword weight than the parent category so that
+ * "iPhone case" / "laptop bag" / "watch strap" classify as ACCESSORY, not as
+ * SMARTPHONE / LAPTOP / SMARTWATCH. Keyword dictionaries mix English, romanized
+ * Bangla and Bengali script; many keywords intentionally belong to more than one
+ * category (Aho-Corasick keeps every payload, so each match credits all of them).
  */
 @Service
 public class QueryClassifier {
 
     private static final Logger log = LoggerFactory.getLogger(QueryClassifier.class);
 
-    // category keyword dictionary — English + romanized Bangla
+    // category keyword dictionary — English + romanized Bangla + Bengali script
     private static final Map<ProductCategory, Set<String>> KW = new EnumMap<>(ProductCategory.class);
     private static final Map<String, Set<ProductCategory>> BRAND_CATEGORIES = new HashMap<>();
     private static final Pattern MODEL_PATTERN = Pattern.compile("^[a-z0-9]*\\d+[a-z0-9]*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern PUNCT = Pattern.compile("[^a-z0-9\\s]");
 
+    /** Dedup-safe set builder (Set.of throws on duplicates; this doesn't). */
+    private static Set<String> kw(String... s) { return new HashSet<>(Arrays.asList(s)); }
+
     static {
-        KW.put(ProductCategory.SMARTPHONE, Set.of(
-            "phone","mobile","smartphone","iphone","android","galaxy","redmi","oppo","vivo","realme",
-            "pixel","ipad","pro max","ultra","plus","mini","note","mobail","ফোন","mobiles"
+        KW.put(ProductCategory.SMARTPHONE, kw(
+            "phone","mobile","smartphone","smart phone","handset","cellphone","cell phone","iphone","android",
+            "galaxy","redmi","oppo","vivo","realme","poco","iqoo","oneplus","pixel","nothing phone","honor",
+            "huawei","nokia","motorola","moto","symphony","itel","tecno","infinix","lava","5g phone","dual sim",
+            "feature phone","button phone","pro max","ultra","note","mobail","mobiles","ফোন","মোবাইল","হ্যান্ডসেট","আইফোন"
         ));
-        KW.put(ProductCategory.LAPTOP, Set.of(
-            "laptop","notebook","macbook","thinkpad","pavilion","ideapad","vivobook","zenbook",
-            "rog","tuf","predator","nitro","inspiron","latitude","probook","elitebook","gaming laptop","ল্যাপটপ"
+        KW.put(ProductCategory.LAPTOP, kw(
+            "laptop","notebook","ultrabook","macbook","macbook air","macbook pro","thinkpad","pavilion","ideapad",
+            "vivobook","zenbook","rog","tuf","predator","nitro","inspiron","latitude","probook","elitebook",
+            "gaming laptop","chromebook","core i3","core i5","core i7","ryzen 5","ryzen 7","ল্যাপটপ"
         ));
-        KW.put(ProductCategory.TABLET, Set.of(
-            "tab","tablet","ipad","galaxy tab","mi pad","matepad","fire hd"
+        KW.put(ProductCategory.TABLET, kw(
+            "tab","tablet","ipad","galaxy tab","mi pad","redmi pad","matepad","lenovo tab","fire hd","drawing tablet",
+            "ট্যাব","ট্যাবলেট"
         ));
-        KW.put(ProductCategory.DESKTOP, Set.of(
-            "desktop","pc","cpu","ryzen build","gaming pc","prebuilt","monitor","graphics card","gpu",
-            "motherboard","ram ddr","ssd","nvme","power supply","psu","cooler","case"
+        KW.put(ProductCategory.DESKTOP, kw(
+            "desktop","pc","pc case","casing","tower pc","gaming pc","prebuilt","all in one pc","ryzen build","cpu",
+            "processor","motherboard","graphics card","gpu","ram","ddr4","ddr5","power supply","psu","cpu cooler",
+            "aio cooler","pc build","ডেস্কটপ"
         ));
-        KW.put(ProductCategory.HEADPHONE, Set.of(
-            "headphone","headphones","headset","earphone","earphones","earbud","earbuds","airpods",
-            "buds","wh-1000","tws","wireless headphone","jbl","bose","skullcandy","sennheiser","audio"
+        KW.put(ProductCategory.MONITOR, kw(
+            "monitor","gaming monitor","ips monitor","led monitor","curved monitor","ultrawide","4k monitor",
+            "144hz","165hz","computer monitor","মনিটর"
         ));
-        KW.put(ProductCategory.CAMERA, Set.of(
-            "camera","dslr","mirrorless","gopro","insta360","lens","tripod","camcorder","drone","action camera"
+        KW.put(ProductCategory.STORAGE, kw(
+            "ssd","hdd","hard disk","hard drive","nvme","sata ssd","portable ssd","external hdd","external ssd",
+            "pendrive","pen drive","usb drive","flash drive","memory card","micro sd","sd card","memory stick",
+            "পেনড্রাইভ","মেমোরি কার্ড"
         ));
-        KW.put(ProductCategory.SMARTWATCH, Set.of(
-            "watch","smartwatch","mi band","amazfit","galaxy watch","apple watch","fitness band","wearable"
+        KW.put(ProductCategory.NETWORKING, kw(
+            "router","wifi router","wi-fi router","mesh wifi","access point","range extender","wifi extender",
+            "network switch","modem","ont","onu","lan card","wifi adapter","usb wifi","powerline","রাউটার"
         ));
-        KW.put(ProductCategory.GAMING, Set.of(
-            "ps5","ps4","xbox","nintendo","switch","controller","keyboard","mouse","gaming chair",
-            "playstation","steam deck","joystick"
+        KW.put(ProductCategory.PRINTER, kw(
+            "printer","scanner","all in one printer","inkjet","laserjet","laser printer","photocopier","ink cartridge",
+            "toner","ink tank","barcode printer","প্রিন্টার"
         ));
-        KW.put(ProductCategory.TV, Set.of(
-            "tv","television","smart tv","led tv","oled","qled","4k tv","8k tv","android tv","fire tv","টিভি"
+        KW.put(ProductCategory.SECURITY, kw(
+            "cctv","cctv camera","ip camera","security camera","dvr","nvr","dome camera","bullet camera","wifi camera",
+            "doorbell camera","smart lock","fingerprint lock","access control","সিসিটিভি"
         ));
-        KW.put(ProductCategory.AC, Set.of(
-            "ac","air conditioner","split ac","window ac","inverter ac","portable ac","aircon","এসি"
+        KW.put(ProductCategory.HEADPHONE, kw(
+            "headphone","headphones","headset","earphone","earphones","earbud","earbuds","airpods","buds","tws",
+            "true wireless","neckband","bluetooth headphone","gaming headset","over ear","in ear","wh-1000",
+            "speaker","bluetooth speaker","portable speaker","soundbar","woofer","home theater","microphone","mic",
+            "audio","হেডফোন","ইয়ারফোন","স্পিকার"
         ));
-        KW.put(ProductCategory.REFRIGERATOR, Set.of(
-            "fridge","refrigerator","freezer","deep freezer","mini fridge","ফ্রিজ"
+        KW.put(ProductCategory.CAMERA, kw(
+            "camera","dslr","mirrorless","gopro","insta360","camera lens","camera tripod","camcorder","drone",
+            "action camera","webcam","instant camera","gimbal","ক্যামেরা"
         ));
-        KW.put(ProductCategory.APPLIANCE, Set.of(
-            "microwave","oven","blender","grinder","mixer","washing machine","dryer","iron",
-            "rice cooker","pressure cooker","air fryer","induction","kettle","toaster","geyser","heater",
-            "vacuum","fan","ceiling fan","table fan","stand fan"
+        KW.put(ProductCategory.SMARTWATCH, kw(
+            "smartwatch","smart watch","mi band","amazfit","galaxy watch","apple watch","fitness band",
+            "fitness tracker","smart band","wearable","kids watch","ঘড়ি","স্মার্টওয়াচ"
         ));
-        KW.put(ProductCategory.KITCHEN, Set.of(
-            "pan","pot","cookware","knife","cutlery","utensil","dinner set","plate","bowl","cup","mug","glass"
+        KW.put(ProductCategory.GAMING, kw(
+            "ps5","ps4","xbox","nintendo","nintendo switch","controller","gamepad","dualshock","dualsense",
+            "gaming chair","playstation","steam deck","joystick","gaming console","game console","gaming keyboard",
+            "gaming mouse","vr headset","oculus","meta quest"
         ));
-        KW.put(ProductCategory.FASHION, Set.of(
-            "saree","panjabi","kurta","shirt","t-shirt","jeans","pant","shoe","sneaker","sandal","watch",
-            "wallet","bag","handbag","sunglass","cap","jacket","sweater","hoodie","dupatta","salwar",
-            "kameez","blouse","lehenga","jamdani","শাড়ি","পাঞ্জাবি"
+        KW.put(ProductCategory.TV, kw(
+            "tv","television","smart tv","led tv","oled","qled","4k tv","8k tv","android tv","google tv","fire tv",
+            "tv box","android box","projector","টিভি","টেলিভিশন"
         ));
-        KW.put(ProductCategory.BEAUTY, Set.of(
-            "cream","lotion","serum","lipstick","mascara","foundation","face wash","shampoo","conditioner",
-            "perfume","fragrance","deodorant","cosmetic","makeup","skincare","cetaphil","nivea","ponds"
+        KW.put(ProductCategory.AC, kw(
+            "ac","air conditioner","split ac","window ac","inverter ac","portable ac","aircon","1 ton ac",
+            "1.5 ton ac","2 ton ac","cassette ac","এসি","এয়ার কন্ডিশনার"
         ));
-        KW.put(ProductCategory.BOOK, Set.of(
-            "book","books","novel","poetry","story","ebook","kobita","upanyash","textbook","guide","হইল",
-            "samagra","atomic habits","humayun ahmed","misir ali","himu","rabindranath","হুমায়ুন","বই"
+        KW.put(ProductCategory.REFRIGERATOR, kw(
+            "fridge","refrigerator","freezer","deep freezer","mini fridge","double door fridge","single door fridge",
+            "side by side","non frost","beverage cooler","water dispenser","ফ্রিজ"
         ));
-        KW.put(ProductCategory.GROCERY, Set.of(
-            "rice","oil","sugar","flour","atta","masala","dal","lentil","chinigura","biryani rice",
-            "tea","coffee","milk","powder","biscuit","chocolate","sauce","ketchup","noodles","pasta",
-            "egg","fish","meat","chicken","vegetable","fruit","spice","salt","pran","radhuni","তেল","চাল"
+        KW.put(ProductCategory.APPLIANCE, kw(
+            "microwave","microwave oven","oven","convection oven","blender","grinder","mixer","hand mixer","juicer",
+            "washing machine","front load","top load","dryer","iron","steam iron","rice cooker","pressure cooker",
+            "air fryer","induction cooker","kettle","toaster","geyser","water heater","room heater","vacuum cleaner",
+            "water purifier","water filter","fan","ceiling fan","table fan","stand fan","exhaust fan","sewing machine",
+            "ওভেন","ফ্যান","ওয়াশিং মেশিন"
         ));
-        KW.put(ProductCategory.BABY, Set.of(
-            "diaper","baby food","formula","stroller","baby walker","feeder","bottle","toy","kids","children"
+        KW.put(ProductCategory.KITCHEN, kw(
+            "pan","frying pan","non stick","cookware","cookware set","knife","knife set","cutlery","utensil",
+            "dinner set","plate","bowl","mug","karai","kadai","casserole","hotpot","tiffin","water bottle","flask",
+            "thermos","chopping board","হাঁড়ি","রান্নার সরঞ্জাম"
         ));
-        KW.put(ProductCategory.SPORTS, Set.of(
-            "cricket","bat","football","basketball","jersey","yoga mat","dumbbell","treadmill","gym",
-            "running shoe","cycle","bicycle"
+        KW.put(ProductCategory.FASHION, kw(
+            "saree","panjabi","kurta","kurti","shirt","t-shirt","jeans","pant","trouser","shoe","sneaker","sandal",
+            "loafer","heels","keds","slipper","wallet","handbag","sunglass","cap","jacket","sweater","hoodie",
+            "dupatta","salwar","kameez","blouse","lehenga","jamdani","three piece","two piece","abaya","hijab",
+            "borka","fatua","belt","tie","scarf","shawl","পোশাক","জামা","শাড়ি","পাঞ্জাবি","জুতা","ব্যাগ"
         ));
-        KW.put(ProductCategory.AUTOMOTIVE, Set.of(
-            "car","bike","motorcycle","helmet","tire","tyre","battery","engine oil","car charger","dashcam"
+        KW.put(ProductCategory.BEAUTY, kw(
+            "cream","lotion","moisturizer","serum","lipstick","mascara","foundation","face wash","face mask",
+            "sheet mask","shampoo","conditioner","perfume","fragrance","deodorant","cosmetic","makeup","skincare",
+            "sunscreen","sunblock","toner","body wash","hair oil","hair color","trimmer","shaver","kajal","eyeliner",
+            "bb cream","cc cream","ক্রিম","প্রসাধনী"
         ));
-        KW.put(ProductCategory.FURNITURE, Set.of(
-            "sofa","bed","mattress","table","chair","wardrobe","cabinet","shelf","desk","drawer"
+        KW.put(ProductCategory.BOOK, kw(
+            "book","books","novel","poetry","story book","ebook","kobita","upanyash","textbook","guide book",
+            "academic book","admission book","islamic book","quran","tafsir","hadith","children book","comic",
+            "magazine","dictionary","bcs","ielts","বই","কোরআন","গল্পের বই","কবিতা","উপন্যাস"
+        ));
+        KW.put(ProductCategory.GROCERY, kw(
+            "rice","oil","sugar","flour","atta","masala","dal","lentil","chinigura","basmati","miniket","tea",
+            "coffee","milk","milk powder","biscuit","chocolate","sauce","ketchup","noodles","pasta","ghee","honey",
+            "mustard oil","soybean oil","dates","khejur","nuts","cashew","almond","muri","chira","gur","detergent",
+            "soap","toothpaste","tissue","spice","salt","তেল","চাল","চিনি","ডাল","আটা","মসলা","মধু","ঘি"
+        ));
+        KW.put(ProductCategory.BABY, kw(
+            "diaper","baby diaper","wet wipes","baby food","formula","stroller","baby walker","feeder",
+            "feeding bottle","breast pump","baby lotion","baby shampoo","baby oil","baby carrier","high chair",
+            "crib","cerelac","শিশু","বেবি","ডায়াপার"
+        ));
+        KW.put(ProductCategory.SPORTS, kw(
+            "cricket bat","cricket ball","football","basketball","jersey","yoga mat","dumbbell","treadmill","gym",
+            "running shoe","cycle","bicycle","badminton","racket","skipping rope","resistance band","protein",
+            "whey","supplement","camping","tent","fishing","সাইকেল","ক্রিকেট"
+        ));
+        KW.put(ProductCategory.AUTOMOTIVE, kw(
+            "car","bike","motorcycle","scooter","helmet","tyre","tire","engine oil","lubricant","spark plug",
+            "car charger","dashcam","dash cam","car cover","seat cover","car perfume","car stereo","গাড়ি","বাইক","মোটরসাইকেল"
+        ));
+        KW.put(ProductCategory.FURNITURE, kw(
+            "sofa","bed","mattress","dining table","center table","study table","computer table","office chair",
+            "chair","wardrobe","cabinet","shelf","book shelf","shoe rack","tv cabinet","dressing table","drawer",
+            "সোফা","টেবিল","চেয়ার","খাট","আলমারি"
+        ));
+        KW.put(ProductCategory.ACCESSORY, kw(
+            "case","cover","back cover","phone case","mobile case","screen protector","tempered glass",
+            "glass protector","charger","fast charger","wall charger","charging cable","usb cable","type c cable",
+            "type-c cable","data cable","lightning cable","power bank","powerbank","adapter","otg","phone holder",
+            "phone stand","mobile stand","selfie stick","ring light","stylus","watch strap","watch band","laptop bag",
+            "laptop sleeve","laptop stand","mouse pad","mousepad","keyboard cover","sleeve","pouch","phone grip",
+            "popsocket","cable organizer","cooling pad","usb hub","type c hub","converter","airpods case","phone skin",
+            "card holder","phone cooler","cooling fan","powerport","power port","wireless charger","magsafe",
+            "laptop charger","camera bag","car mount","bike mount","tablet case","gaming trigger",
+            "কভার","কেস","চার্জার","ক্যাবল","পাওয়ার ব্যাংক"
+        ));
+        KW.put(ProductCategory.HEALTH, kw(
+            "bp machine","blood pressure machine","glucometer","thermometer","pulse oximeter","oximeter","nebulizer",
+            "first aid","hand sanitizer","sanitizer","vitamin","medicine","wheelchair","walking stick","hearing aid",
+            "weight scale","weighing machine","heating pad","ওষুধ","মাস্ক"
+        ));
+        KW.put(ProductCategory.TOYS, kw(
+            "toy","toys","remote control car","rc car","lego","building blocks","doll","puzzle","board game","ludo",
+            "action figure","soft toy","teddy bear","kids cycle","খেলনা","পুতুল"
+        ));
+        KW.put(ProductCategory.STATIONERY, kw(
+            "pen","ball pen","gel pen","pencil","diary","a4 paper","printing paper","file","folder","marker",
+            "highlighter","stapler","sticky note","calculator","geometry box","exercise book","khata","কলম","খাতা"
         ));
 
         // brand → category affinity (a brand can map to multiple categories)
         addBrand("walton", ProductCategory.AC, ProductCategory.REFRIGERATOR, ProductCategory.APPLIANCE, ProductCategory.TV, ProductCategory.SMARTPHONE);
-        addBrand("samsung", ProductCategory.SMARTPHONE, ProductCategory.TV, ProductCategory.APPLIANCE, ProductCategory.TABLET, ProductCategory.SMARTWATCH, ProductCategory.REFRIGERATOR, ProductCategory.AC);
-        addBrand("lg",       ProductCategory.TV, ProductCategory.REFRIGERATOR, ProductCategory.AC, ProductCategory.APPLIANCE);
+        addBrand("samsung", ProductCategory.SMARTPHONE, ProductCategory.TV, ProductCategory.APPLIANCE, ProductCategory.TABLET, ProductCategory.SMARTWATCH, ProductCategory.REFRIGERATOR, ProductCategory.AC, ProductCategory.MONITOR, ProductCategory.STORAGE);
+        addBrand("lg",       ProductCategory.TV, ProductCategory.REFRIGERATOR, ProductCategory.AC, ProductCategory.APPLIANCE, ProductCategory.MONITOR);
         addBrand("apple",    ProductCategory.SMARTPHONE, ProductCategory.LAPTOP, ProductCategory.TABLET, ProductCategory.HEADPHONE, ProductCategory.SMARTWATCH);
-        addBrand("xiaomi",   ProductCategory.SMARTPHONE, ProductCategory.SMARTWATCH, ProductCategory.HEADPHONE, ProductCategory.APPLIANCE);
+        addBrand("xiaomi",   ProductCategory.SMARTPHONE, ProductCategory.SMARTWATCH, ProductCategory.HEADPHONE, ProductCategory.APPLIANCE, ProductCategory.TV);
         addBrand("redmi",    ProductCategory.SMARTPHONE);
+        addBrand("poco",     ProductCategory.SMARTPHONE);
         addBrand("oppo",     ProductCategory.SMARTPHONE);
         addBrand("vivo",     ProductCategory.SMARTPHONE);
+        addBrand("iqoo",     ProductCategory.SMARTPHONE);
         addBrand("realme",   ProductCategory.SMARTPHONE);
         addBrand("oneplus",  ProductCategory.SMARTPHONE);
         addBrand("google",   ProductCategory.SMARTPHONE);
-        addBrand("asus",     ProductCategory.LAPTOP, ProductCategory.DESKTOP, ProductCategory.GAMING);
-        addBrand("lenovo",   ProductCategory.LAPTOP, ProductCategory.DESKTOP, ProductCategory.TABLET);
-        addBrand("hp",       ProductCategory.LAPTOP, ProductCategory.DESKTOP);
-        addBrand("dell",     ProductCategory.LAPTOP, ProductCategory.DESKTOP);
-        addBrand("msi",      ProductCategory.LAPTOP, ProductCategory.GAMING);
-        addBrand("acer",     ProductCategory.LAPTOP, ProductCategory.DESKTOP);
+        addBrand("nothing",  ProductCategory.SMARTPHONE, ProductCategory.HEADPHONE);
+        addBrand("honor",    ProductCategory.SMARTPHONE, ProductCategory.LAPTOP);
+        addBrand("huawei",   ProductCategory.SMARTPHONE, ProductCategory.SMARTWATCH, ProductCategory.NETWORKING);
+        addBrand("nokia",    ProductCategory.SMARTPHONE);
+        addBrand("motorola", ProductCategory.SMARTPHONE);
+        addBrand("symphony", ProductCategory.SMARTPHONE);
+        addBrand("itel",     ProductCategory.SMARTPHONE);
+        addBrand("tecno",    ProductCategory.SMARTPHONE);
+        addBrand("infinix",  ProductCategory.SMARTPHONE);
+        addBrand("lava",     ProductCategory.SMARTPHONE);
+        addBrand("asus",     ProductCategory.LAPTOP, ProductCategory.DESKTOP, ProductCategory.GAMING, ProductCategory.MONITOR, ProductCategory.NETWORKING);
+        addBrand("lenovo",   ProductCategory.LAPTOP, ProductCategory.DESKTOP, ProductCategory.TABLET, ProductCategory.MONITOR);
+        addBrand("hp",       ProductCategory.LAPTOP, ProductCategory.DESKTOP, ProductCategory.PRINTER, ProductCategory.MONITOR);
+        addBrand("dell",     ProductCategory.LAPTOP, ProductCategory.DESKTOP, ProductCategory.MONITOR);
+        addBrand("msi",      ProductCategory.LAPTOP, ProductCategory.GAMING, ProductCategory.MONITOR, ProductCategory.DESKTOP);
+        addBrand("acer",     ProductCategory.LAPTOP, ProductCategory.DESKTOP, ProductCategory.MONITOR);
+        addBrand("gigabyte", ProductCategory.LAPTOP, ProductCategory.DESKTOP, ProductCategory.MONITOR);
+        addBrand("benq",     ProductCategory.MONITOR);
+        addBrand("viewsonic",ProductCategory.MONITOR);
+        addBrand("aoc",      ProductCategory.MONITOR);
+        addBrand("corsair",  ProductCategory.DESKTOP, ProductCategory.GAMING, ProductCategory.ACCESSORY);
+        addBrand("logitech", ProductCategory.ACCESSORY, ProductCategory.GAMING);
+        addBrand("razer",    ProductCategory.GAMING, ProductCategory.ACCESSORY);
+        addBrand("a4tech",   ProductCategory.ACCESSORY);
+        addBrand("rapoo",    ProductCategory.ACCESSORY);
+        addBrand("fantech",  ProductCategory.GAMING, ProductCategory.ACCESSORY);
+        addBrand("havit",    ProductCategory.HEADPHONE, ProductCategory.ACCESSORY);
+        addBrand("baseus",   ProductCategory.ACCESSORY);
+        addBrand("remax",    ProductCategory.ACCESSORY);
+        addBrand("ugreen",   ProductCategory.ACCESSORY, ProductCategory.NETWORKING);
+        addBrand("joyroom",  ProductCategory.ACCESSORY);
+        addBrand("anker",    ProductCategory.ACCESSORY, ProductCategory.HEADPHONE);
         addBrand("sony",     ProductCategory.HEADPHONE, ProductCategory.TV, ProductCategory.CAMERA, ProductCategory.GAMING);
         addBrand("bose",     ProductCategory.HEADPHONE);
         addBrand("jbl",      ProductCategory.HEADPHONE);
-        addBrand("anker",    ProductCategory.HEADPHONE, ProductCategory.APPLIANCE);
-        addBrand("canon",    ProductCategory.CAMERA);
+        addBrand("edifier",  ProductCategory.HEADPHONE);
+        addBrand("boat",     ProductCategory.HEADPHONE);
+        addBrand("marshall", ProductCategory.HEADPHONE);
+        addBrand("canon",    ProductCategory.CAMERA, ProductCategory.PRINTER);
         addBrand("nikon",    ProductCategory.CAMERA);
         addBrand("gopro",    ProductCategory.CAMERA);
         addBrand("dji",      ProductCategory.CAMERA);
+        addBrand("transcend",ProductCategory.STORAGE);
+        addBrand("sandisk",  ProductCategory.STORAGE);
+        addBrand("seagate",  ProductCategory.STORAGE);
+        addBrand("kingston", ProductCategory.STORAGE, ProductCategory.DESKTOP);
+        addBrand("adata",    ProductCategory.STORAGE, ProductCategory.DESKTOP);
+        addBrand("tp-link",  ProductCategory.NETWORKING);
+        addBrand("tplink",   ProductCategory.NETWORKING);
+        addBrand("tenda",    ProductCategory.NETWORKING);
+        addBrand("mikrotik", ProductCategory.NETWORKING);
+        addBrand("netgear",  ProductCategory.NETWORKING);
+        addBrand("epson",    ProductCategory.PRINTER);
+        addBrand("brother",  ProductCategory.PRINTER);
+        addBrand("hikvision",ProductCategory.SECURITY);
+        addBrand("dahua",    ProductCategory.SECURITY);
+        addBrand("ezviz",    ProductCategory.SECURITY);
         addBrand("daikin",   ProductCategory.AC);
         addBrand("gree",     ProductCategory.AC);
         addBrand("midea",    ProductCategory.AC, ProductCategory.APPLIANCE);
         addBrand("panasonic",ProductCategory.AC, ProductCategory.APPLIANCE, ProductCategory.TV);
         addBrand("haier",    ProductCategory.AC, ProductCategory.REFRIGERATOR, ProductCategory.APPLIANCE);
+        addBrand("hitachi",  ProductCategory.REFRIGERATOR, ProductCategory.AC, ProductCategory.APPLIANCE);
+        addBrand("whirlpool",ProductCategory.REFRIGERATOR, ProductCategory.APPLIANCE);
+        addBrand("toshiba",  ProductCategory.TV, ProductCategory.APPLIANCE, ProductCategory.STORAGE);
+        addBrand("tcl",      ProductCategory.TV, ProductCategory.AC);
+        addBrand("hisense",  ProductCategory.TV, ProductCategory.AC, ProductCategory.REFRIGERATOR);
         addBrand("singer",   ProductCategory.APPLIANCE, ProductCategory.TV, ProductCategory.REFRIGERATOR);
-        addBrand("vision",   ProductCategory.APPLIANCE, ProductCategory.TV);
+        addBrand("vision",   ProductCategory.APPLIANCE, ProductCategory.TV, ProductCategory.REFRIGERATOR);
+        addBrand("conion",   ProductCategory.APPLIANCE, ProductCategory.AC);
+        addBrand("marcel",   ProductCategory.APPLIANCE, ProductCategory.TV, ProductCategory.REFRIGERATOR);
+        addBrand("minister", ProductCategory.APPLIANCE, ProductCategory.REFRIGERATOR, ProductCategory.TV);
+        addBrand("jamuna",   ProductCategory.APPLIANCE, ProductCategory.TV, ProductCategory.REFRIGERATOR);
+        addBrand("butterfly",ProductCategory.APPLIANCE);
+        addBrand("rfl",      ProductCategory.APPLIANCE, ProductCategory.KITCHEN, ProductCategory.FURNITURE);
         addBrand("philips",  ProductCategory.APPLIANCE, ProductCategory.BEAUTY);
+        addBrand("dyson",    ProductCategory.APPLIANCE);
         addBrand("aarong",   ProductCategory.FASHION, ProductCategory.BEAUTY);
         addBrand("yellow",   ProductCategory.FASHION);
         addBrand("ecstasy",  ProductCategory.FASHION);
+        addBrand("fabrilife",ProductCategory.FASHION);
+        addBrand("bata",     ProductCategory.FASHION);
+        addBrand("apex",     ProductCategory.FASHION);
         addBrand("nike",     ProductCategory.FASHION, ProductCategory.SPORTS);
         addBrand("adidas",   ProductCategory.FASHION, ProductCategory.SPORTS);
         addBrand("puma",     ProductCategory.FASHION, ProductCategory.SPORTS);
@@ -152,11 +294,18 @@ public class QueryClassifier {
         addBrand("cetaphil", ProductCategory.BEAUTY);
         addBrand("loreal",   ProductCategory.BEAUTY);
         addBrand("lakme",    ProductCategory.BEAUTY);
+        addBrand("maybelline",ProductCategory.BEAUTY);
+        addBrand("garnier",  ProductCategory.BEAUTY);
+        addBrand("himalaya", ProductCategory.BEAUTY, ProductCategory.HEALTH);
         addBrand("pran",     ProductCategory.GROCERY);
         addBrand("radhuni",  ProductCategory.GROCERY);
         addBrand("nescafe",  ProductCategory.GROCERY);
         addBrand("nestle",   ProductCategory.GROCERY);
         addBrand("ispahani", ProductCategory.GROCERY);
+        addBrand("garmin",   ProductCategory.SMARTWATCH, ProductCategory.SPORTS);
+        addBrand("fitbit",   ProductCategory.SMARTWATCH);
+        addBrand("amazfit",  ProductCategory.SMARTWATCH);
+        addBrand("casio",    ProductCategory.SMARTWATCH, ProductCategory.FASHION);
         addBrand("humayun ahmed", ProductCategory.BOOK);
         addBrand("rokomari", ProductCategory.BOOK);
     }
@@ -167,8 +316,8 @@ public class QueryClassifier {
 
     // ====== Aho-Corasick automata built once at startup ======
     // One automaton matches every (category × keyword) pair in a single pass
-    // over the query. Payload encodes weight (3 for multi-word, 2 for token)
-    // and the category to credit.
+    // over the query. Payload encodes weight (3 for multi-word, 2 for token;
+    // accessories get 5/4 so "iPhone case" beats SMARTPHONE) and the category.
     private AhoCorasick<KwHit> keywordAutomaton;
     private AhoCorasick<BrandHit> brandAutomaton;
 
@@ -179,9 +328,11 @@ public class QueryClassifier {
     void buildAutomata() {
         keywordAutomaton = new AhoCorasick<>();
         for (Map.Entry<ProductCategory, Set<String>> e : KW.entrySet()) {
+            boolean accessory = e.getKey() == ProductCategory.ACCESSORY;
             for (String kw : e.getValue()) {
                 boolean multi = kw.contains(" ");
-                keywordAutomaton.add(kw, new KwHit(e.getKey(), multi ? 3 : 2, multi));
+                int weight = accessory ? (multi ? 5 : 4) : (multi ? 3 : 2);
+                keywordAutomaton.add(kw, new KwHit(e.getKey(), weight, multi));
             }
         }
         keywordAutomaton.build();
@@ -193,8 +344,8 @@ public class QueryClassifier {
         brandAutomaton.build();
 
         int kwCount = KW.values().stream().mapToInt(Set::size).sum();
-        log.info("QueryClassifier: built Aho-Corasick with {} keywords + {} brands",
-                kwCount, BRAND_CATEGORIES.size());
+        log.info("QueryClassifier: built Aho-Corasick with {} keywords + {} brands across {} categories",
+                kwCount, BRAND_CATEGORIES.size(), KW.size());
     }
 
     public QueryIntent classify(String rawQuery) {
@@ -215,8 +366,13 @@ public class QueryClassifier {
         }
 
         Map<ProductCategory, Integer> scores = new EnumMap<>(ProductCategory.class);
+        boolean accessoryHit = false;
         for (AhoCorasick.Hit<KwHit> hit : keywordAutomaton.findAll(normalized)) {
             scores.merge(hit.payload().category(), hit.payload().weight(), Integer::sum);
+            // An explicit accessory keyword ("case", "screen protector", "charging
+            // cable", "laptop bag"…) trumps the parent category, even when the
+            // product name repeats the parent keyword ("iPhone case for iPhone 15").
+            if (hit.payload().category() == ProductCategory.ACCESSORY) accessoryHit = true;
         }
         // brand affinity bonus
         for (ProductCategory c : brandAffinity) scores.merge(c, 1, Integer::sum);
@@ -257,6 +413,12 @@ public class QueryClassifier {
             }
         } else {
             finalCategories.add(ProductCategory.GENERAL);
+        }
+
+        // Accessory trump: an explicit accessory keyword wins the primary slot.
+        if (accessoryHit) {
+            finalCategories.remove(ProductCategory.ACCESSORY);
+            finalCategories.add(0, ProductCategory.ACCESSORY);
         }
 
         QueryIntent intent = QueryIntent.builder()

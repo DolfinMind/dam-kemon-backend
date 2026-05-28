@@ -96,6 +96,58 @@ public final class QueryExpander {
         bengaliMap("ওয়ালটন", "walton");
         bengaliMap("স্যামসাং", "samsung");
         bengaliMap("আইফোন", "iphone");
+
+        // ── more category + accessory synonyms ──
+        bidir("powerbank", "power bank");
+        bidir("smartwatch", "smart watch");
+        bidir("monitor", "display");
+        bidir("charger", "adapter");
+        bidir("pendrive", "pen drive");
+        bidir("pendrive", "usb drive");
+        bidir("ssd", "solid state");
+        bidir("router", "wifi router");
+        bidir("cctv", "security camera");
+        bidir("cctv", "ip camera");
+        bidir("tablet", "tab");
+        bidir("speaker", "soundbar");
+        bidir("trimmer", "shaver");
+        bidir("motorola", "moto");
+        bidir("nothing", "cmf");
+
+        // ── more misspellings the inbox sees ──
+        misspell("mobile", "moblie", "mobil", "mobail");
+        misspell("laptop", "labtop", "leptop", "laptp");
+        misspell("charger", "charer", "charjer", "chargar");
+        misspell("bluetooth", "blutooth", "bluetuth", "blututh");
+        misspell("headphone", "hedphone", "headfone", "hedfone");
+        misspell("speaker", "spekar", "speker");
+        misspell("powerbank", "powerbnk", "powrbank");
+        misspell("router", "rauter", "router wifi");
+        misspell("camera", "camra", "kamera");
+
+        // ── more Bengali → Latin ──
+        bengaliMap("রাউটার", "router");
+        bengaliMap("প্রিন্টার", "printer");
+        bengaliMap("সিসিটিভি", "cctv");
+        bengaliMap("মনিটর", "monitor");
+        bengaliMap("পেনড্রাইভ", "pendrive");
+        bengaliMap("মেমোরি কার্ড", "memory card");
+        bengaliMap("স্পিকার", "speaker");
+        bengaliMap("স্মার্টওয়াচ", "smartwatch");
+        bengaliMap("কভার", "cover");
+        bengaliMap("কেস", "case");
+        bengaliMap("ব্যাগ", "bag");
+        bengaliMap("চশমা", "sunglass");
+        bengaliMap("জামা", "shirt");
+        bengaliMap("প্যান্ট", "pant");
+        bengaliMap("পাঞ্জাবি", "panjabi");
+        bengaliMap("শাড়ি", "saree");
+        bengaliMap("ওষুধ", "medicine");
+        bengaliMap("খেলনা", "toy");
+        bengaliMap("কলম", "pen");
+        bengaliMap("খাতা", "exercise book");
+        bengaliMap("ফ্যান", "fan");
+        bengaliMap("ওভেন", "oven");
     }
 
     private static void bidir(String a, String b) {
