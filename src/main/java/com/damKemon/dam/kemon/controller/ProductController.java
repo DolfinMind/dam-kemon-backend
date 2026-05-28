@@ -4,6 +4,7 @@ import com.damKemon.dam.kemon.model.PriceHistory;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.Review;
 import com.damKemon.dam.kemon.service.ProductService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/products")
@@ -25,9 +27,16 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<Page<Product>> getAllProducts(
             @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size) {
+            @RequestParam(value = "size", defaultValue = "20") int size,
+            @RequestParam(value = "category", required = false) String category) {
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(productService.getAllProducts(pageable));
+        return ResponseEntity.ok(productService.getAllProducts(category, pageable));
+    }
+
+    /** Distinct categories for the Browse filter chips. */
+    @GetMapping("/categories")
+    public ResponseEntity<List<String>> getCategories() {
+        return ResponseEntity.ok(productService.getCategories());
     }
 
     /**
@@ -72,5 +81,20 @@ public class ProductController {
     @GetMapping("/{idOrSlug}/reviews")
     public ResponseEntity<List<Review>> getReviews(@PathVariable String idOrSlug) {
         return ResponseEntity.ok(productService.getReviews(idOrSlug));
+    }
+
+    /**
+     * Submit a community review. Anonymous — identity is the {@code X-Anon-Id}
+     * browser id (one review per product). Body: {@code rating} (1..5, required),
+     * plus optional {@code title, content, reviewerName, shopSlug, siteName,
+     * deliveryDaysReported, wouldRecommend, trustVote}.
+     */
+    @PostMapping("/{idOrSlug}/reviews")
+    public ResponseEntity<Object> addReview(@PathVariable String idOrSlug,
+                                            @RequestBody(required = false) Map<String, Object> body,
+                                            HttpServletRequest req) {
+        ProductService.ReviewOutcome outcome = productService.addCommunityReview(
+                idOrSlug, body == null ? Map.of() : body, req.getHeader("X-Anon-Id"));
+        return ResponseEntity.status(outcome.status()).body(outcome.body());
     }
 }

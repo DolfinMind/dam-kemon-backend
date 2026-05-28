@@ -1,6 +1,7 @@
 package com.damKemon.dam.kemon.repository;
 
 import com.damKemon.dam.kemon.model.Product;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
@@ -14,6 +15,8 @@ import java.util.Optional;
 public interface ProductRepository extends MongoRepository<Product, String> {
     List<Product> findByNameContainingIgnoreCase(String name);
     List<Product> findByCategory(String category);
+    /** Paginated, case-insensitive category browse — backs the Browse page. */
+    Page<Product> findByCategoryIgnoreCase(String category, Pageable pageable);
     Optional<Product> findBySlug(String slug);
 
     /** True Mongo text search over the indexed {@code name + description} fields. */
