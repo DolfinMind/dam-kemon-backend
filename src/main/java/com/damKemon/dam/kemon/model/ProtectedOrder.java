@@ -48,6 +48,11 @@ public class ProtectedOrder {
     private String itemName;
     private Double amount;
 
+    /** "known_shop" | "website" | "fb_page" | "instagram" | "marketplace" | "unknown". */
+    private String sellerType;
+    /** Detected/declared product category tag (e.g. "smartphones"). */
+    private String category;
+
     /**
      * "cod" | "bkash_personal" | "bkash_merchant" | "nagad_personal" |
      * "nagad_merchant" | "card" | "advance_bank" | "other".

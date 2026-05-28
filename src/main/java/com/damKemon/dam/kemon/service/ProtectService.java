@@ -1,9 +1,12 @@
 package com.damKemon.dam.kemon.service;
 
+import com.damKemon.dam.kemon.intelligence.QueryClassifier;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.ProtectedOrder;
+import com.damKemon.dam.kemon.model.Shop;
 import com.damKemon.dam.kemon.model.SitePrice;
 import com.damKemon.dam.kemon.repository.ProtectedOrderRepository;
+import com.damKemon.dam.kemon.repository.ShopRepository;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
@@ -20,13 +23,14 @@ import java.util.Optional;
 /**
  * "Damkemon Protect" — the buyer-protection layer.
  *
- * <p>Two jobs: (1) <b>assess the risk</b> of a purchase before money changes
- * hands — tuned to how scams actually happen in Bangladesh (advance "Send
- * Money" to a personal number, too-good-to-be-true prices, unverified Facebook
- * sellers) — and (2) record a <b>Protected Order</b> with a shareable code and
- * a dispute path. No funds are moved yet; this is the trust + dispute substrate
- * that makes escrow possible later. A dispute on a known shop dents its trust
- * score, so the verdict has real consequences.
+ * <p>v2 makes the verdict versatile: it weighs the seller type (a known shop vs
+ * a random Facebook page), the product category (counterfeit-prone vs
+ * high-value vs perishable), the payment method (advance "Send Money" is the
+ * #1 BD scam vector), and price-vs-market. It also recommends <b>safer trusted
+ * shops that sell the same category</b> — so even when you're about to buy off
+ * a sketchy page, we can point you somewhere safe. No funds move yet; this is
+ * the trust + dispute substrate for escrow. A dispute on a known shop dents its
+ * trust score.
  */
 @Service
 public class ProtectService {
@@ -37,31 +41,41 @@ public class ProtectService {
     private final ProtectedOrderRepository repo;
     private final TrustService trustService;
     private final ProductService productService;
+    private final ShopRepository shopRepository;
+    private final QueryClassifier classifier;
 
-    public ProtectService(ProtectedOrderRepository repo, TrustService trustService, ProductService productService) {
+    public ProtectService(ProtectedOrderRepository repo, TrustService trustService,
+                          ProductService productService, ShopRepository shopRepository,
+                          QueryClassifier classifier) {
         this.repo = repo;
         this.trustService = trustService;
         this.productService = productService;
+        this.shopRepository = shopRepository;
+        this.classifier = classifier;
     }
 
     // ─── risk assessment ───
 
     public Map<String, Object> assessRisk(Map<String, Object> body) {
-        Risk r = computeRisk(
+        return computeRisk(
                 trimToNull(asStr(body.get("productId"))),
                 trimToNull(asStr(body.get("shopSlug"))),
                 trimToNull(asStr(body.get("sellerName"))),
+                trimToNull(asStr(body.get("itemName"))),
                 asDouble(body.get("amount")),
-                normalizePay(asStr(body.get("paymentMethod"))));
-        return r.toMap();
+                normalizePay(asStr(body.get("paymentMethod"))),
+                trimToNull(asStr(body.get("sellerType"))),
+                trimToNull(asStr(body.get("category")))).toMap();
     }
 
-    private Risk computeRisk(String productId, String shopSlug, String sellerName, Double amount, String pay) {
+    private Risk computeRisk(String productId, String shopSlug, String sellerName, String itemName,
+                             Double amount, String pay, String sellerType, String categoryInput) {
         Map<String, Object> trust = null;
         if (shopSlug != null) trust = trustService.viewForSlugs(List.of(shopSlug)).get(shopSlug);
         Product product = productId != null ? productService.findByIdOrSlug(productId).orElse(null) : null;
 
         boolean known = trust != null;
+        String authValue = known ? (String) trust.get("authenticity") : null;
         int risk = known ? Math.max(0, 100 - asInt(trust.get("trustScore"))) : 55;
         List<Map<String, Object>> flags = new ArrayList<>();
 
@@ -73,23 +87,39 @@ public class ProtectService {
             else if (ts < 50) flags.add(flag("low_trust", "Low trust score (" + ts + "/100) — be careful", "high"));
         }
 
+        // Seller type — a social-media page is riskier than a known shop/website.
+        String stype = sellerType != null ? sellerType.toLowerCase(Locale.ROOT)
+                : (shopSlug != null ? "known_shop" : "unknown");
+        switch (stype) {
+            case "fb_page", "facebook", "instagram", "social" -> {
+                if (!known) { risk += 10; flags.add(flag("social_seller",
+                        "Buying from a social-media seller — verify the page's age, followers and reviews", "warn")); }
+            }
+            case "marketplace" -> risk += 5;
+            default -> { /* known_shop / website / unknown — no extra */ }
+        }
+
+        // Payment method — the BD scam vector.
         switch (pay == null ? "" : pay) {
-            case "advance_bank", "bkash_personal", "nagad_personal", "advance" -> {
+            case "advance_bank", "bkash_personal", "nagad_personal", "advance", "advance_full", "advance_partial", "booking" -> {
                 risk += 25;
                 flags.add(flag("advance_payment",
                         "Paying in advance to a personal number — the #1 scam pattern in BD", "high"));
             }
-            case "cod" -> {
+            case "cod", "store_pickup" -> {
                 risk -= 15;
-                flags.add(flag("cod", "Cash on delivery — you pay only after you receive it", "good"));
+                flags.add(flag("cod", "cod".equals(pay)
+                        ? "Cash on delivery — you pay only after you receive it"
+                        : "Store pickup — inspect before you pay", "good"));
             }
             case "bkash_merchant", "nagad_merchant", "card" -> {
                 risk -= 5;
                 flags.add(flag("traceable_payment", "Traceable merchant payment", "good"));
             }
-            default -> { /* unknown method — no adjustment */ }
+            default -> { /* unknown method */ }
         }
 
+        // Too-good-to-be-true vs market price.
         if (product != null && product.getLowestPrice() != null && amount != null && amount > 0) {
             double market = product.getLowestPrice();
             if (amount < market * 0.55) {
@@ -102,17 +132,30 @@ public class ProtectService {
         }
 
         if (known) {
-            String auth = (String) trust.get("authenticity");
-            if ("marketplace".equals(auth)) {
+            if ("marketplace".equals(authValue)) {
                 risk += 5;
                 flags.add(flag("marketplace", "Marketplace seller — genuineness varies by vendor", "warn"));
-            } else if ("authorized".equals(auth) || "official_store".equals(auth)) {
+            } else if ("authorized".equals(authValue) || "official_store".equals(authValue)) {
                 risk -= 5;
             }
             if (trust.get("returnWindowDays") instanceof Number n && n.intValue() == 0) {
                 risk += 5;
                 flags.add(flag("no_returns", "No returns accepted by this seller", "warn"));
             }
+        }
+
+        // Category-aware risk + tips.
+        String catTag = categoryInput;
+        if (catTag == null && product != null) catTag = product.getCategory();
+        if (catTag == null && itemName != null) {
+            try { catTag = classifier.classify(itemName).primaryCategory().getLabel(); }
+            catch (Exception ignored) { /* leave null */ }
+        }
+        catTag = catTag == null ? null : catTag.toLowerCase(Locale.ROOT);
+        String bucket = categoryBucket(catTag);
+        if ("counterfeit".equals(bucket) && (!known || "marketplace".equals(authValue))) {
+            risk += 8;
+            flags.add(flag("counterfeit_risk", "Counterfeits are common in this category — verify authenticity", "high"));
         }
 
         risk = Math.max(0, Math.min(100, risk));
@@ -134,7 +177,9 @@ public class ProtectService {
             default -> "High risk. Avoid any advance payment — prefer COD, or pick a more trusted seller below.";
         };
 
-        return new Risk(risk, level, flags, checklist, rec, trust, saferAlternatives(product));
+        List<Map<String, Object>> alts = saferAlternatives(product);
+        List<Map<String, Object>> saferShops = saferShopsInCategory(catTag, shopSlug);
+        return new Risk(risk, level, flags, checklist, rec, trust, alts, categoryTips(bucket), saferShops, catTag, stype);
     }
 
     private List<Map<String, Object>> saferAlternatives(Product product) {
@@ -164,6 +209,77 @@ public class ProtectService {
         return out;
     }
 
+    /** Trusted shops that carry this category — the "buy here instead" list. */
+    private List<Map<String, Object>> saferShopsInCategory(String catTag, String excludeSlug) {
+        if (catTag == null || catTag.isBlank()) return List.of();
+        String norm = catTag.toLowerCase(Locale.ROOT);
+        List<Shop> shops;
+        try { shops = shopRepository.findAll(); } catch (DataAccessException e) { return List.of(); }
+        List<Shop> cands = new ArrayList<>();
+        for (Shop s : shops) {
+            if (s.getSlug() == null || s.getSlug().equals(excludeSlug)) continue;
+            String status = s.getStatus() == null ? "active" : s.getStatus();
+            if (!"active".equalsIgnoreCase(status)) continue;
+            List<String> tags = s.getCategories() == null ? List.of() : s.getCategories();
+            boolean match = false;
+            for (String t : tags) {
+                if (t == null) continue;
+                String tl = t.toLowerCase(Locale.ROOT);
+                if (norm.contains(tl) || tl.contains(norm)) { match = true; break; }
+            }
+            if (match) cands.add(s);
+        }
+        if (cands.isEmpty()) return List.of();
+        Map<String, Map<String, Object>> tv = trustService.viewForSlugs(cands.stream().map(Shop::getSlug).toList());
+        cands.sort((x, y) -> Integer.compare(trustScoreOf(tv, y.getSlug()), trustScoreOf(tv, x.getSlug())));
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Shop s : cands) {
+            int sc = trustScoreOf(tv, s.getSlug());
+            if (sc < 72) continue; // only genuinely trusted
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("shopName", s.getName());
+            m.put("shopSlug", s.getSlug());
+            m.put("trustScore", sc);
+            m.put("baseUrl", s.getBaseUrl());
+            out.add(m);
+            if (out.size() >= 4) break;
+        }
+        return out;
+    }
+
+    private static int trustScoreOf(Map<String, Map<String, Object>> tv, String slug) {
+        Map<String, Object> v = tv.get(slug);
+        return v == null ? 0 : asInt(v.get("trustScore"));
+    }
+
+    private static String categoryBucket(String tag) {
+        if (tag == null) return "general";
+        String t = tag.toLowerCase(Locale.ROOT);
+        for (String s : new String[]{"beauty", "fashion", "accessor", "watch", "headphone", "audio", "gadget", "eyewear", "jewell", "perfume", "cosmetic"})
+            if (t.contains(s)) return "counterfeit";
+        for (String s : new String[]{"laptop", "phone", "tablet", "camera", "tv", "air condition", "refriger", "monitor", "desktop", "gaming", "power", "appliance"})
+            if (t.contains(s)) return "highvalue";
+        for (String s : new String[]{"grocer", "food", "health", "baby", "pet", "medicine"})
+            if (t.contains(s)) return "perishable";
+        return "general";
+    }
+
+    private static List<String> categoryTips(String bucket) {
+        return switch (bucket) {
+            case "counterfeit" -> List.of(
+                    "Counterfeits are common here — ask for the box, serial/IMEI or authenticity card.",
+                    "Buy from a brand-authorized seller when you can.");
+            case "highvalue" -> List.of(
+                    "Insist on the official warranty and a purchase invoice.",
+                    "Test the product on delivery (COD) before you pay.");
+            case "perishable" -> List.of(
+                    "Check the expiry / manufacture date and that the seal is intact.",
+                    "Avoid advance payment for perishables.");
+            default -> List.of(
+                    "Confirm the exact product, price and delivery time in writing before paying.");
+        };
+    }
+
     // ─── orders ───
 
     public Map<String, Object> createOrder(Map<String, Object> body, String anonHeader) {
@@ -173,6 +289,8 @@ public class ProtectService {
         String itemName = clamp(trimToNull(asStr(body.get("itemName"))), 200);
         Double amount = asDouble(body.get("amount"));
         String pay = normalizePay(asStr(body.get("paymentMethod")));
+        String sellerType = trimToNull(asStr(body.get("sellerType")));
+        String category = trimToNull(asStr(body.get("category")));
         String anonId = firstNonBlank(anonHeader, asStr(body.get("anonId")));
 
         if (sellerName == null && shopSlug == null) {
@@ -182,7 +300,7 @@ public class ProtectService {
             return Map.of("status", 400, "error", "What are you buying? (itemName or productId)");
         }
 
-        Risk r = computeRisk(productId, shopSlug, sellerName, amount, pay);
+        Risk r = computeRisk(productId, shopSlug, sellerName, itemName, amount, pay, sellerType, category);
         LocalDateTime now = LocalDateTime.now();
 
         ProtectedOrder order = ProtectedOrder.builder()
@@ -194,6 +312,8 @@ public class ProtectService {
                 .itemName(itemName)
                 .amount(amount)
                 .paymentMethod(pay)
+                .sellerType(r.sellerType)
+                .category(r.categoryTag)
                 .riskScore(r.score)
                 .riskLevel(r.level)
                 .riskFlags(r.flags.stream().map(f -> (String) f.get("code")).toList())
@@ -230,7 +350,6 @@ public class ProtectService {
 
     public ProtectedOrder dispute(String code, String anonId, String reason) {
         ProtectedOrder o = transition(code, "disputed", "Buyer opened a dispute", clamp(trimToNull(reason), 800));
-        // A dispute on a known shop dents its trust score — the verdict has teeth.
         if (o != null && o.getShopSlug() != null) {
             try { trustService.applyReview(o.getShopSlug(), null, "down", Boolean.FALSE, null, false); }
             catch (Exception ignored) { /* best-effort */ }
@@ -275,7 +394,8 @@ public class ProtectService {
 
     private static boolean paymentRisky(String pay) {
         return pay != null && (pay.equals("advance_bank") || pay.equals("bkash_personal")
-                || pay.equals("nagad_personal") || pay.equals("advance"));
+                || pay.equals("nagad_personal") || pay.equals("advance")
+                || pay.equals("advance_full") || pay.equals("advance_partial") || pay.equals("booking"));
     }
 
     private static String normalizePay(String s) {
@@ -299,7 +419,9 @@ public class ProtectService {
     /** Internal risk holder + JSON projection. */
     private record Risk(int score, String level, List<Map<String, Object>> flags,
                         List<String> checklist, String recommendation,
-                        Map<String, Object> sellerTrust, List<Map<String, Object>> saferAlternatives) {
+                        Map<String, Object> sellerTrust, List<Map<String, Object>> saferAlternatives,
+                        List<String> categoryTips, List<Map<String, Object>> saferShops,
+                        String categoryTag, String sellerType) {
         Map<String, Object> toMap() {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("riskScore", score);
@@ -309,6 +431,10 @@ public class ProtectService {
             m.put("recommendation", recommendation);
             m.put("sellerTrust", sellerTrust);
             m.put("saferAlternatives", saferAlternatives);
+            m.put("categoryTips", categoryTips);
+            m.put("saferShops", saferShops);
+            m.put("category", categoryTag);
+            m.put("sellerType", sellerType);
             return m;
         }
     }

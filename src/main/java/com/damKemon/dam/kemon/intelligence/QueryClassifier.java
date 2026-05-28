@@ -189,6 +189,36 @@ public class QueryClassifier {
             "pen","ball pen","gel pen","pencil","diary","a4 paper","printing paper","file","folder","marker",
             "highlighter","stapler","sticky note","calculator","geometry box","exercise book","khata","কলম","খাতা"
         ));
+        KW.put(ProductCategory.POWER_BACKUP, kw(
+            "ips","ups","inverter","solar panel","solar","generator","battery backup","power backup","ips battery",
+            "voltage stabilizer","stabilizer","solar charge controller","আইপিএস","জেনারেটর"
+        ));
+        KW.put(ProductCategory.LIGHTING, kw(
+            "led bulb","light bulb","tube light","led light","led strip","chandelier","ceiling light","wall light",
+            "spot light","flood light","table lamp","night light","fairy light","switch socket","mcb",
+            "circuit breaker","extension cord","multiplug","বাতি","লাইট"
+        ));
+        KW.put(ProductCategory.TOOLS, kw(
+            "drill machine","drill","screwdriver","wrench","spanner","hammer","plier","tool kit","tool box",
+            "grinder machine","welding machine","measuring tape","soldering iron","multimeter","hand saw",
+            "power tool","hardware","ড্রিল"
+        ));
+        KW.put(ProductCategory.PET, kw(
+            "pet food","dog food","cat food","fish food","pet shampoo","cat litter","aquarium","bird cage",
+            "pet toy","leash","pet bed","বিড়াল","কুকুর","পোষা প্রাণী"
+        ));
+        KW.put(ProductCategory.MUSICAL, kw(
+            "guitar","acoustic guitar","electric guitar","piano","keyboard piano","harmonium","tabla","drum kit",
+            "ukulele","violin","flute","amplifier","mixer console","সেতার","গিটার","হারমোনিয়াম","তবলা"
+        ));
+        KW.put(ProductCategory.EYEWEAR, kw(
+            "eyeglass","eye glass","spectacles","power glass","reading glass","contact lens","prescription glass",
+            "blue light glass","optical frame"
+        ));
+        KW.put(ProductCategory.JEWELLERY, kw(
+            "jewellery","jewelry","gold","silver","diamond ring","necklace","earring","bracelet","bangle",
+            "pendant","ring gold","ornament","nupur","payel","গহনা","অলংকার","সোনা"
+        ));
 
         // brand → category affinity (a brand can map to multiple categories)
         addBrand("walton", ProductCategory.AC, ProductCategory.REFRIGERATOR, ProductCategory.APPLIANCE, ProductCategory.TV, ProductCategory.SMARTPHONE);
@@ -308,6 +338,36 @@ public class QueryClassifier {
         addBrand("casio",    ProductCategory.SMARTWATCH, ProductCategory.FASHION);
         addBrand("humayun ahmed", ProductCategory.BOOK);
         addBrand("rokomari", ProductCategory.BOOK);
+        // power backup / electrical
+        addBrand("luminous",  ProductCategory.POWER_BACKUP);
+        addBrand("sukam",     ProductCategory.POWER_BACKUP);
+        addBrand("apc",       ProductCategory.POWER_BACKUP);
+        addBrand("rahimafrooz", ProductCategory.POWER_BACKUP, ProductCategory.AUTOMOTIVE);
+        addBrand("hamko",     ProductCategory.POWER_BACKUP, ProductCategory.AUTOMOTIVE);
+        addBrand("energypac", ProductCategory.POWER_BACKUP, ProductCategory.LIGHTING);
+        addBrand("superstar", ProductCategory.LIGHTING, ProductCategory.APPLIANCE);
+        addBrand("transtec",  ProductCategory.LIGHTING, ProductCategory.APPLIANCE);
+        addBrand("click",     ProductCategory.LIGHTING);
+        // tools
+        addBrand("bosch",     ProductCategory.TOOLS, ProductCategory.APPLIANCE);
+        addBrand("dewalt",    ProductCategory.TOOLS);
+        addBrand("makita",    ProductCategory.TOOLS);
+        addBrand("stanley",   ProductCategory.TOOLS);
+        addBrand("ingco",     ProductCategory.TOOLS);
+        addBrand("total tools", ProductCategory.TOOLS);
+        // musical
+        addBrand("yamaha",    ProductCategory.MUSICAL);
+        addBrand("fender",    ProductCategory.MUSICAL);
+        addBrand("givson",    ProductCategory.MUSICAL);
+        // pet
+        addBrand("pedigree",  ProductCategory.PET);
+        addBrand("whiskas",   ProductCategory.PET);
+        addBrand("drools",    ProductCategory.PET);
+        // eyewear
+        addBrand("rayban",    ProductCategory.EYEWEAR, ProductCategory.FASHION);
+        // jewellery
+        addBrand("apan jewellers", ProductCategory.JEWELLERY);
+        addBrand("amin jewellers", ProductCategory.JEWELLERY);
     }
 
     private static void addBrand(String brand, ProductCategory... cats) {

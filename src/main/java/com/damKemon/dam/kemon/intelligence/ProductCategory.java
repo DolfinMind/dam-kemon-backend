@@ -31,6 +31,13 @@ public enum ProductCategory {
     HEALTH("Health & Personal Care", 20.0, 300_000.0),
     TOYS("Toys & Hobbies",       40.0,     200_000.0),
     STATIONERY("Stationery & Office", 5.0, 100_000.0),
+    POWER_BACKUP("Power Backup", 500.0,    1_000_000.0),
+    LIGHTING("Lighting & Electrical", 30.0, 200_000.0),
+    TOOLS("Tools & Hardware",    50.0,     500_000.0),
+    PET("Pet Supplies",          30.0,     100_000.0),
+    MUSICAL("Musical Instruments", 200.0,  1_000_000.0),
+    EYEWEAR("Eyewear",           100.0,    100_000.0),
+    JEWELLERY("Jewellery",       200.0,    5_000_000.0),
     GENERAL("General",           1.0,      Double.MAX_VALUE);
 
     private final String label;
