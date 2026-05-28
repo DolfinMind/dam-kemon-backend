@@ -4,6 +4,7 @@ import com.damKemon.dam.kemon.model.PriceHistory;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.Review;
 import com.damKemon.dam.kemon.model.ShopTrust;
+import com.damKemon.dam.kemon.repository.AffiliateClickRepository;
 import com.damKemon.dam.kemon.repository.PriceHistoryRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ReviewRepository;
@@ -21,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class ProductService {
@@ -30,17 +32,20 @@ public class ProductService {
     private final PriceHistoryRepository priceHistoryRepository;
     private final TrustService trustService;
     private final MongoTemplate mongoTemplate;
+    private final AffiliateClickRepository affiliateClicks;
 
     public ProductService(ProductRepository productRepository,
                           ReviewRepository reviewRepository,
                           PriceHistoryRepository priceHistoryRepository,
                           TrustService trustService,
-                          MongoTemplate mongoTemplate) {
+                          MongoTemplate mongoTemplate,
+                          AffiliateClickRepository affiliateClicks) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.priceHistoryRepository = priceHistoryRepository;
         this.trustService = trustService;
         this.mongoTemplate = mongoTemplate;
+        this.affiliateClicks = affiliateClicks;
     }
 
     /**
@@ -170,8 +175,16 @@ public class ProductService {
     public List<Review> getReviews(String productIdOrSlug) {
         Optional<Product> p = findByIdOrSlug(productIdOrSlug);
         if (p.isEmpty()) return Collections.emptyList();
-        try { return reviewRepository.findByProductIdOrderByReviewDateDesc(p.get().getId()); }
-        catch (DataAccessException e) { return Collections.emptyList(); }
+        try {
+            return reviewRepository.findByProductIdOrderByReviewDateDesc(p.get().getId()).stream()
+                    // Hide moderated reviews and bare delivery-report data points.
+                    // Legacy/scraped rows have null status — keep those visible.
+                    .filter(r -> !"flagged".equals(r.getStatus()) && !"hidden".equals(r.getStatus()))
+                    .filter(r -> !"delivery_report".equals(r.getSource()))
+                    .toList();
+        } catch (DataAccessException e) {
+            return Collections.emptyList();
+        }
     }
 
     /** HTTP status + body pair so the controller stays a thin pass-through. */
@@ -213,6 +226,21 @@ public class ProductService {
             } catch (DataAccessException ignored) { /* fall through; dedup is best-effort */ }
         }
 
+        // Verified buyer: did this browser click out to buy this product?
+        boolean verified = false;
+        if (anonId != null) {
+            try {
+                verified = shopSlug != null
+                        ? affiliateClicks.existsByAnonIdAndProductIdAndSiteSlug(anonId, product.getId(), shopSlug)
+                        : affiliateClicks.existsByAnonIdAndProductId(anonId, product.getId());
+            } catch (DataAccessException ignored) { /* verification is best-effort */ }
+        }
+
+        // Lightweight spam gate — flagged reviews are saved (for the moderation
+        // queue) but excluded from the public list and from trust scoring.
+        boolean spam = looksLikeSpam(title, content);
+        String status = spam ? "flagged" : "published";
+
         Review review = Review.builder()
                 .productId(product.getId())
                 .siteName(siteName)
@@ -227,7 +255,8 @@ public class ProductService {
                 .trustVote(trustVote)
                 .helpfulCount(0)
                 .source("community")
-                .verified(false)
+                .verified(verified)
+                .status(status)
                 .reviewDate(LocalDateTime.now())
                 .build();
         try {
@@ -238,11 +267,117 @@ public class ProductService {
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("review", review);
-        if (shopSlug != null) {
-            ShopTrust updated = trustService.applyReview(shopSlug, rating, trustVote, recommend, deliveryDays);
+        out.put("verified", verified);
+        if (spam) out.put("pendingModeration", true);
+        // Only published (non-spam) reviews move the trust score.
+        if (!spam && shopSlug != null) {
+            ShopTrust updated = trustService.applyReview(shopSlug, rating, trustVote, recommend, deliveryDays, verified);
             if (updated != null) out.put("trust", trustService.view(updated));
         }
         return new ReviewOutcome(201, out);
+    }
+
+    /**
+     * Lightweight delivery-time report (no full review). Records one delivery
+     * data point into the seller's ShopTrust. Anonymous, deduped per browser.
+     * Body: {@code shopSlug} (required), {@code days} (0..60, required).
+     */
+    public ReviewOutcome addDeliveryReport(String idOrSlug, Map<String, Object> body, String anonHeader) {
+        Optional<Product> po = findByIdOrSlug(idOrSlug);
+        if (po.isEmpty()) return new ReviewOutcome(404, Map.of("error", "product not found"));
+        Product product = po.get();
+
+        String shopSlug = trimToNull(asStr(body.get("shopSlug")));
+        Integer days = clampInt(asInt(body.get("days")), 0, 60);
+        if (shopSlug == null || days == null) {
+            return new ReviewOutcome(400, Map.of("error", "shopSlug and days (0..60) are required"));
+        }
+        String anonId = firstNonBlank(anonHeader, asStr(body.get("anonId")));
+        if (anonId != null) {
+            try {
+                if (reviewRepository.countByProductIdAndAnonIdAndSource(product.getId(), anonId, "delivery_report") > 0) {
+                    return new ReviewOutcome(409, Map.of("error", "you have already reported delivery for this product"));
+                }
+            } catch (DataAccessException ignored) { /* best-effort */ }
+        }
+
+        try {
+            reviewRepository.save(Review.builder()
+                    .productId(product.getId())
+                    .shopSlug(shopSlug)
+                    .siteName(trimToNull(asStr(body.get("siteName"))))
+                    .anonId(anonId)
+                    .deliveryDaysReported(days)
+                    .source("delivery_report")
+                    .status("published")
+                    .verified(false)
+                    .reviewDate(LocalDateTime.now())
+                    .build());
+        } catch (DataAccessException e) {
+            return new ReviewOutcome(500, Map.of("error", "could not save report"));
+        }
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        ShopTrust updated = trustService.applyDeliveryReport(shopSlug, days);
+        if (updated != null) out.put("trust", trustService.view(updated));
+        return new ReviewOutcome(201, out);
+    }
+
+    /** Increment a review's helpful count. Returns the saved review, or null. */
+    public Review markHelpful(String reviewId) {
+        try {
+            Optional<Review> r = reviewRepository.findById(reviewId);
+            if (r.isEmpty()) return null;
+            Review rv = r.get();
+            rv.setHelpfulCount((rv.getHelpfulCount() == null ? 0 : rv.getHelpfulCount()) + 1);
+            return reviewRepository.save(rv);
+        } catch (DataAccessException e) {
+            return null;
+        }
+    }
+
+    /** Reviews awaiting moderation (spam-flagged). Admin-only. */
+    public List<Review> flaggedReviews() {
+        try { return reviewRepository.findByStatusOrderByReviewDateDesc("flagged"); }
+        catch (DataAccessException e) { return Collections.emptyList(); }
+    }
+
+    /**
+     * Admin moderation: set a review's status. Approving a previously-withheld
+     * community review feeds its signals into the seller's trust score (they
+     * were intentionally withheld while flagged).
+     */
+    public Review moderateReview(String reviewId, String status) {
+        if (!Set.of("published", "flagged", "hidden").contains(status)) return null;
+        try {
+            Optional<Review> r = reviewRepository.findById(reviewId);
+            if (r.isEmpty()) return null;
+            Review rv = r.get();
+            String prev = rv.getStatus();
+            rv.setStatus(status);
+            Review saved = reviewRepository.save(rv);
+            if ("published".equals(status) && !"published".equals(prev)
+                    && "community".equals(rv.getSource()) && rv.getShopSlug() != null) {
+                trustService.applyReview(rv.getShopSlug(), rv.getRating(), rv.getTrustVote(),
+                        rv.getWouldRecommend(), rv.getDeliveryDaysReported(), Boolean.TRUE.equals(rv.getVerified()));
+            }
+            return saved;
+        } catch (DataAccessException e) {
+            return null;
+        }
+    }
+
+    /** Heuristic spam gate: links, phone numbers, banned words, char floods. */
+    private static boolean looksLikeSpam(String title, String content) {
+        String s = ((title == null ? "" : title) + " " + (content == null ? "" : content)).toLowerCase().trim();
+        if (s.isBlank()) return false;
+        if (s.matches("(?s).*(https?://|www\\.|\\.com|\\.net|t\\.me/|wa\\.me/|@).*")) return true;
+        if (s.replaceAll("[^0-9]", "").length() >= 9) return true; // phone-like
+        for (String b : new String[]{"viagra", "casino", "loan", "forex", "betting", "porn", "xxx", "earn money", "click here"}) {
+            if (s.contains(b)) return true;
+        }
+        if (s.matches("(?s).*(.)\\1{6,}.*")) return true; // aaaaaaa floods
+        return false;
     }
 
     // ─── lenient body parsing (Jackson hands us Integer/Double/Boolean/String) ───

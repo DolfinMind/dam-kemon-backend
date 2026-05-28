@@ -3,7 +3,6 @@ package com.damKemon.dam.kemon.service;
 import com.damKemon.dam.kemon.model.AnalyticsEvent;
 import com.damKemon.dam.kemon.repository.AnalyticsEventRepository;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -51,7 +50,10 @@ public class LiveStatsService {
             Instant dayAgo = Instant.now().minus(24, ChronoUnit.HOURS);
             out.put("searchesToday", events.countByTypeAndTsAfter("search", dayAgo));
             out.put("viewsToday", events.countByTypeAndTsAfter("view", dayAgo));
-        } catch (DataAccessException e) {
+        } catch (Exception e) {
+            // Public homepage widget — must never 500. Transient Atlas socket
+            // timeouts/resets don't all translate to DataAccessException, so
+            // catch broadly and degrade to zeros.
             out.put("activeUsers", 0);
             out.put("searchesLast60s", 0);
             out.put("searchesToday", 0L);
@@ -85,7 +87,7 @@ public class LiveStatsService {
                 out.add(row);
             }
             return out;
-        } catch (DataAccessException e) {
+        } catch (Exception e) {
             return List.of();
         }
     }

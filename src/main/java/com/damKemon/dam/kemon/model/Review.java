@@ -59,7 +59,11 @@ public class Review {
     @Builder.Default
     private Integer helpfulCount = 0;
 
-    /** "community" | "scraped". */
+    /** "community" | "scraped" | "delivery_report". */
     @Builder.Default
     private String source = "scraped";
+
+    /** Moderation state: "published" | "flagged" | "hidden". */
+    @Builder.Default
+    private String status = "published";
 }

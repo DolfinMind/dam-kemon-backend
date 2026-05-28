@@ -79,6 +79,15 @@ public class ShopTrustBootstrap {
             }
         }
         log.info("Shop trust: {} inserted, {} updated, {} baselines total", inserted, updated, inserted + updated);
+
+        // Fold scraped per-shop ratings into the scores so day-one numbers
+        // reflect real catalog data, not just editorial baselines.
+        try {
+            int n = trustService.recomputeScrapedSignals();
+            log.info("Shop trust: folded scraped ratings into {} shops", n);
+        } catch (Exception e) {
+            log.warn("Shop trust: scraped-signal recompute skipped ({})", e.getMessage());
+        }
     }
 
     private List<TrustEntry> load() {

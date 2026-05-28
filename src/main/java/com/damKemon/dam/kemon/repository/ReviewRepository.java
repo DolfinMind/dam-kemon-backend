@@ -14,6 +14,15 @@ public interface ReviewRepository extends MongoRepository<Review, String> {
     /** Newest first — what the product Reviews tab renders. */
     List<Review> findByProductIdOrderByReviewDateDesc(String productId);
 
+    /** Published reviews only (hides flagged/hidden) — public Reviews tab. */
+    List<Review> findByProductIdAndStatusOrderByReviewDateDesc(String productId, String status);
+
     /** One-community-review-per-browser dedup guard. */
     long countByProductIdAndAnonId(String productId, String anonId);
+
+    /** Dedup guard for the lightweight delivery-report path. */
+    long countByProductIdAndAnonIdAndSource(String productId, String anonId, String source);
+
+    /** Moderation queue — flagged/hidden reviews for the admin view. */
+    List<Review> findByStatusOrderByReviewDateDesc(String status);
 }

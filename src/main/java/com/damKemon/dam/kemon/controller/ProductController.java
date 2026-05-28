@@ -97,4 +97,18 @@ public class ProductController {
                 idOrSlug, body == null ? Map.of() : body, req.getHeader("X-Anon-Id"));
         return ResponseEntity.status(outcome.status()).body(outcome.body());
     }
+
+    /**
+     * Lightweight delivery-time report (no full review). Body:
+     * {@code shopSlug} (required), {@code days} (0..60, required). Anonymous
+     * via {@code X-Anon-Id}; one report per product per browser.
+     */
+    @PostMapping("/{idOrSlug}/delivery-report")
+    public ResponseEntity<Object> deliveryReport(@PathVariable String idOrSlug,
+                                                 @RequestBody(required = false) Map<String, Object> body,
+                                                 HttpServletRequest req) {
+        ProductService.ReviewOutcome outcome = productService.addDeliveryReport(
+                idOrSlug, body == null ? Map.of() : body, req.getHeader("X-Anon-Id"));
+        return ResponseEntity.status(outcome.status()).body(outcome.body());
+    }
 }

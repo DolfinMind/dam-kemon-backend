@@ -98,6 +98,16 @@ public class ShopTrust {
     @Builder.Default private Integer deliveryReports = 0;
     @Builder.Default private Double deliveryDaysSum = 0.0;
 
+    /** Verified-buyer reviews (anonId matched a prior affiliate click). */
+    @Builder.Default private Integer verifiedCount = 0;
+
+    // ─── Scraped third-party signal (folded in nightly from SitePrice ratings) ───
+
+    /** Avg of scraped per-shop SitePrice.rating across this shop's listings. */
+    private Double scrapedRatingAvg;
+    /** Number of this shop's listings that carry a scraped rating. */
+    @Builder.Default private Integer scrapedRatedListings = 0;
+
     // ─── Derived ───
 
     /** Final 0..100 score shown to users (baseline blended with community). */
