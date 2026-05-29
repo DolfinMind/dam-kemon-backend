@@ -82,7 +82,7 @@ public class SearchSeedCrawler {
         CATEGORY_SEEDS.put("health",       List.of("vitamin", "supplement", "hand sanitizer", "face mask", "thermometer", "sanitary napkin", "protein powder", "first aid"));
         CATEGORY_SEEDS.put("pharmacy",     List.of("napa", "paracetamol", "vitamin", "supplement", "antiseptic", "hand sanitizer", "savlon", "medicine"));
         CATEGORY_SEEDS.put("jewellery",    List.of("gold ring", "necklace", "earrings", "bangle", "bracelet", "gold chain", "pendant"));
-        CATEGORY_SEEDS.put("sports",       List.of("cricket bat", "football", "dumbbell", "yoga mat", "treadmill", "bicycle", "jersey"));
+        CATEGORY_SEEDS.put("sports",       List.of("football jersey", "argentina jersey", "brazil jersey", "world cup flag", "jersey", "cricket bat", "football", "dumbbell"));
         CATEGORY_SEEDS.put("stationery",   List.of("pen", "notebook", "diary", "marker", "file", "calculator", "sticky notes"));
         CATEGORY_SEEDS.put("office",       List.of("printer", "a4 paper", "stapler", "office chair", "calculator", "file"));
         CATEGORY_SEEDS.put("automotive",   List.of("helmet", "engine oil", "car cover", "car perfume", "tyre", "bike accessories"));

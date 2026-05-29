@@ -154,9 +154,11 @@ public class QueryClassifier {
             "শিশু","বেবি","ডায়াপার"
         ));
         KW.put(ProductCategory.SPORTS, kw(
-            "cricket bat","cricket ball","football","basketball","jersey","yoga mat","dumbbell","treadmill","gym",
-            "running shoe","cycle","bicycle","badminton","racket","skipping rope","resistance band","protein",
-            "whey","supplement","camping","tent","fishing","সাইকেল","ক্রিকেট"
+            "cricket bat","cricket ball","football","basketball","jersey","football jersey","world cup jersey",
+            "supporter jersey","national flag","hand flag","country flag","stick flag","car flag","bunting",
+            "yoga mat","dumbbell","treadmill","gym","running shoe","cycle","bicycle","badminton","racket",
+            "skipping rope","resistance band","protein","whey","supplement","camping","tent","fishing",
+            "সাইকেল","ক্রিকেট","জার্সি","পতাকা"
         ));
         KW.put(ProductCategory.AUTOMOTIVE, kw(
             "car","bike","motorcycle","scooter","helmet","tyre","tire","engine oil","lubricant","spark plug",

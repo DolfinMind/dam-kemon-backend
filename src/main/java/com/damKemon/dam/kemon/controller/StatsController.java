@@ -2,6 +2,7 @@ package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.service.HotDropsService;
 import com.damKemon.dam.kemon.service.LiveStatsService;
+import com.damKemon.dam.kemon.service.WorldCupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,10 +23,12 @@ public class StatsController {
 
     private final LiveStatsService liveStats;
     private final HotDropsService hotDrops;
+    private final WorldCupService worldCup;
 
-    public StatsController(LiveStatsService liveStats, HotDropsService hotDrops) {
+    public StatsController(LiveStatsService liveStats, HotDropsService hotDrops, WorldCupService worldCup) {
         this.liveStats = liveStats;
         this.hotDrops = hotDrops;
+        this.worldCup = worldCup;
     }
 
     @GetMapping("/live")
@@ -43,5 +46,12 @@ public class StatsController {
     public ResponseEntity<List<Map<String, Object>>> hotDrops(
             @RequestParam(value = "limit", defaultValue = "12") int limit) {
         return ResponseEntity.ok(hotDrops.get(Math.max(1, Math.min(limit, 24))));
+    }
+
+    /** Seasonal World Cup 2026 rail: jerseys, flags, supporter gear. */
+    @GetMapping("/world-cup")
+    public ResponseEntity<List<Map<String, Object>>> worldCup(
+            @RequestParam(value = "limit", defaultValue = "12") int limit) {
+        return ResponseEntity.ok(worldCup.get(Math.max(1, Math.min(limit, 24))));
     }
 }
