@@ -71,6 +71,7 @@ public class BulkIndexer {
     private final IndexerRunRepository indexerRunRepository;
     private final ScraperLearningService learner;
     private final List<ShopHarvester> harvesters;
+    private final ApiSniffer apiSniffer;
 
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
@@ -97,7 +98,8 @@ public class BulkIndexer {
                        ShopHealthService shopHealth,
                        IndexerRunRepository indexerRunRepository,
                        ScraperLearningService learner,
-                       List<ShopHarvester> harvesters) {
+                       List<ShopHarvester> harvesters,
+                       ApiSniffer apiSniffer) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
@@ -109,6 +111,7 @@ public class BulkIndexer {
         this.indexerRunRepository = indexerRunRepository;
         this.learner = learner;
         this.harvesters = harvesters;
+        this.apiSniffer = apiSniffer;
     }
 
     private void persistRunRecord(String kind, RunSummary s) {
@@ -446,6 +449,23 @@ public class BulkIndexer {
                     .get(maxWaitMs, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             log.warn("Indexer: shop '{}' partial ({}): {}", shop.getSlug(), e.getClass().getSimpleName(), e.getMessage());
+        }
+
+        // Magical last resort: extracted nothing the normal way? Render the shop
+        // in a browser, auto-discover the JSON product feed its own frontend
+        // loads, and harvest that — no per-shop code. Only runs on a 0-yield
+        // shop, so it can only help, never regress.
+        if (localOk.get() == 0 && apiSniffer.isEnabled()) {
+            try {
+                List<ScrapedProduct> sniffed = apiSniffer.sniff(shop);
+                int got = sniffed.isEmpty() ? 0 : harvestApi(shop, sniffed, lsh, inserted, merged);
+                if (got > 0) {
+                    log.info("Indexer: shop '{}' — API sniffer rescued {} products", shop.getSlug(), got);
+                    return got;
+                }
+            } catch (Exception e) {
+                log.debug("Indexer: API sniffer failed for '{}': {}", shop.getSlug(), e.getMessage());
+            }
         }
 
         // Auto-learning hook: if the run produced 0 products, ask the

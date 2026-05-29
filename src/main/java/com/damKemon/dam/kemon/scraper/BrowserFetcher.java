@@ -14,7 +14,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -110,6 +112,52 @@ public class BrowserFetcher {
         String html = fetchHtml(url);
         return html == null ? null : Jsoup.parse(html, url);
     }
+
+    /**
+     * Render a page and capture the JSON bodies it loads over the network — the
+     * raw material the {@code ApiSniffer} mines to auto-discover a shop's hidden
+     * product API. Returns up to {@code maxCaptures} JSON responses ≥
+     * {@code minBytes}. Null/empty-safe; returns an empty list if disabled.
+     */
+    public synchronized List<JsonCapture> captureJson(String url, int maxCaptures, int minBytes) {
+        if (!enabled) return List.of();
+        try {
+            ensureBrowser();
+        } catch (Exception e) {
+            initFailed.set(true);
+            return List.of();
+        }
+        // onResponse fires on Playwright's event thread — use a concurrent list.
+        java.util.concurrent.CopyOnWriteArrayList<JsonCapture> out = new java.util.concurrent.CopyOnWriteArrayList<>();
+        long t0 = System.currentTimeMillis();
+        try (BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+                        .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
+                        .setLocale("en-US")
+                        .setExtraHTTPHeaders(java.util.Map.of("Accept-Language", "en-US,en;q=0.9,bn;q=0.6")));
+             Page page = context.newPage()) {
+            page.setDefaultTimeout(timeoutMs);
+            page.onResponse(resp -> {
+                try {
+                    if (out.size() >= maxCaptures) return;
+                    String ct = resp.headers().getOrDefault("content-type", "");
+                    if (ct == null || !ct.toLowerCase().contains("json")) return;
+                    String body = resp.text();
+                    if (body == null || body.length() < minBytes) return;
+                    out.add(new JsonCapture(resp.url(), body));
+                } catch (Exception ignored) { /* body not retrievable for this response */ }
+            });
+            page.navigate(url, new Page.NavigateOptions().setWaitUntil(parseWait(waitUntil)).setTimeout(timeoutMs));
+            page.waitForTimeout(2500); // give client-side XHR/fetch product calls time to fire
+            log.debug("captureJson {} → {} JSON responses in {}ms", url, out.size(), System.currentTimeMillis() - t0);
+            return new ArrayList<>(out);
+        } catch (Exception e) {
+            log.warn("captureJson failed for {}: {}", url, e.getMessage());
+            return new ArrayList<>(out);
+        }
+    }
+
+    /** A JSON network response captured during a render: its URL + raw body. */
+    public record JsonCapture(String url, String body) {}
 
     public Stats stats() {
         return new Stats(enabled, !initFailed.get(), fetches.get(), failures.get());
