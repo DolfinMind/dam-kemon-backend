@@ -39,11 +39,13 @@ public class DarazHarvester implements ShopHarvester {
     private static final String UA =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
-    @Value("${daraz.max-pages-per-query:2}") private int maxPagesPerQuery;
-    @Value("${daraz.max-per-query:18}")      private int maxPerQuery;
+    @Value("${daraz.max-pages-per-query:1}") private int maxPagesPerQuery;
+    @Value("${daraz.max-per-query:24}")      private int maxPerQuery;
     @Value("${daraz.max-products:500}")      private int maxProducts;
     @Value("${daraz.timeout-ms:18000}")      private int timeoutMs;
-    @Value("${daraz.request-delay-ms:500}")  private long requestDelayMs;
+    // Daraz rate-limits bursts; pace requests ~1.5s apart so the nightly harvest
+    // isn't blocked (a single request is fine, ~60 rapid ones get throttled).
+    @Value("${daraz.request-delay-ms:1500}") private long requestDelayMs;
 
     /**
      * Gap-filling + seasonal queries. Daraz's electronics are already well

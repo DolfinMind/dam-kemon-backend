@@ -24,16 +24,16 @@ import java.util.List;
  *   <li>0 successful runs → <b>dormant</b></li>
  * </ul>
  *
- * <p>{@code consecutiveFailures} also drives policy: 3 in a row flips the
- * operator-facing {@code status} to "blocked" so the shop is removed from
- * the next nightly run.
+ * <p>Auto-disable is intentionally conservative: a shop flips to "blocked"
+ * only after returning 0 products across the FULL window (~a week of nightly
+ * runs), so transient timeouts or a one-off bot-block never disable a healthy
+ * shop. {@code consecutiveFailures} still drives the cheaper same-night retry.
  */
 @Service
 public class ShopHealthService {
 
     private static final Logger log = LoggerFactory.getLogger(ShopHealthService.class);
     private static final int WINDOW = 7;
-    private static final int AUTO_DISABLE_THRESHOLD = 3;
 
     private final ShopRepository shopRepository;
 
@@ -73,10 +73,14 @@ public class ShopHealthService {
         else if (successes >= 1) shop.setHealth("degraded");
         else shop.setHealth("dormant");
 
-        if (shop.getConsecutiveFailures() >= AUTO_DISABLE_THRESHOLD
+        // Auto-disable only a genuinely dead shop: zero products across the FULL
+        // window (~a week of nightly runs). The old "3 consecutive failures" rule
+        // was far too twitchy — a couple of timeouts or a transient bot-block
+        // permanently disabled healthy shops and decimated the active catalog.
+        if (runs.size() >= WINDOW && successes == 0
                 && "active".equals(shop.getStatus())) {
-            log.warn("ShopHealth: auto-disabling shop {} after {} consecutive failures",
-                    shop.getSlug(), shop.getConsecutiveFailures());
+            log.warn("ShopHealth: auto-disabling shop {} — 0 products across last {} runs",
+                    shop.getSlug(), runs.size());
             shop.setStatus("blocked");
         }
     }
