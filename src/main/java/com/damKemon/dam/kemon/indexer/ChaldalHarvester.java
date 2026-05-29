@@ -35,7 +35,7 @@ import java.util.Map;
  * through its normal cross-shop merge path; every other shop is untouched.
  */
 @Service
-public class ChaldalHarvester {
+public class ChaldalHarvester implements ShopHarvester {
 
     private static final Logger log = LoggerFactory.getLogger(ChaldalHarvester.class);
 
@@ -88,7 +88,8 @@ public class ChaldalHarvester {
     }
 
     /** Fire every seed query, page through results, de-dupe by objectID. */
-    public List<ScrapedProduct> harvest() {
+    @Override
+    public List<ScrapedProduct> harvest(Shop shop) {
         LinkedHashMap<Long, ScrapedProduct> byId = new LinkedHashMap<>();
         for (String q : QUERIES) {
             if (byId.size() >= maxProducts) break;

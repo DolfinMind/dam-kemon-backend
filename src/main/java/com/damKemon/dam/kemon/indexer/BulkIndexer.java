@@ -70,7 +70,7 @@ public class BulkIndexer {
     private final ShopHealthService shopHealth;
     private final IndexerRunRepository indexerRunRepository;
     private final ScraperLearningService learner;
-    private final ChaldalHarvester chaldalHarvester;
+    private final List<ShopHarvester> harvesters;
 
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
@@ -97,7 +97,7 @@ public class BulkIndexer {
                        ShopHealthService shopHealth,
                        IndexerRunRepository indexerRunRepository,
                        ScraperLearningService learner,
-                       ChaldalHarvester chaldalHarvester) {
+                       List<ShopHarvester> harvesters) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
@@ -108,7 +108,7 @@ public class BulkIndexer {
         this.shopHealth = shopHealth;
         this.indexerRunRepository = indexerRunRepository;
         this.learner = learner;
-        this.chaldalHarvester = chaldalHarvester;
+        this.harvesters = harvesters;
     }
 
     private void persistRunRecord(String kind, RunSummary s) {
@@ -359,11 +359,13 @@ public class BulkIndexer {
                           MinHashLSH lsh,
                           AtomicInteger inserted,
                           AtomicInteger merged) {
-        // API-harvested shops (Chaldal) skip URL discovery + per-page extraction
-        // entirely — their catalog comes from a JSON endpoint. Isolated to shops
-        // the harvester claims, so every other shop's path is unchanged.
-        if (chaldalHarvester.supports(shop)) {
-            return harvestApi(shop, chaldalHarvester.harvest(), lsh, inserted, merged);
+        // API-harvested shops (Chaldal, Daraz) skip URL discovery + per-page
+        // extraction entirely — their catalog comes from a JSON endpoint. Isolated
+        // to shops a harvester claims, so every other shop's path is unchanged.
+        for (ShopHarvester h : harvesters) {
+            if (h.supports(shop)) {
+                return harvestApi(shop, h.harvest(shop), lsh, inserted, merged);
+            }
         }
         boolean js = Boolean.TRUE.equals(shop.getRequiresJs());
         List<String> urls = new ArrayList<>();
