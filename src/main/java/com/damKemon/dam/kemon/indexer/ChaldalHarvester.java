@@ -57,6 +57,13 @@ public class ChaldalHarvester {
     @Value("${chaldal.page-size:48}")        private int pageSize;
     @Value("${chaldal.max-pages-per-query:2}") private int maxPagesPerQuery;
     @Value("${chaldal.max-products:600}")    private int maxProducts;
+    /**
+     * Cap NEW products taken per seed query. Keeps the harvest balanced across
+     * categories — without it the first few high-volume queries (shampoo, rice,
+     * ...) eat the whole budget and the later baby/health/cleaning queries never
+     * contribute. ~16 × 32 queries ≈ the 500 per-shop persist cap.
+     */
+    @Value("${chaldal.max-per-query:16}")    private int maxPerQuery;
     @Value("${chaldal.timeout-ms:15000}")    private int timeoutMs;
     @Value("${chaldal.request-delay-ms:350}") private long requestDelayMs;
 
@@ -85,17 +92,19 @@ public class ChaldalHarvester {
         LinkedHashMap<Long, ScrapedProduct> byId = new LinkedHashMap<>();
         for (String q : QUERIES) {
             if (byId.size() >= maxProducts) break;
-            for (int page = 0; page < maxPagesPerQuery; page++) {
+            int fromThisQuery = 0;
+            for (int page = 0; page < maxPagesPerQuery && fromThisQuery < maxPerQuery; page++) {
                 if (byId.size() >= maxProducts) break;
                 JsonNode root = call(q, page);
                 if (root == null) break;
                 JsonNode hits = root.path("hits");
                 if (!hits.isArray() || hits.isEmpty()) break;
                 for (JsonNode h : hits) {
+                    if (fromThisQuery >= maxPerQuery) break;
                     long id = h.path("objectID").asLong(-1);
                     if (id < 0 || byId.containsKey(id)) continue;
                     ScrapedProduct sp = map(h);
-                    if (sp != null) byId.put(id, sp);
+                    if (sp != null) { byId.put(id, sp); fromThisQuery++; }
                 }
                 if (page + 1 >= root.path("nbPages").asInt(0)) break;
             }

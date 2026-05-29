@@ -147,9 +147,11 @@ public class QueryClassifier {
             "soap","toothpaste","tissue","spice","salt","তেল","চাল","চিনি","ডাল","আটা","মসলা","মধু","ঘি"
         ));
         KW.put(ProductCategory.BABY, kw(
-            "diaper","baby diaper","wet wipes","baby food","formula","stroller","baby walker","feeder",
-            "feeding bottle","breast pump","baby lotion","baby shampoo","baby oil","baby carrier","high chair",
-            "crib","cerelac","শিশু","বেবি","ডায়াপার"
+            "diaper","diapers","nappy","baby diaper","pant diaper","pull ups","wet wipes","baby wipes",
+            "baby food","formula","baby formula","infant formula","infant milk","stroller","baby walker",
+            "feeder","feeding bottle","breast pump","baby lotion","baby shampoo","baby oil","baby powder",
+            "baby soap","baby wash","baby cream","baby carrier","high chair","crib","cerelac",
+            "শিশু","বেবি","ডায়াপার"
         ));
         KW.put(ProductCategory.SPORTS, kw(
             "cricket bat","cricket ball","football","basketball","jersey","yoga mat","dumbbell","treadmill","gym",
@@ -363,6 +365,17 @@ public class QueryClassifier {
         addBrand("pedigree",  ProductCategory.PET);
         addBrand("whiskas",   ProductCategory.PET);
         addBrand("drools",    ProductCategory.PET);
+        // baby & kids — many baby products don't say "baby" in the name, so the
+        // brand carries the signal (e.g. "Pampers Pant System Large").
+        addBrand("pampers",   ProductCategory.BABY);
+        addBrand("huggies",   ProductCategory.BABY);
+        addBrand("mamypoko",  ProductCategory.BABY);
+        addBrand("mamy poko", ProductCategory.BABY);
+        addBrand("lactogen",  ProductCategory.BABY);
+        addBrand("cerelac",   ProductCategory.BABY);
+        addBrand("chicco",    ProductCategory.BABY);
+        addBrand("johnson's baby", ProductCategory.BABY);
+        addBrand("johnsons baby",  ProductCategory.BABY);
         // eyewear
         addBrand("rayban",    ProductCategory.EYEWEAR, ProductCategory.FASHION);
         // jewellery
@@ -388,11 +401,24 @@ public class QueryClassifier {
     void buildAutomata() {
         keywordAutomaton = new AhoCorasick<>();
         for (Map.Entry<ProductCategory, Set<String>> e : KW.entrySet()) {
-            boolean accessory = e.getKey() == ProductCategory.ACCESSORY;
+            ProductCategory cat = e.getKey();
             for (String kw : e.getValue()) {
                 boolean multi = kw.contains(" ");
-                int weight = accessory ? (multi ? 5 : 4) : (multi ? 3 : 2);
-                keywordAutomaton.add(kw, new KwHit(e.getKey(), weight, multi));
+                int weight;
+                if (cat == ProductCategory.ACCESSORY) {
+                    // "iPhone case" must beat SMARTPHONE.
+                    weight = multi ? 5 : 4;
+                } else if (cat == ProductCategory.BABY || cat == ProductCategory.PET) {
+                    // A compound keyword like "baby lotion" / "pet shampoo" /
+                    // "baby food" must beat the generic grocery/beauty word it
+                    // contains ("lotion", "shampoo", "milk"+"rice"). Single tokens
+                    // stay at 2 so ambiguous ones ("formula" in "Cocoa Butter
+                    // Formula", "feeder") don't hijack unrelated products.
+                    weight = multi ? 5 : 2;
+                } else {
+                    weight = multi ? 3 : 2;
+                }
+                keywordAutomaton.add(kw, new KwHit(cat, weight, multi));
             }
         }
         keywordAutomaton.build();
