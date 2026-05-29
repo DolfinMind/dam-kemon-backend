@@ -68,11 +68,28 @@ public class SearchSeedCrawler {
         CATEGORY_SEEDS.put("kitchen",      List.of("cookware", "dinner set", "kettle", "knife"));
         CATEGORY_SEEDS.put("fashion",      List.of("panjabi", "saree", "kurta", "shirt", "shoe", "sneaker"));
         CATEGORY_SEEDS.put("beauty",       List.of("lipstick", "foundation", "serum", "perfume", "cream"));
-        CATEGORY_SEEDS.put("grocery",      List.of("rice", "oil", "sugar", "tea", "biscuit"));
+        CATEGORY_SEEDS.put("grocery",      List.of("rice", "oil", "shampoo", "soap", "diaper", "baby food", "detergent", "toothpaste", "sugar", "tea", "biscuit", "milk powder"));
+        CATEGORY_SEEDS.put("food",         List.of("honey", "ghee", "mustard oil", "dates", "spices", "nuts", "flour", "rice"));
         CATEGORY_SEEDS.put("book",         List.of("humayun ahmed", "harry potter", "thriller", "novel", "biography"));
         CATEGORY_SEEDS.put("furniture",    List.of("sofa", "bed", "dining table", "wardrobe", "chair"));
         CATEGORY_SEEDS.put("home",         List.of("bedsheet", "curtain", "mat", "pillow"));
         CATEGORY_SEEDS.put("accessory",    List.of("charger", "cable", "power bank", "case"));
+        // Everyday-goods buckets — without these, baby/toys/health/etc. fall back
+        // to generic "popular/offer" seeds and never surface real products.
+        CATEGORY_SEEDS.put("baby",         List.of("diaper", "baby food", "baby formula", "wet wipes", "feeding bottle", "baby lotion", "baby shampoo", "stroller"));
+        CATEGORY_SEEDS.put("toys",         List.of("toy", "lego", "doll", "remote control car", "puzzle", "board game", "soft toy", "building blocks"));
+        CATEGORY_SEEDS.put("pet",          List.of("dog food", "cat food", "cat litter", "pet shampoo", "fish food", "pet toy", "aquarium"));
+        CATEGORY_SEEDS.put("health",       List.of("vitamin", "supplement", "hand sanitizer", "face mask", "thermometer", "sanitary napkin", "protein powder", "first aid"));
+        CATEGORY_SEEDS.put("pharmacy",     List.of("napa", "paracetamol", "vitamin", "supplement", "antiseptic", "hand sanitizer", "savlon", "medicine"));
+        CATEGORY_SEEDS.put("jewellery",    List.of("gold ring", "necklace", "earrings", "bangle", "bracelet", "gold chain", "pendant"));
+        CATEGORY_SEEDS.put("sports",       List.of("cricket bat", "football", "dumbbell", "yoga mat", "treadmill", "bicycle", "jersey"));
+        CATEGORY_SEEDS.put("stationery",   List.of("pen", "notebook", "diary", "marker", "file", "calculator", "sticky notes"));
+        CATEGORY_SEEDS.put("office",       List.of("printer", "a4 paper", "stapler", "office chair", "calculator", "file"));
+        CATEGORY_SEEDS.put("automotive",   List.of("helmet", "engine oil", "car cover", "car perfume", "tyre", "bike accessories"));
+        CATEGORY_SEEDS.put("tools",        List.of("drill machine", "screwdriver", "wrench", "tool set", "hand tools", "soldering iron"));
+        CATEGORY_SEEDS.put("power",        List.of("ips", "ups", "inverter", "battery", "generator", "voltage stabilizer"));
+        CATEGORY_SEEDS.put("lighting",     List.of("led bulb", "tube light", "ceiling light", "chandelier", "light switch", "led panel"));
+        CATEGORY_SEEDS.put("gadget",       List.of("power bank", "smart watch", "earbuds", "trimmer", "bluetooth speaker", "selfie stick"));
         CATEGORY_SEEDS.put("general",      List.of("popular", "best seller", "new arrival", "offer"));
     }
     private static final List<String> FALLBACK_SEEDS = List.of("popular", "best seller", "new arrival", "offer");

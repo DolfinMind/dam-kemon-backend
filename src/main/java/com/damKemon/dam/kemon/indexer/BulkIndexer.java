@@ -70,6 +70,7 @@ public class BulkIndexer {
     private final ShopHealthService shopHealth;
     private final IndexerRunRepository indexerRunRepository;
     private final ScraperLearningService learner;
+    private final ChaldalHarvester chaldalHarvester;
 
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
@@ -95,7 +96,8 @@ public class BulkIndexer {
                        QueryClassifier classifier,
                        ShopHealthService shopHealth,
                        IndexerRunRepository indexerRunRepository,
-                       ScraperLearningService learner) {
+                       ScraperLearningService learner,
+                       ChaldalHarvester chaldalHarvester) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
@@ -106,6 +108,7 @@ public class BulkIndexer {
         this.shopHealth = shopHealth;
         this.indexerRunRepository = indexerRunRepository;
         this.learner = learner;
+        this.chaldalHarvester = chaldalHarvester;
     }
 
     private void persistRunRecord(String kind, RunSummary s) {
@@ -356,6 +359,12 @@ public class BulkIndexer {
                           MinHashLSH lsh,
                           AtomicInteger inserted,
                           AtomicInteger merged) {
+        // API-harvested shops (Chaldal) skip URL discovery + per-page extraction
+        // entirely — their catalog comes from a JSON endpoint. Isolated to shops
+        // the harvester claims, so every other shop's path is unchanged.
+        if (chaldalHarvester.supports(shop)) {
+            return harvestApi(shop, chaldalHarvester.harvest(), lsh, inserted, merged);
+        }
         boolean js = Boolean.TRUE.equals(shop.getRequiresJs());
         List<String> urls = new ArrayList<>();
         if (shop.getSitemapUrl() != null && !shop.getSitemapUrl().isBlank()) {
@@ -448,6 +457,35 @@ public class BulkIndexer {
             }
         }
         return localOk.get();
+    }
+
+    /**
+     * Persist products pulled by an API harvester (e.g. Chaldal) directly,
+     * reusing the same cross-shop merge path as the URL pipeline. The
+     * productUrl carried on each {@link ScrapedProduct} is the dedup key.
+     */
+    private int harvestApi(Shop shop,
+                           List<ScrapedProduct> products,
+                           MinHashLSH lsh,
+                           AtomicInteger inserted,
+                           AtomicInteger merged) {
+        int cap = Math.min(products.size(), maxProductsPerShop);
+        int ok = 0;
+        for (int i = 0; i < cap; i++) {
+            ScrapedProduct sp = products.get(i);
+            // Same sanity floor the URL pipeline applies: sub-৳10 is almost
+            // always a parse error.
+            if (sp == null || sp.getName() == null || sp.getPrice() == null || sp.getPrice() < 10) continue;
+            String url = sp.getProductUrl() != null ? sp.getProductUrl() : shop.getBaseUrl();
+            try {
+                persistOrMerge(sp, url, shop, lsh, inserted, merged);
+                ok++;
+            } catch (Exception e) {
+                log.debug("Indexer: shop '{}' API persist failed: {}", shop.getSlug(), e.getMessage());
+            }
+        }
+        log.info("Indexer: shop '{}' API harvest → {} products persisted", shop.getSlug(), ok);
+        return ok;
     }
 
     private synchronized void persistOrMerge(ScrapedProduct sp,
