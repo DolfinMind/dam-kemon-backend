@@ -49,6 +49,17 @@ indexer:
   global-parallelism: ${INDEXER_GLOBAL_PARALLELISM:24}
   user-agent: "${INDEXER_USER_AGENT:Mozilla/5.0 DamKemon/1.0 (+contact hello@damkemon.com)}"
 
+# ───── Autonomous shop discovery + lifecycle ─────
+# Weekly job: discover new BD shops (e-CAB/BASIS directories), auto-activate the
+# ones that pass a product-URL probe, and revive previously auto-blocked shops
+# that have recovered. Scheduled 2h before the indexer so new shops are crawled
+# the same night. Auto-DISABLING of dead shops is handled by ShopHealthService.
+discovery:
+  enabled: ${DISCOVERY_ENABLED:true}
+  cron: ${DISCOVERY_CRON:0 0 1 * * SUN}
+  min-product-urls: ${DISCOVERY_MIN_PRODUCT_URLS:5}
+  max-per-run: ${DISCOVERY_MAX_PER_RUN:20}
+
 # ───── Search behaviour ─────
 search:
   page-size: ${SEARCH_PAGE_SIZE:30}
