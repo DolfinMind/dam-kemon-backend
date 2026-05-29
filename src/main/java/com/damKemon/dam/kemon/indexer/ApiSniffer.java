@@ -54,6 +54,12 @@ public class ApiSniffer {
     @Value("${sniffer.max-nodes:60000}")
     private int maxNodes;
 
+    /** Per-shop cooldown so a full nightly run can't queue dozens of serial renders. */
+    @Value("${sniffer.throttle-hours:24}")
+    private long throttleHours;
+
+    private final java.util.concurrent.ConcurrentHashMap<String, Long> lastSniff = new java.util.concurrent.ConcurrentHashMap<>();
+
     private final BrowserFetcher browser;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -71,6 +77,14 @@ public class ApiSniffer {
      */
     public List<ScrapedProduct> sniff(Shop shop) {
         if (!isEnabled() || shop == null) return List.of();
+        // Per-shop cooldown so a full nightly run never queues dozens of serial
+        // Playwright renders. Recorded even on failure, so a shop that can't be
+        // sniffed isn't retried for the window.
+        long now = System.currentTimeMillis();
+        Long last = lastSniff.get(shop.getSlug());
+        if (last != null && now - last < throttleHours * 3_600_000L) return List.of();
+        lastSniff.put(shop.getSlug(), now);
+
         String pageUrl = listingUrl(shop);
         if (pageUrl == null) return List.of();
 
