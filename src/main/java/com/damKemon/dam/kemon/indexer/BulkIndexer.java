@@ -550,6 +550,9 @@ public class BulkIndexer {
                 .inStock(sp.getInStock() == null ? true : sp.getInStock())
                 .rating(sp.getRating())
                 .reviewCount(sp.getReviewCount())
+                .sellerName(sp.getSellerName())
+                .sellerId(sp.getSellerId())
+                .soldCount(sp.getSoldCount())
                 .lastUpdated(LocalDateTime.now())
                 .build();
 
@@ -577,8 +580,19 @@ public class BulkIndexer {
         MinHashLSH.Match match = lsh.findBest(normName, 0.42);
         if (match != null) {
             Product existing = (Product) match.payload();
-            existing.getPrices().removeIf(p -> Objects.equals(p.getSiteSlug(), shop.getSlug()));
+            // Marketplace-aware merge: replace only the SAME seller's prior offer,
+            // so many sellers from one marketplace (e.g. Daraz storefronts) coexist
+            // as distinct offers on the product. When the incoming offer carries a
+            // seller, also drop any legacy seller-less aggregate the old
+            // one-per-shop behaviour left for that marketplace.
+            final String newKey = offerKey(price);
+            existing.getPrices().removeIf(p ->
+                    Objects.equals(offerKey(p), newKey)
+                    || (price.getSellerId() != null
+                        && Objects.equals(p.getSiteSlug(), shop.getSlug())
+                        && (p.getSellerId() == null || p.getSellerId().isBlank())));
             existing.getPrices().add(price);
+            capSellers(existing);
             applyDescriptiveFieldsIfMissing(existing, sp);
             recomputeAggregates(existing);
             existing.setLastScraped(LocalDateTime.now());
@@ -686,6 +700,42 @@ public class BulkIndexer {
     private Double discount(Double original, Double current) {
         if (original == null || current == null || original <= 0 || original <= current) return null;
         return Math.round((original - current) / original * 1000.0) / 10.0;
+    }
+
+    /** Most offers we keep on one product, so a flooded marketplace can't bloat it. */
+    private static final int MAX_OFFERS_PER_PRODUCT = 12;
+
+    /**
+     * Dedup identity for an offer. A marketplace sub-seller (sellerId present) is
+     * its own offer; a first-party shop has a single offer keyed by its slug — so
+     * non-marketplace behaviour is unchanged.
+     */
+    private static String offerKey(SitePrice p) {
+        if (p == null) return "";
+        String slug = p.getSiteSlug() == null ? "" : p.getSiteSlug();
+        return (p.getSellerId() != null && !p.getSellerId().isBlank())
+                ? slug + "#" + p.getSellerId()
+                : slug;
+    }
+
+    /**
+     * Keep a product from ballooning when a marketplace returns dozens of sellers:
+     * retain the cheapest in-stock offers, drop the long tail.
+     */
+    private static void capSellers(Product p) {
+        List<SitePrice> prices = p.getPrices();
+        if (prices == null || prices.size() <= MAX_OFFERS_PER_PRODUCT) return;
+        prices.sort((a, b) -> {
+            boolean ai = !Boolean.FALSE.equals(a.getInStock());
+            boolean bi = !Boolean.FALSE.equals(b.getInStock());
+            if (ai != bi) return ai ? -1 : 1;
+            double ap = a.getPrice() == null ? Double.MAX_VALUE : a.getPrice();
+            double bp = b.getPrice() == null ? Double.MAX_VALUE : b.getPrice();
+            return Double.compare(ap, bp);
+        });
+        List<SitePrice> kept = new ArrayList<>(prices.subList(0, MAX_OFFERS_PER_PRODUCT));
+        prices.clear();
+        prices.addAll(kept);
     }
 
     private static String slugify(String name) {

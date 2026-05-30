@@ -123,19 +123,73 @@ public class DarazHarvester implements ShopHarvester {
         Double price = PriceParser.parseFirst(firstNonBlank(text(it, "priceShow"), text(it, "price")));
         if (price == null || price < 1) return null;
         Double original = PriceParser.parseFirst(text(it, "originalPriceShow"));
-        String skuId = text(it, "skuId");
-        String slug = slugify(name);
-        String url = "https://www.daraz.com.bd/products/" + (slug.isBlank() ? "p" : slug)
-                + "-i" + itemId + (skuId != null && !skuId.isBlank() ? "-s" + skuId : "") + ".html";
+
+        // Prefer Daraz's own canonical item URL (it's protocol-relative) so each
+        // seller's listing has its true, clickable URL; reconstruct only if absent.
+        String url = absUrl(text(it, "itemUrl"));
+        if (url == null) {
+            String skuId = text(it, "skuId");
+            String slug = slugify(name);
+            url = "https://www.daraz.com.bd/products/" + (slug.isBlank() ? "p" : slug)
+                    + "-i" + itemId + (skuId != null && !skuId.isBlank() ? "-s" + skuId : "") + ".html";
+        }
+
         JsonNode inStock = it.path("inStock");
         return ScrapedProduct.builder()
                 .name(name)
                 .price(price)
                 .originalPrice(original != null && original > price ? original : null)
-                .imageUrl(text(it, "image"))
+                .imageUrl(absUrl(text(it, "image")))
                 .productUrl(url)
                 .inStock(!inStock.isBoolean() || inStock.asBoolean())
+                // Per-listing seller + quality signals — the whole point of treating
+                // each Daraz listing as a distinct seller offer.
+                .rating(parseDouble(text(it, "ratingScore")))
+                .reviewCount(parseCount(text(it, "review")))
+                .soldCount(parseSold(text(it, "itemSoldCntShow")))
+                .sellerName(clean(text(it, "sellerName")))
+                .sellerId(text(it, "sellerId"))
                 .build();
+    }
+
+    /** Normalise Daraz's protocol-relative ("//...") and relative URLs to absolute https. */
+    private static String absUrl(String u) {
+        if (u == null || u.isBlank()) return null;
+        if (u.startsWith("//")) return "https:" + u;
+        if (u.startsWith("http")) return u;
+        if (u.startsWith("/")) return "https://www.daraz.com.bd" + u;
+        return u;
+    }
+
+    private static Double parseDouble(String s) {
+        if (s == null) return null;
+        try {
+            double d = Double.parseDouble(s.replaceAll("[^0-9.]", ""));
+            return (d > 0 && d <= 5) ? Math.round(d * 10.0) / 10.0 : null;
+        } catch (NumberFormatException e) { return null; }
+    }
+
+    /** Plain integer count, e.g. review count "1234" or "(1234)". */
+    private static Integer parseCount(String s) {
+        if (s == null) return null;
+        String digits = s.replaceAll("[^0-9]", "");
+        if (digits.isBlank()) return null;
+        try { return Integer.parseInt(digits); } catch (NumberFormatException e) { return null; }
+    }
+
+    /** Units sold, e.g. "1.2K sold" → 1200, "350 sold" → 350. */
+    private static Integer parseSold(String s) {
+        if (s == null) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("([0-9]+(?:\\.[0-9]+)?)\\s*([kKmM]?)").matcher(s);
+        if (!m.find()) return null;
+        try {
+            double n = Double.parseDouble(m.group(1));
+            String suf = m.group(2).toLowerCase();
+            if ("k".equals(suf)) n *= 1_000;
+            else if ("m".equals(suf)) n *= 1_000_000;
+            return (int) Math.round(n);
+        } catch (NumberFormatException e) { return null; }
     }
 
     /** Strip emoji/symbol junk Daraz sellers cram into titles ("... 🔥 300 Taka"). */

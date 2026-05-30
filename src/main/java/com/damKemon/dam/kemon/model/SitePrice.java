@@ -23,5 +23,11 @@ public class SitePrice {
     private Boolean inStock;
     private Double rating;
     private Integer reviewCount;
+    // Marketplace sub-seller within siteName/siteSlug (e.g. a Daraz storefront).
+    // Null for first-party shops, where the shop itself is the seller. Lets one
+    // product carry many sellers from the same marketplace, each its own offer.
+    private String sellerName;
+    private String sellerId;
+    private Integer soldCount;
     private LocalDateTime lastUpdated;
 }

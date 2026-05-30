@@ -1,17 +1,26 @@
 package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.model.PendingShop;
+import com.damKemon.dam.kemon.model.Shop;
 import com.damKemon.dam.kemon.repository.PendingShopRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Public "Submit your shop" endpoint. Shop owners paste a base URL +
@@ -26,10 +35,57 @@ public class SubmitShopController {
 
     private final PendingShopRepository pendingRepo;
     private final ShopRepository shopRepo;
+    private final MongoTemplate mongoTemplate;
 
-    public SubmitShopController(PendingShopRepository pendingRepo, ShopRepository shopRepo) {
+    public SubmitShopController(PendingShopRepository pendingRepo, ShopRepository shopRepo,
+                                MongoTemplate mongoTemplate) {
         this.pendingRepo = pendingRepo;
         this.shopRepo = shopRepo;
+        this.mongoTemplate = mongoTemplate;
+    }
+
+    /**
+     * Public shop directory — the active indexed shops with their catalog size
+     * (how many products list each shop). Powers the shop-vs-shop comparison
+     * picker; the trust/delivery/returns signals for the selected shops are
+     * fetched separately via {@code GET /api/trust/shops}.
+     */
+    @GetMapping
+    public ResponseEntity<List<Map<String, Object>>> directory() {
+        try {
+            Map<String, Integer> counts = productCountsBySlug();
+            List<Map<String, Object>> out = shopRepo.findByStatus("active").stream()
+                    .map(s -> {
+                        Map<String, Object> m = new LinkedHashMap<>();
+                        m.put("slug", s.getSlug());
+                        m.put("name", s.getName());
+                        m.put("platform", s.getPlatform());
+                        m.put("productCount", counts.getOrDefault(s.getSlug(), 0));
+                        return m;
+                    })
+                    .sorted((a, b) -> Integer.compare((Integer) b.get("productCount"), (Integer) a.get("productCount")))
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(out);
+        } catch (DataAccessException e) {
+            return ResponseEntity.ok(List.of());
+        }
+    }
+
+    /** Catalog size per shop slug: number of products that list the shop. */
+    private Map<String, Integer> productCountsBySlug() {
+        Map<String, Integer> counts = new HashMap<>();
+        try {
+            Aggregation agg = Aggregation.newAggregation(
+                    Aggregation.unwind("prices"),
+                    Aggregation.group("prices.siteSlug").count().as("n"));
+            AggregationResults<Document> res = mongoTemplate.aggregate(agg, "products", Document.class);
+            for (Document d : res) {
+                String slug = d.getString("_id");
+                Object n = d.get("n");
+                if (slug != null && n instanceof Number) counts.put(slug, ((Number) n).intValue());
+            }
+        } catch (Exception ignored) { /* best-effort; counts just show as 0 */ }
+        return counts;
     }
 
     @PostMapping("/submit")

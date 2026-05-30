@@ -49,6 +49,7 @@ public class AffiliateController {
     @GetMapping("/{productId}")
     public ResponseEntity<?> redirect(@PathVariable String productId,
                                       @RequestParam(value = "site", required = false) String site,
+                                      @RequestParam(value = "u", required = false) String offerUrl,
                                       @RequestParam(value = "q", required = false) String fromQuery,
                                       HttpServletRequest req) {
         Product p = products.findById(productId).orElse(null);
@@ -56,7 +57,7 @@ public class AffiliateController {
             return ResponseEntity.notFound().build();
         }
 
-        SitePrice chosen = pickSite(p, site);
+        SitePrice chosen = pickSite(p, site, offerUrl);
         if (chosen == null || chosen.getProductUrl() == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("No URL available for that site");
@@ -89,7 +90,14 @@ public class AffiliateController {
                 .build();
     }
 
-    private static SitePrice pickSite(Product p, String slugOrName) {
+    private static SitePrice pickSite(Product p, String slugOrName, String offerUrl) {
+        // Exact offer URL wins — disambiguates between multiple sellers of the
+        // same product within one marketplace (e.g. two Daraz storefronts).
+        if (offerUrl != null && !offerUrl.isBlank()) {
+            for (SitePrice sp : p.getPrices()) {
+                if (offerUrl.equals(sp.getProductUrl())) return sp;
+            }
+        }
         if (slugOrName != null) {
             String needle = slugOrName.toLowerCase();
             for (SitePrice sp : p.getPrices()) {
