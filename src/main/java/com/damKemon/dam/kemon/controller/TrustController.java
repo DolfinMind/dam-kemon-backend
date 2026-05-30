@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.controller;
 
+import com.damKemon.dam.kemon.service.MarketplaceSellerService;
 import com.damKemon.dam.kemon.service.TrustService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,9 +22,11 @@ import java.util.Map;
 public class TrustController {
 
     private final TrustService trustService;
+    private final MarketplaceSellerService sellerService;
 
-    public TrustController(TrustService trustService) {
+    public TrustController(TrustService trustService, MarketplaceSellerService sellerService) {
         this.trustService = trustService;
+        this.sellerService = sellerService;
     }
 
     /** {@code GET /api/trust/shops?slugs=daraz,startech} → slug → trust view. */
@@ -35,5 +38,20 @@ public class TrustController {
                 .map(String::trim).filter(s -> !s.isEmpty())
                 .distinct().limit(50).toList();
         return ResponseEntity.ok(trustService.viewForSlugs(list));
+    }
+
+    /**
+     * {@code GET /api/trust/sellers?ids=700508184158,...} → sellerId → reputation
+     * view, for marketplace sub-sellers (e.g. Daraz storefronts). Unknown ids are
+     * simply omitted so the UI falls back to the marketplace-level trust.
+     */
+    @GetMapping("/sellers")
+    public ResponseEntity<Map<String, Map<String, Object>>> sellers(
+            @RequestParam(value = "ids", required = false) String ids) {
+        if (ids == null || ids.isBlank()) return ResponseEntity.ok(Map.of());
+        List<String> list = Arrays.stream(ids.split(","))
+                .map(String::trim).filter(s -> !s.isEmpty())
+                .distinct().limit(50).toList();
+        return ResponseEntity.ok(sellerService.viewForSellerIds(list));
     }
 }

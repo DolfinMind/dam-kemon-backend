@@ -16,6 +16,7 @@ import com.damKemon.dam.kemon.repository.PendingShopRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
 import com.damKemon.dam.kemon.service.HotDropsService;
+import com.damKemon.dam.kemon.service.MarketplaceSellerService;
 import org.springframework.data.domain.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,7 @@ public class AdminController {
     private final IndexerRunRepository indexerRunRepo;
     private final ScraperLearningService learner;
     private final ShopDiagnosticRepository diagnosticRepo;
+    private final MarketplaceSellerService sellerService;
 
     public AdminController(BulkIndexer indexer,
                            ShopRepository shopRepository,
@@ -61,7 +63,8 @@ public class AdminController {
                            AuditLogRepository auditRepo,
                            IndexerRunRepository indexerRunRepo,
                            ScraperLearningService learner,
-                           ShopDiagnosticRepository diagnosticRepo) {
+                           ShopDiagnosticRepository diagnosticRepo,
+                           MarketplaceSellerService sellerService) {
         this.indexer = indexer;
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
@@ -72,6 +75,14 @@ public class AdminController {
         this.indexerRunRepo = indexerRunRepo;
         this.learner = learner;
         this.diagnosticRepo = diagnosticRepo;
+        this.sellerService = sellerService;
+    }
+
+    /** Recompute marketplace per-seller reputation from the current catalog. */
+    @PostMapping("/recompute-seller-trust")
+    public ResponseEntity<Map<String, Object>> recomputeSellerTrust() {
+        int n = sellerService.recompute();
+        return ResponseEntity.ok(Map.of("recomputed", n));
     }
 
     @GetMapping("/index/history")
