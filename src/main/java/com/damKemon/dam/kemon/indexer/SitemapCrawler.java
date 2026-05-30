@@ -173,9 +173,20 @@ public class SitemapCrawler {
         String path;
         try { path = URI.create(url).getPath(); }
         catch (Exception e) { return false; }
-        if (path == null) return false;
+        if (path == null || path.isBlank() || "/".equals(path)) return false;
         if (NON_PRODUCT_PATH.matcher(path).find()) return false;
-        return PRODUCT_PATH.matcher(path).find();
+        if (PRODUCT_PATH.matcher(path).find()) return true;
+        // Flat product slugs used by Magento / many custom shops, e.g.
+        // "/asus-rog-strix-b660-a-gaming-wifi-d4-motherboard.html". The hyphen
+        // requirement separates real products from single-word category pages
+        // ("/gaming.html"); any non-product that slips through just extracts
+        // nothing and costs only a fetch. This is what was dropping ~all of the
+        // Magento shops (their sitemaps carry 0 "/product/" URLs).
+        String last = path.substring(path.lastIndexOf('/') + 1);
+        long hyphens = last.chars().filter(c -> c == '-').count();
+        if (last.endsWith(".html") && hyphens >= 1 && last.length() > 10) return true;
+        if (hyphens >= 2 && last.length() >= 15 && !last.contains(".")) return true;
+        return false;
     }
 
     private byte[] fetchBytes(String url) throws Exception {
