@@ -76,6 +76,9 @@ public class BulkIndexer {
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
 
+    /** Remaining browser-render budget for the current run (see maxJsRendersPerRun). */
+    private final AtomicInteger jsRenderBudget = new AtomicInteger(0);
+
     @Value("${indexer.per-host-parallelism:2}")
     private int perHostParallelism;
 
@@ -87,6 +90,12 @@ public class BulkIndexer {
 
     @Value("${indexer.max-products-per-shop:500}")
     private int maxProductsPerShop;
+
+    /** Per-run cap on browser renders (sniffer + learner) so a nightly pass can't
+     *  wedge on dozens of serial Playwright calls. Beyond it, 0-yield shops defer
+     *  to the next run (both paths are 24h-throttled anyway). */
+    @Value("${indexer.max-js-renders-per-run:25}")
+    private int maxJsRendersPerRun;
 
     public BulkIndexer(ShopRepository shopRepository,
                        ProductRepository productRepository,
@@ -166,6 +175,7 @@ public class BulkIndexer {
         summary.startedAtEpochMs = now;
         summary.inProgress = true;
         lastRun = summary;
+        jsRenderBudget.set(maxJsRendersPerRun);
 
         List<Shop> shops;
         try {
@@ -286,6 +296,7 @@ public class BulkIndexer {
         summary.startedAtEpochMs = System.currentTimeMillis();
         summary.inProgress = true;
         summary.shopsAttempted = shops.size();
+        jsRenderBudget.set(maxJsRendersPerRun);
 
         MinHashLSH lsh = new MinHashLSH();
         warmLsh(lsh);
@@ -462,31 +473,32 @@ public class BulkIndexer {
             log.warn("Indexer: shop '{}' partial ({}): {}", shop.getSlug(), e.getClass().getSimpleName(), e.getMessage());
         }
 
-        // Magical last resort: extracted nothing the normal way? Render the shop
-        // in a browser, auto-discover the JSON product feed its own frontend
-        // loads, and harvest that — no per-shop code. Only runs on a 0-yield
-        // shop, so it can only help, never regress.
-        if (localOk.get() == 0 && apiSniffer.isEnabled()) {
-            try {
-                List<ScrapedProduct> sniffed = apiSniffer.sniff(shop);
-                int got = sniffed.isEmpty() ? 0 : harvestApi(shop, sniffed, lsh, inserted, merged);
-                if (got > 0) {
-                    log.info("Indexer: shop '{}' — API sniffer rescued {} products", shop.getSlug(), got);
-                    return got;
-                }
-            } catch (Exception e) {
-                log.debug("Indexer: API sniffer failed for '{}': {}", shop.getSlug(), e.getMessage());
-            }
-        }
-
-        // Auto-learning hook: if the run produced 0 products, ask the
-        // learner to diagnose. Throttled internally to once per 24h so
-        // this is safe to call every run unconditionally.
+        // Self-healing for a 0-yield shop — but spend the per-run browser budget
+        // so a nightly pass can't queue dozens of serial Playwright renders.
         if (localOk.get() == 0) {
-            try { learner.learnFromBrokenShop(shop); }
-            catch (Exception e) {
-                log.debug("Indexer: learner threw on '{}' (ignored): {}",
-                        shop.getSlug(), e.getMessage());
+            boolean browserBudget = jsRenderBudget.getAndDecrement() > 0;
+
+            // Magical last resort: render the shop, auto-discover the JSON product
+            // feed its own frontend loads, and harvest that (no per-shop code).
+            if (browserBudget && apiSniffer.isEnabled()) {
+                try {
+                    List<ScrapedProduct> sniffed = apiSniffer.sniff(shop);
+                    int got = sniffed.isEmpty() ? 0 : harvestApi(shop, sniffed, lsh, inserted, merged);
+                    if (got > 0) {
+                        log.info("Indexer: shop '{}' — API sniffer rescued {} products", shop.getSlug(), got);
+                        return got;
+                    }
+                } catch (Exception e) {
+                    log.debug("Indexer: API sniffer failed for '{}': {}", shop.getSlug(), e.getMessage());
+                }
+            }
+
+            // Auto-learning diagnosis (also browser-bound; 24h-throttled per shop).
+            if (browserBudget) {
+                try { learner.learnFromBrokenShop(shop); }
+                catch (Exception e) {
+                    log.debug("Indexer: learner threw on '{}' (ignored): {}", shop.getSlug(), e.getMessage());
+                }
             }
         }
         return localOk.get();
@@ -654,6 +666,21 @@ public class BulkIndexer {
         p.setHighestPrice(max == 0 ? null : max);
         p.setAverageRating(rn == 0 ? null : Math.round(rsum / rn * 10.0) / 10.0);
         p.setTotalReviews(reviews == 0 ? null : reviews);
+
+        // Price-truth: rate the cheapest seller against the cross-seller median,
+        // so the UI can flag genuine deals vs. inflated "discounts".
+        List<Double> vals = new ArrayList<>();
+        for (SitePrice sp : prices) if (sp.getPrice() != null && sp.getPrice() > 0) vals.add(sp.getPrice());
+        if (vals.size() >= 2) {
+            java.util.Collections.sort(vals);
+            double median = vals.get(vals.size() / 2);
+            double lo = vals.get(0);
+            if (lo <= median * 0.85) p.setPriceVerdict("real_deal");
+            else if (lo >= median * 1.05) p.setPriceVerdict("overpriced");
+            else p.setPriceVerdict("fair");
+        } else {
+            p.setPriceVerdict(null);
+        }
     }
 
     private Double discount(Double original, Double current) {

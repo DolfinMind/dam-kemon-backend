@@ -49,6 +49,8 @@ public class Product {
     @Indexed
     private Double lowestPrice;
     private Double highestPrice;
+    /** Cross-seller verdict set at index time: real_deal | fair | overpriced. */
+    private String priceVerdict;
     private Double averageRating;
     private Integer totalReviews;
 

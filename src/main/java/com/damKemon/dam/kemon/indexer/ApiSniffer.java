@@ -100,7 +100,10 @@ public class ApiSniffer {
         }
 
         if (best.size() >= minProducts) {
-            log.info("ApiSniffer: shop '{}' — discovered product feed {} → {} products (no per-shop code)",
+            // Remember the feed so DiscoveredApiHarvester can replay it cheaply
+            // (plain HTTP, no browser) on future runs. BulkIndexer persists the shop.
+            shop.setDiscoveredApiUrl(bestEndpoint);
+            log.info("ApiSniffer: shop '{}' — discovered product feed {} → {} products (recorded for replay)",
                     shop.getSlug(), trim(bestEndpoint), best.size());
             return best;
         }
@@ -116,6 +119,11 @@ public class ApiSniffer {
             return tpl.replace("{q}", "shirt");
         }
         return shop.getBaseUrl();
+    }
+
+    /** Extract products from a raw JSON body — used by DiscoveredApiHarvester to replay a recorded feed. */
+    public List<ScrapedProduct> extractProducts(String json, String baseUrl) {
+        return richestProductArray(json, baseUrl);
     }
 
     /** Walk the whole JSON tree; return the largest array of product-shaped objects. */

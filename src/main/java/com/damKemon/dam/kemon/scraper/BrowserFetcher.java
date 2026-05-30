@@ -48,6 +48,10 @@ public class BrowserFetcher {
     @Value("${browser.wait-until:DOMCONTENTLOADED}")
     private String waitUntil;
 
+    /** Optional upstream proxy (e.g. residential) to get past datacenter-IP blocks. */
+    @Value("${browser.proxy:}")
+    private String proxyUrl;
+
     private volatile Playwright playwright;
     private volatile Browser browser;
     private final Object initLock = new Object();
@@ -91,6 +95,7 @@ public class BrowserFetcher {
                         )));
              Page page = context.newPage()) {
             page.setDefaultTimeout(timeoutMs);
+            page.addInitScript("Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"); // stealth
             WaitUntilState wait = parseWait(waitUntil);
             page.navigate(url, new Page.NavigateOptions().setWaitUntil(wait).setTimeout(timeoutMs));
             // small explicit settle so async JS that fetches results has a chance
@@ -136,6 +141,7 @@ public class BrowserFetcher {
                         .setExtraHTTPHeaders(java.util.Map.of("Accept-Language", "en-US,en;q=0.9,bn;q=0.6")));
              Page page = context.newPage()) {
             page.setDefaultTimeout(timeoutMs);
+            page.addInitScript("Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"); // stealth
             page.onResponse(resp -> {
                 try {
                     if (out.size() >= maxCaptures) return;
@@ -171,15 +177,18 @@ public class BrowserFetcher {
             if (browser != null) return;
             log.info("Launching Playwright Chromium (headless={})…", headless);
             playwright = Playwright.create();
-            browser = playwright.chromium().launch(
-                    new BrowserType.LaunchOptions()
-                            .setHeadless(headless)
-                            .setArgs(Arrays.asList(
-                                    "--disable-blink-features=AutomationControlled",
-                                    "--disable-dev-shm-usage",
-                                    "--no-sandbox"
-                            ))
-            );
+            BrowserType.LaunchOptions opts = new BrowserType.LaunchOptions()
+                    .setHeadless(headless)
+                    .setArgs(Arrays.asList(
+                            "--disable-blink-features=AutomationControlled",
+                            "--disable-dev-shm-usage",
+                            "--no-sandbox"
+                    ));
+            if (proxyUrl != null && !proxyUrl.isBlank()) {
+                opts.setProxy(new com.microsoft.playwright.options.Proxy(proxyUrl));
+                log.info("Playwright launching through proxy");
+            }
+            browser = playwright.chromium().launch(opts);
             log.info("Playwright Chromium ready");
         }
     }

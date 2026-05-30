@@ -121,6 +121,9 @@ public class Shop {
      */
     private String preferredExtractor;
 
+    /** Product-feed endpoint auto-discovered by ApiSniffer; replayed cheaply (no browser) by DiscoveredApiHarvester. */
+    private String discoveredApiUrl;
+
     /**
      * Auto-detected platform fingerprint from a learning probe. Distinct
      * from the operator-set {@link #platform} — this is "what the page
