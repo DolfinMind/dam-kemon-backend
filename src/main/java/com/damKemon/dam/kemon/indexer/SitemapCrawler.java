@@ -64,6 +64,11 @@ public class SitemapCrawler {
     @Value("${indexer.user-agent:Mozilla/5.0 DamKemon/1.0 (+contact: hello@damkemon.com)}")
     private String userAgent;
 
+    /** Common sitemap locations to probe when the configured one is missing/empty. */
+    private static final List<String> COMMON_SITEMAP_PATHS = List.of(
+            "/sitemap_index.xml", "/sitemap.xml", "/wp-sitemap.xml",
+            "/product-sitemap.xml", "/sitemap/sitemap.xml", "/pub/sitemap.xml");
+
     /** Public entry point. Returns deduplicated product URLs, capped. */
     public List<String> crawl(String sitemapUrl) {
         if (sitemapUrl == null || sitemapUrl.isBlank()) return List.of();
@@ -71,6 +76,60 @@ public class SitemapCrawler {
         collect(sitemapUrl, productUrls, 0);
         log.info("Sitemap {}: {} product URLs after filtering", sitemapUrl, productUrls.size());
         return new ArrayList<>(productUrls);
+    }
+
+    /**
+     * Auto-discover a shop's sitemap when the configured URL is missing or
+     * yields nothing. Checks {@code robots.txt} for {@code Sitemap:} directives,
+     * then a list of common paths (Yoast {@code sitemap_index.xml}, WP core
+     * {@code wp-sitemap.xml}, Magento, etc.). Returns product URLs from the
+     * first candidate that produces any.
+     */
+    public List<String> discoverAndCrawl(String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) return List.of();
+        String root = rootOf(baseUrl);
+        if (root == null) return List.of();
+
+        LinkedHashSet<String> candidates = new LinkedHashSet<>(sitemapsFromRobots(root));
+        for (String path : COMMON_SITEMAP_PATHS) candidates.add(root + path);
+
+        for (String candidate : candidates) {
+            Set<String> products = new LinkedHashSet<>();
+            collect(candidate, products, 0);
+            if (!products.isEmpty()) {
+                log.info("Sitemap auto-discovery: {} → {} product URLs via {}",
+                        root, products.size(), candidate);
+                return new ArrayList<>(products);
+            }
+        }
+        return List.of();
+    }
+
+    /** Parse {@code Sitemap:} directives out of robots.txt. */
+    private List<String> sitemapsFromRobots(String root) {
+        List<String> out = new ArrayList<>();
+        try {
+            byte[] body = fetchBytes(root + "/robots.txt");
+            if (body == null) return out;
+            for (String line : new String(body, StandardCharsets.UTF_8).split("\\r?\\n")) {
+                String l = line.trim();
+                if (l.toLowerCase().startsWith("sitemap:")) {
+                    String u = l.substring(8).trim();
+                    if (!u.isBlank()) out.add(u);
+                }
+            }
+        } catch (Exception e) {
+            log.debug("robots.txt fetch failed for {}: {}", root, e.getMessage());
+        }
+        return out;
+    }
+
+    private static String rootOf(String url) {
+        try {
+            URI u = URI.create(url);
+            if (u.getScheme() == null || u.getHost() == null) return null;
+            return u.getScheme() + "://" + u.getHost();
+        } catch (Exception e) { return null; }
     }
 
     /** Recursive walk. Depth-limit avoids infinite loops on bad sitemaps. */

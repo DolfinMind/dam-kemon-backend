@@ -367,13 +367,24 @@ public class BulkIndexer {
         // to shops a harvester claims, so every other shop's path is unchanged.
         for (ShopHarvester h : harvesters) {
             if (h.supports(shop)) {
-                return harvestApi(shop, h.harvest(shop), lsh, inserted, merged);
+                int got = harvestApi(shop, h.harvest(shop), lsh, inserted, merged);
+                if (got > 0) return got;
+                break; // harvester claimed the shop but got nothing → fall through to the normal pipeline
             }
         }
         boolean js = Boolean.TRUE.equals(shop.getRequiresJs());
         List<String> urls = new ArrayList<>();
         if (shop.getSitemapUrl() != null && !shop.getSitemapUrl().isBlank()) {
             urls = sitemapCrawler.crawl(shop.getSitemapUrl());
+        }
+        // Fallback 0: auto-discover the sitemap (robots.txt + common paths) when
+        // the configured one is missing or came back empty (Yoast/WP/Magento
+        // shops that 404 on /sitemap.xml but expose /sitemap_index.xml etc.).
+        if (urls.isEmpty() && shop.getBaseUrl() != null && !shop.getBaseUrl().isBlank()) {
+            urls = sitemapCrawler.discoverAndCrawl(shop.getBaseUrl());
+            if (!urls.isEmpty()) {
+                log.info("Indexer: shop '{}' sitemap auto-discovered ({} URLs)", shop.getSlug(), urls.size());
+            }
         }
         // Fallback 1: crawl homepage + category pages for shops without a
         // useful sitemap (BD-Shop, Pickaboo, Othoba, Walton, etc).
