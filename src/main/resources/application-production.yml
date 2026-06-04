@@ -20,6 +20,15 @@ indexer:
   scheduled: true
   cron: 0 0 3 * * *
   user-agent: "Mozilla/5.0 (compatible; DamKemonBot/1.0; +https://damkemon.com/bot)"
+  # Catch-up driver: keep running full passes until we hit the product target,
+  # then idle. Fires ~1 min after deploy, then every 2h after the previous pass
+  # completes. Backs off automatically if the catalog plateaus (shops drained).
+  catchup-enabled: true
+  target-products: 30000
+  catchup-interval-ms: 7200000       # 2h between passes (after completion)
+  catchup-initial-delay-ms: 60000    # first pass ~1 min after boot/deploy
+  catchup-min-progress: 50           # < this many new products/pass = "no progress"
+  catchup-max-stagnant: 3            # flat cycles before backing off to probe-only
 
 browser:
   enabled: true        # SPA shops (Daraz, Pickaboo, Aarong) need Playwright
