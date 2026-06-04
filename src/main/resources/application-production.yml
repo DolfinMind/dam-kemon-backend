@@ -10,30 +10,33 @@ spring:
       # Longer cache in prod — search load benefits from hot keys staying warm
       spec: maximumSize=5000,expireAfterWrite=300s,recordStats
 
-# Full-throttle indexer — assumes a dedicated host with bandwidth headroom
+# EMERGENCY-STABILISED for the current 1 vCPU / 1 GB box, which was OOM-killing the
+# JVM (SIGKILL) on every indexer run. Auto-indexing is OFF and parallelism is minimal
+# so the app stays up and serves traffic. Re-enable the aggressive settings
+# (scheduled + catchup true, parallelism up, browser on) AFTER resizing to >= 2 GB RAM.
 indexer:
-  global-parallelism: 64
-  per-host-parallelism: 3
+  global-parallelism: 2
+  per-host-parallelism: 1
   max-products-per-shop: 500
   max-urls-per-shop: 1500
   per-extract-timeout-ms: 30000
-  scheduled: true
+  scheduled: false
   cron: 0 0 3 * * *
   user-agent: "Mozilla/5.0 (compatible; DamKemonBot/1.0; +https://damkemon.com/bot)"
   # Catch-up driver: keep running full passes until we hit the product target,
   # then idle. Fires ~1 min after deploy, then every 2h after the previous pass
   # completes. Backs off automatically if the catalog plateaus (shops drained).
-  catchup-enabled: true
+  catchup-enabled: false             # OFF: was firing 60s after every boot → OOM crash-loop on 1 GB
   target-products: 30000
   catchup-interval-ms: 7200000       # 2h between passes (after completion)
   catchup-initial-delay-ms: 60000    # first pass ~1 min after boot/deploy
   catchup-min-progress: 50           # < this many new products/pass = "no progress"
   catchup-max-stagnant: 3            # flat cycles before backing off to probe-only
-  catchup-auto-approve: true         # promote discovered shops automatically (skips manual review)
+  catchup-auto-approve: false        # promote discovered shops automatically (skips manual review)
   catchup-approve-per-cycle: 25      # max pending shops approved per pass
 
 browser:
-  enabled: true        # SPA shops (Daraz, Pickaboo, Aarong) need Playwright
+  enabled: false       # OFF: Chromium is too heavy for 1 GB (biggest OOM contributor). Re-enable after resizing.
 
 price-history:
   enabled: true
