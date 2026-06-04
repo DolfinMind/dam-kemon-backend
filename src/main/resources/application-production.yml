@@ -18,7 +18,7 @@ spring:
 indexer:
   global-parallelism: 4
   per-host-parallelism: 2
-  max-products-per-shop: 1000
+  max-products-per-shop: 1500
   max-urls-per-shop: 1500
   per-extract-timeout-ms: 30000
   scheduled: true
