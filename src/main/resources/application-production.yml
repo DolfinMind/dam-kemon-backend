@@ -37,7 +37,8 @@ indexer:
   catchup-approve-per-cycle: 25      # max pending shops approved per pass
 
 browser:
-  enabled: false       # OFF: Chromium is too heavy for 1 GB (biggest OOM contributor). Re-enable after resizing.
+  enabled: true        # ON: 2 GB swap (added 2026-06-04) is the OOM safety net. Unlocks SPA shops
+                       # (Pickaboo/Aarong) via the render-once ApiSniffer. Revert to false if the box thrashes.
 
 price-history:
   enabled: true
