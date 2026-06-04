@@ -10,15 +10,15 @@ spring:
       # Longer cache in prod — search load benefits from hot keys staying warm
       spec: maximumSize=5000,expireAfterWrite=300s,recordStats
 
-# 1 GB-SAFE "gentle" mode (prod box is 1 vCPU / 1 GB). The indexer now processes
-# shops sequentially with a tiny URL pool and warms its dedup index from an
-# id+name projection, so a run fits in ~1 GB. Chromium stays OFF (too heavy here).
-# Nightly is back on; the every-2h catch-up stays OFF until a nightly proves clean.
-# Bump parallelism / re-enable catchup + browser after resizing to >= 2 GB RAM.
+# 1 GB-SAFE mode (prod box is 1 vCPU / 1 GB). Shops index sequentially with a tiny
+# URL pool; the dedup index warms from an id+name projection; ~66 Shopify/WooCommerce
+# shops are pulled via cheap bulk JSON (JsonCatalogHarvester) instead of page scraping.
+# Chromium stays OFF (too heavy here). A GENTLE 24/7 catch-up runs every 6h toward the
+# 30k target and self-stops. Re-enable Chromium + high parallelism after resizing to >= 2 GB.
 indexer:
   global-parallelism: 3
   per-host-parallelism: 1
-  max-products-per-shop: 200
+  max-products-per-shop: 250
   max-urls-per-shop: 1500
   per-extract-timeout-ms: 30000
   scheduled: true
@@ -27,10 +27,10 @@ indexer:
   # Catch-up driver: keep running full passes until we hit the product target,
   # then idle. Fires ~1 min after deploy, then every 2h after the previous pass
   # completes. Backs off automatically if the catalog plateaus (shops drained).
-  catchup-enabled: false             # OFF until a clean nightly proves the 1 GB-safe run; then flip true
+  catchup-enabled: true              # gentle 24/7 driver — cheap JSON harvest makes this 1 GB-safe
   target-products: 30000
-  catchup-interval-ms: 7200000       # 2h between passes (after completion)
-  catchup-initial-delay-ms: 60000    # first pass ~1 min after boot/deploy
+  catchup-interval-ms: 21600000      # 6h between passes (gentle on a 1 vCPU box)
+  catchup-initial-delay-ms: 600000   # first pass ~10 min after boot (not a tight loop if a run is heavy)
   catchup-min-progress: 50           # < this many new products/pass = "no progress"
   catchup-max-stagnant: 3            # flat cycles before backing off to probe-only
   catchup-auto-approve: false        # promote discovered shops automatically (skips manual review)
