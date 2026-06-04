@@ -7,8 +7,8 @@ spring:
       auto-index-creation: true
   cache:
     caffeine:
-      # Longer cache in prod — search load benefits from hot keys staying warm
-      spec: maximumSize=5000,expireAfterWrite=300s,recordStats
+      # Smaller cache on the 1 GB box — frees heap for indexing (was 5000)
+      spec: maximumSize=1500,expireAfterWrite=300s,recordStats
 
 # 1 GB-SAFE mode (prod box is 1 vCPU / 1 GB). Shops index sequentially with a tiny
 # URL pool; the dedup index warms from an id+name projection; ~66 Shopify/WooCommerce
@@ -29,7 +29,7 @@ indexer:
   # completes. Backs off automatically if the catalog plateaus (shops drained).
   catchup-enabled: true              # gentle 24/7 driver — cheap JSON harvest makes this 1 GB-safe
   target-products: 30000
-  catchup-interval-ms: 21600000      # 6h between passes (gentle on a 1 vCPU box)
+  catchup-interval-ms: 10800000      # 3h between passes — faster shop-set rotation (box is idle ~95% of the time)
   catchup-initial-delay-ms: 600000   # first pass ~10 min after boot (not a tight loop if a run is heavy)
   catchup-min-progress: 50           # < this many new products/pass = "no progress"
   catchup-max-stagnant: 3            # flat cycles before backing off to probe-only

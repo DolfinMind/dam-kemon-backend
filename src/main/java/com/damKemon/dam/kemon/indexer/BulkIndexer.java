@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -188,7 +189,14 @@ public class BulkIndexer {
             return summary;
         }
 
-        log.info("Indexer: starting run over {} active shops", shops.size());
+        // Rotate coverage: least-recently-indexed shops first (never-indexed get
+        // top priority). A time-bounded run otherwise always processes the same
+        // head-of-list shops and never reaches the tail — which is why most shops
+        // sat at 0 products. Successive runs now sweep the whole shop set.
+        shops.sort(Comparator.comparing(Shop::getLastIndexedAt,
+                Comparator.nullsFirst(Comparator.naturalOrder())));
+
+        log.info("Indexer: starting run over {} active shops (least-recently-indexed first)", shops.size());
         summary.shopsAttempted = shops.size();
 
         AtomicInteger inserted = new AtomicInteger();
