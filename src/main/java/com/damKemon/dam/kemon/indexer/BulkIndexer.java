@@ -201,46 +201,45 @@ public class BulkIndexer {
         warmLsh(lsh);
 
         ConcurrentHashMap<String, Semaphore> hostLocks = new ConcurrentHashMap<>();
-        ExecutorService pool = Executors.newFixedThreadPool(globalParallelism);
+        // One small pool for URL fetches *within* a shop. Shops are processed
+        // sequentially below (NOT on this pool), so the blocking wait inside
+        // indexShop can never starve its own URL tasks — this fixes the prior
+        // same-pool deadlock (shop tasks blocking the threads their URL tasks
+        // need) and bounds memory to one shop's working set at a time, which is
+        // what makes a run survivable on a 1 GB box.
+        ExecutorService urlPool = Executors.newFixedThreadPool(globalParallelism);
         AtomicInteger succeeded = new AtomicInteger();
         AtomicInteger failed = new AtomicInteger();
 
-        // Process shops in parallel — the global pool + per-host semaphore are
-        // what actually bound throughput. Total time becomes max-single-shop
-        // rather than sum-of-all-shops.
-        List<java.util.concurrent.CompletableFuture<Void>> shopFutures = new ArrayList<>(shops.size());
+        long deadline = System.currentTimeMillis() + 25L * 60_000L;
         for (Shop shop : shops) {
-            shopFutures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
-                try {
-                    int got = indexShop(shop, pool, hostLocks, lsh, inserted, merged);
-                    urlsTotal.addAndGet(got);
-                    shop.setLastIndexedAt(LocalDateTime.now());
-                    shop.setLastIndexedCount(got);
-                    shop.setLastError(null);
-                    shopHealth.recordRun(shop, got, got == 0 ? "no products extracted" : null);
-                    safeSave(shop);
-                    succeeded.incrementAndGet();
-                } catch (Exception e) {
-                    log.warn("Indexer: shop '{}' failed: {}", shop.getSlug(), e.getMessage());
-                    shop.setLastError(e.getMessage());
-                    shopHealth.recordRun(shop, 0, e.getMessage());
-                    safeSave(shop);
-                    failed.incrementAndGet();
-                }
-            }, pool));
-        }
-        try {
-            // Cap total run at 30 min so a misbehaving shop can't stall the cron.
-            java.util.concurrent.CompletableFuture.allOf(shopFutures.toArray(new java.util.concurrent.CompletableFuture[0]))
-                    .get(30, TimeUnit.MINUTES);
-        } catch (Exception e) {
-            log.warn("Indexer: top-level wait timed out ({})", e.getClass().getSimpleName());
+            if (System.currentTimeMillis() > deadline) {
+                log.warn("Indexer: 25-min budget hit — deferring {} remaining shops to next run",
+                        shops.size() - (succeeded.get() + failed.get()));
+                break;
+            }
+            try {
+                int got = indexShop(shop, urlPool, hostLocks, lsh, inserted, merged);
+                urlsTotal.addAndGet(got);
+                shop.setLastIndexedAt(LocalDateTime.now());
+                shop.setLastIndexedCount(got);
+                shop.setLastError(null);
+                shopHealth.recordRun(shop, got, got == 0 ? "no products extracted" : null);
+                safeSave(shop);
+                succeeded.incrementAndGet();
+            } catch (Exception e) {
+                log.warn("Indexer: shop '{}' failed: {}", shop.getSlug(), e.getMessage());
+                shop.setLastError(e.getMessage());
+                shopHealth.recordRun(shop, 0, e.getMessage());
+                safeSave(shop);
+                failed.incrementAndGet();
+            }
         }
         summary.shopsSucceeded = succeeded.get();
         summary.shopsFailed = failed.get();
 
-        pool.shutdown();
-        try { pool.awaitTermination(2, TimeUnit.MINUTES); }
+        urlPool.shutdown();
+        try { urlPool.awaitTermination(2, TimeUnit.MINUTES); }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); }
 
         summary.productsInserted = inserted.get();
@@ -302,42 +301,39 @@ public class BulkIndexer {
         warmLsh(lsh);
 
         ConcurrentHashMap<String, Semaphore> hostLocks = new ConcurrentHashMap<>();
-        ExecutorService pool = Executors.newFixedThreadPool(Math.max(2, Math.min(globalParallelism, shops.size() * 4)));
+        // Same model as runAll: sequential shops + a small dedicated URL pool.
+        ExecutorService urlPool = Executors.newFixedThreadPool(globalParallelism);
         AtomicInteger inserted = new AtomicInteger();
         AtomicInteger merged = new AtomicInteger();
         AtomicInteger urlsTotal = new AtomicInteger();
         AtomicInteger succeeded = new AtomicInteger();
         AtomicInteger failed = new AtomicInteger();
 
-        List<java.util.concurrent.CompletableFuture<Void>> futures = new ArrayList<>(shops.size());
+        long deadline = System.currentTimeMillis() + 20L * 60_000L;
         for (Shop shop : shops) {
-            futures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
-                try {
-                    int got = indexShop(shop, pool, hostLocks, lsh, inserted, merged);
-                    urlsTotal.addAndGet(got);
-                    shop.setLastIndexedAt(LocalDateTime.now());
-                    shop.setLastIndexedCount(got);
-                    shop.setLastError(null);
-                    shopHealth.recordRun(shop, got, got == 0 ? "no products extracted" : null);
-                    safeSave(shop);
-                    succeeded.incrementAndGet();
-                } catch (Exception e) {
-                    log.warn("Indexer: shop '{}' retry failed: {}", shop.getSlug(), e.getMessage());
-                    shop.setLastError(e.getMessage());
-                    shopHealth.recordRun(shop, 0, e.getMessage());
-                    safeSave(shop);
-                    failed.incrementAndGet();
-                }
-            }, pool));
+            if (System.currentTimeMillis() > deadline) {
+                log.warn("Indexer: subset budget hit — deferring remaining shops");
+                break;
+            }
+            try {
+                int got = indexShop(shop, urlPool, hostLocks, lsh, inserted, merged);
+                urlsTotal.addAndGet(got);
+                shop.setLastIndexedAt(LocalDateTime.now());
+                shop.setLastIndexedCount(got);
+                shop.setLastError(null);
+                shopHealth.recordRun(shop, got, got == 0 ? "no products extracted" : null);
+                safeSave(shop);
+                succeeded.incrementAndGet();
+            } catch (Exception e) {
+                log.warn("Indexer: shop '{}' retry failed: {}", shop.getSlug(), e.getMessage());
+                shop.setLastError(e.getMessage());
+                shopHealth.recordRun(shop, 0, e.getMessage());
+                safeSave(shop);
+                failed.incrementAndGet();
+            }
         }
-        try {
-            java.util.concurrent.CompletableFuture.allOf(futures.toArray(new java.util.concurrent.CompletableFuture[0]))
-                    .get(20, TimeUnit.MINUTES);
-        } catch (Exception e) {
-            log.warn("Indexer: subset wait timed out ({})", e.getClass().getSimpleName());
-        }
-        pool.shutdown();
-        try { pool.awaitTermination(1, TimeUnit.MINUTES); }
+        urlPool.shutdown();
+        try { urlPool.awaitTermination(1, TimeUnit.MINUTES); }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); }
 
         summary.shopsSucceeded = succeeded.get();
@@ -351,13 +347,18 @@ public class BulkIndexer {
         return summary;
     }
 
-    /** Seed the LSH with already-saved products so cross-run dedup works. */
+    /**
+     * Seed the LSH with already-saved products so cross-run dedup works.
+     * Uses an id+name projection (not full Product docs) and stores only the id
+     * as the LSH payload — so heap stays flat regardless of catalog size. The
+     * matched Product is loaded on demand in {@link #persistOrMerge}.
+     */
     private void warmLsh(MinHashLSH lsh) {
         try {
             int count = 0;
-            for (Product p : productRepository.findAll()) {
+            for (ProductRepository.NameView p : productRepository.findAllNameViews()) {
                 if (p.getName() != null && p.getId() != null) {
-                    lsh.add(p.getId(), normaliseForMatching(p.getName()), p);
+                    lsh.add(p.getId(), normaliseForMatching(p.getName()), null);
                     count++;
                 }
             }
@@ -579,31 +580,38 @@ public class BulkIndexer {
         String normName = normaliseForMatching(sp.getName());
         MinHashLSH.Match match = lsh.findBest(normName, 0.42);
         if (match != null) {
-            Product existing = (Product) match.payload();
-            // Marketplace-aware merge: replace only the SAME seller's prior offer,
-            // so many sellers from one marketplace (e.g. Daraz storefronts) coexist
-            // as distinct offers on the product. When the incoming offer carries a
-            // seller, also drop any legacy seller-less aggregate the old
-            // one-per-shop behaviour left for that marketplace.
-            final String newKey = offerKey(price);
-            existing.getPrices().removeIf(p ->
-                    Objects.equals(offerKey(p), newKey)
-                    || (price.getSellerId() != null
-                        && Objects.equals(p.getSiteSlug(), shop.getSlug())
-                        && (p.getSellerId() == null || p.getSellerId().isBlank())));
-            existing.getPrices().add(price);
-            capSellers(existing);
-            applyDescriptiveFieldsIfMissing(existing, sp);
-            recomputeAggregates(existing);
-            existing.setLastScraped(LocalDateTime.now());
-            existing.setUpdatedAt(LocalDateTime.now());
-            Product saved = safeSave(existing);
-            if (saved != null && saved.getId() != null) {
-                // Re-add to LSH under the canonical (possibly upgraded) name
-                lsh.add(saved.getId(), normaliseForMatching(saved.getName()), saved);
+            // The LSH stores ids only (memory-light), so load the matched product
+            // here. If it was deleted since the warm, the entry is stale → fall
+            // through and insert a fresh product.
+            Product existing = null;
+            try { existing = productRepository.findById(match.id()).orElse(null); }
+            catch (DataAccessException ignored) { /* treat as no-match */ }
+            if (existing != null) {
+                // Marketplace-aware merge: replace only the SAME seller's prior offer,
+                // so many sellers from one marketplace (e.g. Daraz storefronts) coexist
+                // as distinct offers on the product. When the incoming offer carries a
+                // seller, also drop any legacy seller-less aggregate the old
+                // one-per-shop behaviour left for that marketplace.
+                final String newKey = offerKey(price);
+                existing.getPrices().removeIf(p ->
+                        Objects.equals(offerKey(p), newKey)
+                        || (price.getSellerId() != null
+                            && Objects.equals(p.getSiteSlug(), shop.getSlug())
+                            && (p.getSellerId() == null || p.getSellerId().isBlank())));
+                existing.getPrices().add(price);
+                capSellers(existing);
+                applyDescriptiveFieldsIfMissing(existing, sp);
+                recomputeAggregates(existing);
+                existing.setLastScraped(LocalDateTime.now());
+                existing.setUpdatedAt(LocalDateTime.now());
+                Product saved = safeSave(existing);
+                if (saved != null && saved.getId() != null) {
+                    // Re-add to LSH under the canonical (possibly upgraded) name
+                    lsh.add(saved.getId(), normaliseForMatching(saved.getName()), null);
+                }
+                merged.incrementAndGet();
+                return;
             }
-            merged.incrementAndGet();
-            return;
         }
 
         // 3. Brand-new product
@@ -622,7 +630,7 @@ public class BulkIndexer {
         recomputeAggregates(p);
         Product saved = safeSave(p);
         if (saved != null && saved.getId() != null) {
-            lsh.add(saved.getId(), normaliseForMatching(saved.getName()), saved);
+            lsh.add(saved.getId(), normaliseForMatching(saved.getName()), null);
         }
         inserted.incrementAndGet();
     }

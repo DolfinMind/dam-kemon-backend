@@ -43,4 +43,14 @@ public interface ProductRepository extends MongoRepository<Product, String> {
 
     @Query("{ 'sponsored': true }")
     List<Product> findAllSponsored(Pageable pageable);
+
+    /** Lightweight id+name projection so the indexer can warm its dedup index
+     *  without pulling every full Product (with its prices array) into heap. */
+    @Query(value = "{}", fields = "{ 'name' : 1 }")
+    List<NameView> findAllNameViews();
+
+    interface NameView {
+        String getId();
+        String getName();
+    }
 }

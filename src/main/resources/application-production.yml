@@ -10,23 +10,24 @@ spring:
       # Longer cache in prod — search load benefits from hot keys staying warm
       spec: maximumSize=5000,expireAfterWrite=300s,recordStats
 
-# EMERGENCY-STABILISED for the current 1 vCPU / 1 GB box, which was OOM-killing the
-# JVM (SIGKILL) on every indexer run. Auto-indexing is OFF and parallelism is minimal
-# so the app stays up and serves traffic. Re-enable the aggressive settings
-# (scheduled + catchup true, parallelism up, browser on) AFTER resizing to >= 2 GB RAM.
+# 1 GB-SAFE "gentle" mode (prod box is 1 vCPU / 1 GB). The indexer now processes
+# shops sequentially with a tiny URL pool and warms its dedup index from an
+# id+name projection, so a run fits in ~1 GB. Chromium stays OFF (too heavy here).
+# Nightly is back on; the every-2h catch-up stays OFF until a nightly proves clean.
+# Bump parallelism / re-enable catchup + browser after resizing to >= 2 GB RAM.
 indexer:
-  global-parallelism: 2
+  global-parallelism: 3
   per-host-parallelism: 1
-  max-products-per-shop: 500
+  max-products-per-shop: 200
   max-urls-per-shop: 1500
   per-extract-timeout-ms: 30000
-  scheduled: false
+  scheduled: true
   cron: 0 0 3 * * *
   user-agent: "Mozilla/5.0 (compatible; DamKemonBot/1.0; +https://damkemon.com/bot)"
   # Catch-up driver: keep running full passes until we hit the product target,
   # then idle. Fires ~1 min after deploy, then every 2h after the previous pass
   # completes. Backs off automatically if the catalog plateaus (shops drained).
-  catchup-enabled: false             # OFF: was firing 60s after every boot → OOM crash-loop on 1 GB
+  catchup-enabled: false             # OFF until a clean nightly proves the 1 GB-safe run; then flip true
   target-products: 30000
   catchup-interval-ms: 7200000       # 2h between passes (after completion)
   catchup-initial-delay-ms: 60000    # first pass ~1 min after boot/deploy
