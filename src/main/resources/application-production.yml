@@ -16,9 +16,9 @@ spring:
 # Chromium stays OFF (too heavy here). A GENTLE 24/7 catch-up runs every 6h toward the
 # 30k target and self-stops. Re-enable Chromium + high parallelism after resizing to >= 2 GB.
 indexer:
-  global-parallelism: 3
-  per-host-parallelism: 1
-  max-products-per-shop: 250
+  global-parallelism: 4
+  per-host-parallelism: 2
+  max-products-per-shop: 1000
   max-urls-per-shop: 1500
   per-extract-timeout-ms: 30000
   scheduled: true

@@ -55,10 +55,10 @@ public class JsonCatalogHarvester implements ShopHarvester {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${json-harvest.max-products-per-shop:250}") private int maxProducts;
-    @Value("${json-harvest.shopify-page-size:250}")     private int shopifyPageSize;
-    @Value("${json-harvest.woo-page-size:100}")         private int wooPageSize;
-    @Value("${json-harvest.max-pages:4}")               private int maxPages;
+    @Value("${json-harvest.max-products-per-shop:1000}") private int maxProducts;
+    @Value("${json-harvest.shopify-page-size:250}")      private int shopifyPageSize;
+    @Value("${json-harvest.woo-page-size:100}")          private int wooPageSize;
+    @Value("${json-harvest.max-pages:12}")               private int maxPages;
     @Value("${json-harvest.timeout-ms:12000}")          private int timeoutMs;
     @Value("${json-harvest.request-delay-ms:250}")      private long requestDelayMs;
 
