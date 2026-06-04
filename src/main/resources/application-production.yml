@@ -29,6 +29,8 @@ indexer:
   catchup-initial-delay-ms: 60000    # first pass ~1 min after boot/deploy
   catchup-min-progress: 50           # < this many new products/pass = "no progress"
   catchup-max-stagnant: 3            # flat cycles before backing off to probe-only
+  catchup-auto-approve: true         # promote discovered shops automatically (skips manual review)
+  catchup-approve-per-cycle: 25      # max pending shops approved per pass
 
 browser:
   enabled: true        # SPA shops (Daraz, Pickaboo, Aarong) need Playwright
