@@ -580,13 +580,14 @@ public class BulkIndexer {
             return;
         }
 
-        // 2. Fuzzy match across shops via LSH. Match on a NORMALISED name so
-        //    "Apple AirPods Pro 3 (USB-C)" matches "Apple Airpods Pro 3" matches
-        //    "Airpods Pro 3 USB-C". Threshold loosened to 0.42 — most BD shops
-        //    pad product names with brand/colour/storage variants that drag
-        //    Jaccard down even when the underlying product is the same.
+        // 2. Fuzzy match across shops via LSH. The 4-gram MinHash is only a
+        //    CANDIDATE finder — it happily matches different models that share a
+        //    brand + category word ("Amazfit Bip U Smart Watch" vs "Amazfit
+        //    Balance 2 Smart Watch"), which glued unrelated products (and their
+        //    wildly different prices) into one doc. So a candidate is only
+        //    accepted if sameProduct() agrees its discriminating tokens match.
         String normName = normaliseForMatching(sp.getName());
-        MinHashLSH.Match match = lsh.findBest(normName, 0.42);
+        MinHashLSH.Match match = lsh.findBest(normName, 0.50);
         if (match != null) {
             // The LSH stores ids only (memory-light), so load the matched product
             // here. If it was deleted since the warm, the entry is stale → fall
@@ -594,7 +595,7 @@ public class BulkIndexer {
             Product existing = null;
             try { existing = productRepository.findById(match.id()).orElse(null); }
             catch (DataAccessException ignored) { /* treat as no-match */ }
-            if (existing != null) {
+            if (existing != null && sameProduct(existing.getName(), sp.getName())) {
                 // Marketplace-aware merge: replace only the SAME seller's prior offer,
                 // so many sellers from one marketplace (e.g. Daraz storefronts) coexist
                 // as distinct offers on the product. When the incoming offer carries a
@@ -641,6 +642,52 @@ public class BulkIndexer {
             lsh.add(saved.getId(), normaliseForMatching(saved.getName()), null);
         }
         inserted.incrementAndGet();
+    }
+
+    /** Model qualifiers that distinguish otherwise-similar names (S24 vs S24 Ultra,
+     *  GTR 3 vs GTR 3 Pro, MacBook Air vs MacBook Pro). */
+    private static final java.util.Set<String> MODEL_QUALIFIERS = java.util.Set.of(
+            "pro","max","plus","ultra","mini","lite","se","fe","air","fold","flip",
+            "neo","prime","note","active","global","gt","ace","turbo","power");
+
+    /**
+     * Precise "is this really the same product?" gate, applied AFTER the fuzzy
+     * 4-gram MinHash proposes a candidate. The MinHash matches different models
+     * that share a brand + a category word, which glued unrelated products — and
+     * their prices — into one doc (e.g. "Amazfit Bip U Smart Watch" at ৳5,999 and
+     * "Amazfit Balance 2 Smart Watch" at ৳32,990 became one listing). Require the
+     * DISCRIMINATING tokens (anything with a digit, plus model qualifiers like
+     * pro/max/ultra) to match exactly, plus enough plain word overlap. Storage and
+     * colour are already stripped by normaliseForMatching, so genuine variants
+     * ("iPhone 15 Pro 256GB" vs "iPhone 15 Pro") still merge. Errs toward NOT
+     * merging — a duplicate listing is harmless, a cross-model price merge is not.
+     */
+    static boolean sameProduct(String a, String b) {
+        java.util.Set<String> wa = words(normaliseForMatching(a));
+        java.util.Set<String> wb = words(normaliseForMatching(b));
+        if (wa.isEmpty() || wb.isEmpty()) return false;
+        if (!discriminators(wa).equals(discriminators(wb))) return false;
+        java.util.Set<String> inter = new java.util.HashSet<>(wa); inter.retainAll(wb);
+        java.util.Set<String> uni = new java.util.HashSet<>(wa); uni.addAll(wb);
+        return !uni.isEmpty() && (double) inter.size() / uni.size() >= 0.5;
+    }
+
+    private static java.util.Set<String> words(String s) {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        if (s == null) return out;
+        for (String w : s.split(" ")) if (!w.isBlank()) out.add(w);
+        return out;
+    }
+
+    /** Tokens that pin down a specific model: anything containing a digit, plus
+     *  known qualifiers. Two names with different discriminators are different
+     *  products even if the MinHash thinks they're similar. */
+    private static java.util.Set<String> discriminators(java.util.Set<String> words) {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (String w : words) {
+            if (w.matches(".*\\d.*") || MODEL_QUALIFIERS.contains(w)) out.add(w);
+        }
+        return out;
     }
 
     /**
