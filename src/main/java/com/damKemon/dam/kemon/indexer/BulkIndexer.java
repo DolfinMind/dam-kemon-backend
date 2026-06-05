@@ -73,6 +73,7 @@ public class BulkIndexer {
     private final ScraperLearningService learner;
     private final List<ShopHarvester> harvesters;
     private final ApiSniffer apiSniffer;
+    private final DomCardHarvester domCardHarvester;
 
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
@@ -115,7 +116,8 @@ public class BulkIndexer {
                        IndexerRunRepository indexerRunRepository,
                        ScraperLearningService learner,
                        List<ShopHarvester> harvesters,
-                       ApiSniffer apiSniffer) {
+                       ApiSniffer apiSniffer,
+                       DomCardHarvester domCardHarvester) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
@@ -128,6 +130,7 @@ public class BulkIndexer {
         this.learner = learner;
         this.harvesters = harvesters;
         this.apiSniffer = apiSniffer;
+        this.domCardHarvester = domCardHarvester;
     }
 
     private void persistRunRecord(String kind, RunSummary s) {
@@ -505,6 +508,24 @@ public class BulkIndexer {
                     }
                 } catch (Exception e) {
                     log.debug("Indexer: API sniffer failed for '{}': {}", shop.getSlug(), e.getMessage());
+                }
+            }
+
+            // "Read the page like a shopper": render the listing pages and read
+            // product cards straight from the rendered DOM. Platform-agnostic, so
+            // it cracks the JS-rendered / custom-stack / bot-walled shops the
+            // feed/json-ld/sniffer paths can't — which is what gets the long tail
+            // of 0-product shops to start showing.
+            if (browserBudget && domCardHarvester.isEnabled()) {
+                try {
+                    List<ScrapedProduct> cards = domCardHarvester.harvest(shop);
+                    int got = cards.isEmpty() ? 0 : harvestApi(shop, cards, lsh, inserted, merged);
+                    if (got > 0) {
+                        log.info("Indexer: shop '{}' — DOM-card harvester rescued {} products", shop.getSlug(), got);
+                        return got;
+                    }
+                } catch (Exception e) {
+                    log.debug("Indexer: DOM-card harvester failed for '{}': {}", shop.getSlug(), e.getMessage());
                 }
             }
 
