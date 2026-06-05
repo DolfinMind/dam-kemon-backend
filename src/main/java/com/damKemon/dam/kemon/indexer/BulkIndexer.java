@@ -105,6 +105,13 @@ public class BulkIndexer {
     @Value("${indexer.run-budget-minutes:25}")
     private long runBudgetMinutes;
 
+    /** Breadth mode: read rendered DOM cards FIRST for shops that have never
+     *  produced (instead of grinding a dead sitemap), to get the long tail of
+     *  0-product shops showing fast. Off by default (prod's small box can't
+     *  render every shop); enable on a backfill host. */
+    @Value("${domcard.first-for-dormant:false}")
+    private boolean domCardFirst;
+
     public BulkIndexer(ShopRepository shopRepository,
                        ProductRepository productRepository,
                        SitemapCrawler sitemapCrawler,
@@ -401,6 +408,27 @@ public class BulkIndexer {
                 break; // harvester claimed the shop but got nothing → fall through to the normal pipeline
             }
         }
+
+        // Breadth mode: a shop that has never produced via the URL pipeline is
+        // almost always JS-rendered/custom/blocked — read its rendered DOM cards
+        // FIRST instead of grinding a sitemap that yields nothing (one browser
+        // pass beats 1500 dead page fetches). Proven shops skip this and keep the
+        // fast sitemap/json-ld path. The 0-yield fallback below won't re-run the
+        // DOM harvester for these (guarded), so no shop renders twice.
+        if (domCardFirst && domCardHarvester.isEnabled() && neverProduced(shop)
+                && jsRenderBudget.getAndDecrement() > 0) {
+            try {
+                List<ScrapedProduct> cards = domCardHarvester.harvest(shop);
+                int got = cards.isEmpty() ? 0 : harvestApi(shop, cards, lsh, inserted, merged);
+                if (got > 0) {
+                    log.info("Indexer: shop '{}' — DOM-card harvester (first) got {} products", shop.getSlug(), got);
+                    return got;
+                }
+            } catch (Exception e) {
+                log.debug("Indexer: DOM-card (first) failed for '{}': {}", shop.getSlug(), e.getMessage());
+            }
+        }
+
         boolean js = Boolean.TRUE.equals(shop.getRequiresJs());
         List<String> urls = new ArrayList<>();
         if (shop.getSitemapUrl() != null && !shop.getSitemapUrl().isBlank()) {
@@ -516,7 +544,7 @@ public class BulkIndexer {
             // it cracks the JS-rendered / custom-stack / bot-walled shops the
             // feed/json-ld/sniffer paths can't — which is what gets the long tail
             // of 0-product shops to start showing.
-            if (browserBudget && domCardHarvester.isEnabled()) {
+            if (browserBudget && domCardHarvester.isEnabled() && !(domCardFirst && neverProduced(shop))) {
                 try {
                     List<ScrapedProduct> cards = domCardHarvester.harvest(shop);
                     int got = cards.isEmpty() ? 0 : harvestApi(shop, cards, lsh, inserted, merged);
@@ -715,6 +743,12 @@ public class BulkIndexer {
             if (w.matches(".*\\d.*") || MODEL_QUALIFIERS.contains(w)) out.add(w);
         }
         return out;
+    }
+
+    /** A shop whose last run produced nothing — the candidates for DOM-first. */
+    private static boolean neverProduced(Shop shop) {
+        Integer c = shop.getLastIndexedCount();
+        return c == null || c <= 0;
     }
 
     /**
