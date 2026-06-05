@@ -98,6 +98,12 @@ public class BulkIndexer {
     @Value("${indexer.max-js-renders-per-run:25}")
     private int maxJsRendersPerRun;
 
+    /** Wall-clock budget for a full run (runAll) before it defers the rest to the
+     *  next pass. Keeps the tiny prod box's cron bounded; set high on a beefy host
+     *  (e.g. a local backfill) so one pass sweeps every shop. runRetry uses 80%. */
+    @Value("${indexer.run-budget-minutes:25}")
+    private long runBudgetMinutes;
+
     public BulkIndexer(ShopRepository shopRepository,
                        ProductRepository productRepository,
                        SitemapCrawler sitemapCrawler,
@@ -219,11 +225,11 @@ public class BulkIndexer {
         AtomicInteger succeeded = new AtomicInteger();
         AtomicInteger failed = new AtomicInteger();
 
-        long deadline = System.currentTimeMillis() + 25L * 60_000L;
+        long deadline = System.currentTimeMillis() + runBudgetMinutes * 60_000L;
         for (Shop shop : shops) {
             if (System.currentTimeMillis() > deadline) {
-                log.warn("Indexer: 25-min budget hit — deferring {} remaining shops to next run",
-                        shops.size() - (succeeded.get() + failed.get()));
+                log.warn("Indexer: {}-min budget hit — deferring {} remaining shops to next run",
+                        runBudgetMinutes, shops.size() - (succeeded.get() + failed.get()));
                 break;
             }
             try {
@@ -317,7 +323,7 @@ public class BulkIndexer {
         AtomicInteger succeeded = new AtomicInteger();
         AtomicInteger failed = new AtomicInteger();
 
-        long deadline = System.currentTimeMillis() + 20L * 60_000L;
+        long deadline = System.currentTimeMillis() + (long) (runBudgetMinutes * 0.8) * 60_000L;
         for (Shop shop : shops) {
             if (System.currentTimeMillis() > deadline) {
                 log.warn("Indexer: subset budget hit — deferring remaining shops");
