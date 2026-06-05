@@ -43,11 +43,11 @@ indexer:
 # These are JSON harvests (low memory), safe to raise on the 1 GB box; the global
 # indexer.max-products-per-shop (1500) is still the real ceiling.
 daraz:
-  max-products: 1500
+  max-products: 5000
   max-pages-per-query: 2             # was 1 — one page ≈ 40 items; two doubles reach per seed
   max-per-query: 40                  # was 24
 chaldal:
-  max-products: 1500
+  max-products: 5000
   max-pages-per-query: 3             # was 2
   max-per-query: 30                  # was 16
 json-harvest:

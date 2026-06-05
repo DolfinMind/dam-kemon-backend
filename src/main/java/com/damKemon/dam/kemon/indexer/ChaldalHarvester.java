@@ -73,11 +73,31 @@ public class ChaldalHarvester implements ShopHarvester {
      * slice and we de-dupe across them by objectID.
      */
     private static final List<String> QUERIES = List.of(
-            "shampoo", "soap", "body wash", "hand wash", "toothpaste", "lotion", "face wash",
-            "oil", "rice", "flour", "sugar", "salt", "spices", "lentil", "tea", "coffee",
-            "milk", "biscuit", "snacks", "noodles", "juice", "sauce",
-            "diaper", "baby food", "baby", "wet wipes",
-            "sanitary napkin", "tissue", "detergent", "dishwashing", "cleaner", "shaving"
+            // Broad FMCG/grocery seeds — each fans out across Chaldal's catalog;
+            // more distinct seeds = more distinct products.
+            // — staples —
+            "rice", "flour", "atta", "suji", "lentil", "dal", "chickpea", "sugar", "salt",
+            "soybean oil", "mustard oil", "sunflower oil", "ghee", "tea", "coffee", "honey",
+            // — dairy & eggs —
+            "milk", "powder milk", "egg", "butter", "cheese", "yogurt", "ice cream",
+            // — packaged & snacks —
+            "biscuit", "cake", "chocolate", "chips", "noodles", "pasta", "cereal", "oats",
+            "sauce", "ketchup", "jam", "pickle", "dates", "nuts", "dried fruit",
+            // — spices —
+            "turmeric powder", "chili powder", "cumin", "coriander", "garam masala", "ginger paste",
+            // — fresh —
+            "onion", "potato", "garlic", "tomato", "fish", "chicken", "beef",
+            // — beverages —
+            "soft drink", "juice", "drinking water", "energy drink",
+            // — personal care —
+            "shampoo", "conditioner", "soap", "body wash", "hand wash", "face wash",
+            "toothpaste", "toothbrush", "lotion", "body cream", "deodorant", "hair oil",
+            "shaving", "sanitary napkin",
+            // — baby —
+            "diaper", "baby food", "baby formula", "baby lotion", "wet wipes",
+            // — household —
+            "detergent", "dishwashing", "floor cleaner", "toilet cleaner", "air freshener",
+            "tissue", "toilet paper", "garbage bag", "mosquito repellent"
     );
 
     private final ObjectMapper mapper = new ObjectMapper();

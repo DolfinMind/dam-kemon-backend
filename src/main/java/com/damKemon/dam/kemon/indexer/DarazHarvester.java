@@ -53,12 +53,42 @@ public class DarazHarvester implements ShopHarvester {
      * phones/laptops and spend the budget on what's missing.
      */
     private static final List<String> QUERIES = List.of(
-            "argentina jersey", "brazil jersey", "portugal jersey", "football jersey",
-            "world cup flag", "national flag", "supporter jersey", "messi jersey", "ronaldo jersey",
-            "baby diaper", "baby food", "kids toys", "remote control car", "doll",
-            "shampoo", "body spray", "perfume", "saree", "panjabi", "kurti",
-            "t shirt", "sneaker", "sandal", "bedsheet", "wall clock", "cookware",
-            "cricket bat", "football", "yoga mat", "power bank", "smart watch", "trimmer"
+            // Distinct seed queries fan out across Daraz's catalog; more diverse
+            // seeds = more DISTINCT products (each ~20-40). Cover the high-inventory
+            // categories so the marketplace contributes volume, not just WC merch.
+            // — phones & mobile —
+            "smartphone", "android phone", "samsung phone", "xiaomi phone", "realme phone",
+            "vivo phone", "oppo phone", "infinix phone", "tecno phone", "feature phone",
+            "tablet", "phone case", "screen protector", "phone charger", "usb cable",
+            // — computing —
+            "laptop", "gaming laptop", "desktop computer", "monitor", "mechanical keyboard",
+            "mouse", "ssd", "pen drive", "memory card", "wifi router", "printer", "webcam",
+            // — audio & wearables —
+            "headphone", "earphone", "earbuds", "bluetooth speaker", "neckband",
+            "smart watch", "fitness band", "power bank",
+            // — home appliances —
+            "rice cooker", "blender", "electric kettle", "iron", "ceiling fan", "air cooler",
+            "microwave oven", "refrigerator", "washing machine", "water filter", "gas stove",
+            "induction cooker", "vacuum cleaner", "sewing machine", "hair dryer", "trimmer",
+            // — beauty & personal care —
+            "lipstick", "foundation", "face wash", "moisturizer", "sunscreen", "face serum",
+            "shampoo", "conditioner", "hair oil", "perfume", "body spray", "makeup kit",
+            // — fashion —
+            "t shirt", "casual shirt", "jeans pant", "panjabi", "saree", "kurti",
+            "salwar kameez", "sneaker", "sandal", "formal shoe", "hand bag", "backpack",
+            "wallet", "leather belt", "sunglasses", "wrist watch",
+            // — baby & kids —
+            "baby diaper", "baby food", "feeding bottle", "kids toys", "remote control car",
+            "doll", "school bag",
+            // — home & kitchen —
+            "bedsheet", "blanket", "pillow", "curtain", "wall clock", "cookware set",
+            "dinner set", "water bottle", "lunch box", "storage box", "led light",
+            // — sports & outdoors —
+            "cricket bat", "football", "yoga mat", "dumbbell", "bicycle", "helmet",
+            // — tools & stationery —
+            "drill machine", "screwdriver set", "notebook diary", "ball pen",
+            // — seasonal fan merch (kept) —
+            "argentina jersey", "brazil jersey", "portugal jersey", "football jersey", "national flag"
     );
 
     private final ObjectMapper mapper = new ObjectMapper();
