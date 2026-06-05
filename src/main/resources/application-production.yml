@@ -33,8 +33,25 @@ indexer:
   catchup-initial-delay-ms: 600000   # first pass ~10 min after boot (not a tight loop if a run is heavy)
   catchup-min-progress: 50           # < this many new products/pass = "no progress"
   catchup-max-stagnant: 3            # flat cycles before backing off to probe-only
-  catchup-auto-approve: false        # promote discovered shops automatically (skips manual review)
+  catchup-auto-approve: true         # promote discovered shops automatically — was false, so discovery
+                                     # found candidates that NEVER got crawled; the catch-up kept
+                                     # re-scraping the same drained shop set and the count plateaued.
   catchup-approve-per-cycle: 25      # max pending shops approved per pass
+
+# Marketplace harvesters were pinned at ~500/shop — daraz & chaldal are the two
+# biggest single sources, so those caps were a hard ceiling on the catalog.
+# These are JSON harvests (low memory), safe to raise on the 1 GB box; the global
+# indexer.max-products-per-shop (1500) is still the real ceiling.
+daraz:
+  max-products: 1500
+  max-pages-per-query: 2             # was 1 — one page ≈ 40 items; two doubles reach per seed
+  max-per-query: 40                  # was 24
+chaldal:
+  max-products: 1500
+  max-pages-per-query: 3             # was 2
+  max-per-query: 30                  # was 16
+json-harvest:
+  max-pages: 30                      # was 15 — let big Shopify/Woo catalogs reach the 1500 cap
 
 browser:
   enabled: true        # ON: 2 GB swap (added 2026-06-04) is the OOM safety net. Unlocks SPA shops

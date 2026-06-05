@@ -29,6 +29,12 @@ public interface ProductRepository extends MongoRepository<Product, String> {
 
     long countByCategory(String category);
 
+    /** How many catalog products carry an offer from this shop. Used to protect
+     *  a proven shop from auto-disable: a week of 0-yield runs against a shop that
+     *  still has live offers means our EXTRACTOR regressed, not that the shop died. */
+    @Query(value = "{ 'prices.siteSlug': ?0 }", count = true)
+    long countBySiteSlug(String siteSlug);
+
     /** Used by autosuggest — prefix match on name. Case-insensitive via regex. */
     @Query("{ 'name': { $regex: ?0, $options: 'i' } }")
     List<Product> findByNamePrefix(String prefix, Pageable pageable);

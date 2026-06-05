@@ -2,6 +2,7 @@ package com.damKemon.dam.kemon.service;
 
 import com.damKemon.dam.kemon.model.Shop;
 import com.damKemon.dam.kemon.model.Shop.RunStat;
+import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,9 +37,11 @@ public class ShopHealthService {
     private static final int WINDOW = 7;
 
     private final ShopRepository shopRepository;
+    private final ProductRepository productRepository;
 
-    public ShopHealthService(ShopRepository shopRepository) {
+    public ShopHealthService(ShopRepository shopRepository, ProductRepository productRepository) {
         this.shopRepository = shopRepository;
+        this.productRepository = productRepository;
     }
 
     /**
@@ -79,9 +82,27 @@ public class ShopHealthService {
         // permanently disabled healthy shops and decimated the active catalog.
         if (runs.size() >= WINDOW && successes == 0
                 && "active".equals(shop.getStatus())) {
-            log.warn("ShopHealth: auto-disabling shop {} — 0 products across last {} runs",
-                    shop.getSlug(), runs.size());
-            shop.setStatus("blocked");
+            // PROVEN-SHOP GUARD: never block a shop that still has live offers in
+            // the catalog. A week of 0-yield runs against a shop with hundreds of
+            // products in the DB means our extractor regressed (markup change,
+            // timeout, bot-block) — NOT that the shop closed. Blocking it deletes
+            // proven supply from rotation, which is exactly what re-froze the
+            // catalog (rokomari/techlandbd/mobilebuzzbd etc. were all blocked
+            // while still holding 300-500 products each). Keep it dormant and
+            // retrying; only ever block a shop that has never produced anything.
+            long live;
+            try { live = productRepository.countBySiteSlug(shop.getSlug()); }
+            catch (Exception e) { live = -1; }   // on error, prefer keeping the shop
+            if (live != 0) {
+                shop.setNeedsRetry(true);
+                log.warn("ShopHealth: shop {} returned 0 across {} runs but still has {} live catalog products"
+                        + " — keeping it (dormant, will retry); extractor likely regressed, not the shop",
+                        shop.getSlug(), runs.size(), live < 0 ? "?" : String.valueOf(live));
+            } else {
+                log.warn("ShopHealth: auto-disabling shop {} — 0 products across last {} runs and none in catalog",
+                        shop.getSlug(), runs.size());
+                shop.setStatus("blocked");
+            }
         }
     }
 

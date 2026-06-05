@@ -64,10 +64,16 @@ public class JsonCatalogHarvester implements ShopHarvester {
 
     @Override
     public boolean supports(Shop shop) {
-        return shop != null
-                && shop.getBaseUrl() != null && !shop.getBaseUrl().isBlank()
-                && shop.getPlatform() != null
-                && PLATFORMS.contains(shop.getPlatform().toLowerCase());
+        // Probe ANY shop with a base URL — try Shopify /products.json then the
+        // WooCommerce Store API regardless of the (often wrong) platform tag.
+        // This harvester is Ordered.LOWEST_PRECEDENCE, so shop-specific harvesters
+        // (Chaldal/Daraz/Shopify) still claim their shops first; and when neither
+        // JSON endpoint responds harvest() returns empty, so BulkIndexer falls
+        // through to the sitemap pipeline. Net effect is additive: it can only
+        // rescue a mis-tagged storefront (e.g. a "custom"/"magento" shop that is
+        // really Shopify), never remove coverage. PLATFORMS below records the
+        // tags we *expect*; it's no longer a gate.
+        return shop != null && shop.getBaseUrl() != null && !shop.getBaseUrl().isBlank();
     }
 
     @Override
