@@ -75,6 +75,20 @@ public class CatalogSearchService {
     private static final Pattern ACCESSORY = Pattern.compile(
             "\\b(case|cover|protector|tempered|glass|skin|pouch|sleeve|holder|stand|mount|film|guard|bumper|casing)\\b");
 
+    /** Upper-bound price phrases — deliberately NO bare "max" (collides with "Pro Max"). */
+    private static final Pattern PRICE_MAX = Pattern.compile(
+            "\\b(?:under|below|within|upto|up to|less than|at most|cheaper than|maximum of)\\s*"
+          + "(?:৳|tk\\.?|bdt|rs\\.?)?\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)\\s*(k|hajar|thousand|lakh|lac|cr|crore)?",
+            Pattern.CASE_INSENSITIVE);
+    /** Lower-bound price phrases. */
+    private static final Pattern PRICE_MIN = Pattern.compile(
+            "\\b(?:over|above|more than|at least|starting from|starting at|minimum of)\\s*"
+          + "(?:৳|tk\\.?|bdt|rs\\.?)?\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)\\s*(k|hajar|thousand|lakh|lac|cr|crore)?",
+            Pattern.CASE_INSENSITIVE);
+    /** "cheap/budget" — a soft preference (priceFavor already biases low), not a hard filter; just stripped. */
+    private static final Pattern PRICE_CHEAP = Pattern.compile(
+            "\\b(cheap|cheapest|budget|affordable|low[\\s-]?price|low[\\s-]?cost)\\b", Pattern.CASE_INSENSITIVE);
+
     /** Below this many regex/text hits, we ask the trigram index for help. */
     private static final int MIN_RECALL = 8;
     /**
@@ -115,6 +129,13 @@ public class CatalogSearchService {
     )
     public SearchResponse search(String query) {
         String bengaliFixed = expander.normalizeBengali(query == null ? "" : query);
+
+        // Price-intent: lift "under 20000 / below 50k / over 1 lakh / cheap" out of
+        // the query, search the remaining product words, then filter the results by
+        // lowest price. Natural for a price-comparison site ("phone under 20000").
+        PriceFilter pf = parsePriceIntent(bengaliFixed);
+        bengaliFixed = pf.cleanedQuery();
+
         QueryIntent intent = classifier.classify(bengaliFixed);
 
         List<String> queryTokens = tokens(normalise(bengaliFixed));
@@ -181,16 +202,22 @@ public class CatalogSearchService {
             }
         }
 
+        // Price-intent filter: drop products whose lowest price falls outside the
+        // requested range (a no-price product can't satisfy a price constraint).
+        if (pf.hasConstraint()) {
+            raw.removeIf(p -> !pf.matches(p.getLowestPrice()));
+        }
+
         // Hybrid re-rank
-        rankInPlace(raw, queryTokens, expandedTokens, intent);
+        rankInPlace(raw, queryTokens, expandedTokens, intent, browseCat);
 
         // Sponsored injection — put one paid product into the top slot when
-        // it isn't already in the list and is plausibly relevant. We dedupe
-        // by id and surface the chosen IDs separately.
+        // it isn't already in the list, is plausibly relevant, and (if a price
+        // range was asked for) fits it. We dedupe by id and surface IDs separately.
         List<String> sponsoredIds = new ArrayList<>();
         try {
             Product sponsor = pickSponsor(intent);
-            if (sponsor != null && sponsor.getId() != null) {
+            if (sponsor != null && sponsor.getId() != null && pf.matches(sponsor.getLowestPrice())) {
                 raw.removeIf(p -> sponsor.getId().equals(p.getId()));
                 raw.add(0, sponsor);
                 sponsoredIds.add(sponsor.getId());
@@ -335,7 +362,8 @@ public class CatalogSearchService {
     private void rankInPlace(List<Product> products,
                              List<String> queryTokens,
                              Set<String> expandedTokens,
-                             QueryIntent intent) {
+                             QueryIntent intent,
+                             String browseCat) {
         if (products.isEmpty()) return;
         Set<String> brandsLower = new java.util.HashSet<>();
         if (intent.getBrands() != null) {
@@ -348,8 +376,21 @@ public class CatalogSearchService {
                 ? null : intent.primaryCategory().getLabel().toLowerCase();
         if ("general".equals(catLower)) catLower = null;
         final String cat = catLower;
-        products.sort(Comparator.comparingDouble((Product p) ->
-                -hybridScore(p, queryTokens, expandedTokens, brandsLower, cat)));
+        if (browseCat != null) {
+            // Category browse ("laptop", "phone under 20k"): products that ARE in
+            // the browsed category rank ahead of mere name-matches (e.g. an
+            // earphone named "...Phone...") — then by hybrid score within each tier.
+            products.sort(Comparator
+                    .comparingInt((Product p) -> inCategory(p, browseCat) ? 0 : 1)
+                    .thenComparingDouble(p -> -hybridScore(p, queryTokens, expandedTokens, brandsLower, cat)));
+        } else {
+            products.sort(Comparator.comparingDouble((Product p) ->
+                    -hybridScore(p, queryTokens, expandedTokens, brandsLower, cat)));
+        }
+    }
+
+    private static boolean inCategory(Product p, String catLower) {
+        return catLower != null && p.getCategory() != null && catLower.equals(p.getCategory().toLowerCase());
     }
 
     private static double hybridScore(Product p, List<String> queryTokens,
@@ -418,6 +459,47 @@ public class CatalogSearchService {
         if (queryTokens.isEmpty() || !brandsLower.isEmpty()) return false;
         for (String t : queryTokens) if (t.matches(".*\\d.*")) return false;   // model number → specific
         return true;
+    }
+
+    // ── price-intent ──────────────────────────────────────────────────────────
+    /** A parsed price constraint plus the query with the price phrase removed. */
+    private record PriceFilter(Double min, Double max, String cleanedQuery) {
+        boolean hasConstraint() { return min != null || max != null; }
+        boolean matches(Double price) {
+            if (min == null && max == null) return true;
+            if (price == null || price <= 0) return false;        // no price can't satisfy a constraint
+            if (min != null && price < min) return false;
+            if (max != null && price > max) return false;
+            return true;
+        }
+    }
+
+    /** Pull "under 20000 / below 50k / over 1 lakh / cheap" out of the query and
+     *  return the bounds + the product-only remainder. "20k"→20000, "1.5 lakh"→150000. */
+    private static PriceFilter parsePriceIntent(String q) {
+        if (q == null || q.isBlank()) return new PriceFilter(null, null, q);
+        String s = q;
+        Double max = null, min = null;
+        java.util.regex.Matcher mx = PRICE_MAX.matcher(s);
+        if (mx.find()) { max = parseAmount(mx.group(1), mx.group(2)); s = s.substring(0, mx.start()) + " " + s.substring(mx.end()); }
+        java.util.regex.Matcher mn = PRICE_MIN.matcher(s);
+        if (mn.find()) { min = parseAmount(mn.group(1), mn.group(2)); s = s.substring(0, mn.start()) + " " + s.substring(mn.end()); }
+        s = PRICE_CHEAP.matcher(s).replaceAll(" ").replaceAll("\\s+", " ").trim();
+        return new PriceFilter(min, max, s.isBlank() ? q : s);
+    }
+
+    private static Double parseAmount(String num, String suffix) {
+        if (num == null) return null;
+        try {
+            double v = Double.parseDouble(num.replace(",", ""));
+            if (suffix != null && !suffix.isBlank()) {
+                String sf = suffix.toLowerCase();
+                if (sf.startsWith("k") || sf.contains("hajar") || sf.contains("thousand")) v *= 1_000;
+                else if (sf.contains("lakh") || sf.contains("lac")) v *= 100_000;
+                else if (sf.contains("cr")) v *= 10_000_000;
+            }
+            return v <= 0 ? null : v;
+        } catch (NumberFormatException e) { return null; }
     }
 
     /** Whole-word hit for a token or any of its known synonyms/misspellings
