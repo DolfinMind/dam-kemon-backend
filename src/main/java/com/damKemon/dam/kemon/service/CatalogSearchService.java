@@ -69,6 +69,12 @@ public class CatalogSearchService {
     private static final Logger log = LoggerFactory.getLogger(CatalogSearchService.class);
     private static final Pattern NON_ALPHA = Pattern.compile("[^a-z0-9\\s]");
 
+    /** Accessory/peripheral words — products matching these are pushed DOWN when
+     *  the query itself isn't for an accessory, so "laptop" surfaces laptops, not
+     *  laptop keyboard covers, and "iphone" surfaces phones, not phone cases. */
+    private static final Pattern ACCESSORY = Pattern.compile(
+            "\\b(case|cover|protector|tempered|glass|skin|pouch|sleeve|holder|stand|mount|film|guard|bumper|casing)\\b");
+
     /** Below this many regex/text hits, we ask the trigram index for help. */
     private static final int MIN_RECALL = 8;
     /**
@@ -113,10 +119,23 @@ public class CatalogSearchService {
 
         List<String> queryTokens = tokens(normalise(bengaliFixed));
         Set<String> expandedTokens = expander.expandTokens(queryTokens);
+        Set<String> brandsLower = new java.util.HashSet<>();
+        if (intent.getBrands() != null)
+            for (String b : intent.getBrands()) if (b != null) brandsLower.add(b.toLowerCase());
 
         List<Product> raw = new ArrayList<>(textOrRegexSearch(bengaliFixed, expandedTokens));
 
-        // Trigram fallback when literal passes are thin
+        // RELEVANCE GATE. textOrRegexSearch is recall-first: OR-regex matches any
+        // token as a SUBSTRING, so it drags in products that merely share a
+        // letter-run with the query — "air conditiiners" hitting "Airy" earphones,
+        // "formal pants" hitting baby "Pants" diapers — and nothing dropped them.
+        // Keep a product only if it genuinely matches: a whole-word/synonym hit on
+        // a detected brand, or >=60% of the query tokens covered as whole words.
+        if (!queryTokens.isEmpty()) {
+            raw.removeIf(p -> !isRelevant(p, queryTokens, brandsLower));
+        }
+
+        // Trigram fallback when the (now relevance-filtered) literal passes are thin
         String didYouMean = null;
         if (raw.size() < MIN_RECALL && trigram.isEnabled()) {
             List<TrigramIndex.Hit> fuzzy = trigram.topK(bengaliFixed, pageSize, TRIGRAM_MIN);
@@ -125,15 +144,15 @@ public class CatalogSearchService {
                 for (Product p : raw) if (p.getId() != null) have.put(p.getId(), p);
                 for (TrigramIndex.Hit h : fuzzy) {
                     if (have.containsKey(h.id())) continue;
-                    if (h.payload() instanceof Product p) {
+                    // a fuzzy hit still has to be about the query (synonym/typo aware),
+                    // so a no-match query returns nothing instead of trigram noise.
+                    if (h.payload() instanceof Product p && isRelevant(p, queryTokens, brandsLower)) {
                         have.put(p.getId(), p);
                     }
                 }
-                // Surface "did you mean" only when ALL hits had to come from fuzzy
-                // AND the top fuzzy hit is *visibly* close — we don't want to suggest
-                // "iPhone 14 Plus" when the user typed "saaaamssung" and there's no
-                // real match.
-                if (raw.isEmpty()
+                // "did you mean" when nothing matched but the top fuzzy hit is
+                // visibly close (real typo) — not for "saaaamssung" with no match.
+                if (have.isEmpty()
                         && fuzzy.get(0).score() >= DID_YOU_MEAN_MIN
                         && fuzzy.get(0).payload() instanceof Product top) {
                     didYouMean = top.getName();
@@ -298,12 +317,19 @@ public class CatalogSearchService {
         if (intent.getBrands() != null) {
             for (String b : intent.getBrands()) if (b != null) brandsLower.add(b.toLowerCase());
         }
+        // Detected category (e.g. "Laptops") boosts in-category products so
+        // "laptop" surfaces actual laptops (named by model, no "laptop" word)
+        // over laptop accessories. "General" is too broad to boost on.
+        String catLower = intent.primaryCategory() == null || intent.primaryCategory().getLabel() == null
+                ? null : intent.primaryCategory().getLabel().toLowerCase();
+        if ("general".equals(catLower)) catLower = null;
+        final String cat = catLower;
         products.sort(Comparator.comparingDouble((Product p) ->
-                -hybridScore(p, queryTokens, expandedTokens, brandsLower)));
+                -hybridScore(p, queryTokens, expandedTokens, brandsLower, cat)));
     }
 
     private static double hybridScore(Product p, List<String> queryTokens,
-                                      Set<String> expandedTokens, Set<String> brands) {
+                                      Set<String> expandedTokens, Set<String> brands, String catLower) {
         if (p == null || p.getName() == null) return 0;
         String lname = p.getName().toLowerCase();
         double tokenCov = coverage(lname, queryTokens);
@@ -314,13 +340,63 @@ public class CatalogSearchService {
         }
         double priceFavor = (p.getLowestPrice() == null || p.getLowestPrice() <= 0) ? 0
                 : 1.0 / (1.0 + Math.log10(p.getLowestPrice()));
-        return 0.55 * tokenCov + 0.25 * expandedCov + 0.15 * brandHit + 0.05 * priceFavor;
+        // Push accessories below the real product when the user didn't ask for one.
+        double accessoryPenalty = 0;
+        if (ACCESSORY.matcher(lname).find()
+                && !ACCESSORY.matcher(String.join(" ", queryTokens)).find()) {
+            accessoryPenalty = 0.30;
+        }
+        double catBoost = (catLower != null && p.getCategory() != null
+                && catLower.equals(p.getCategory().toLowerCase())) ? 0.25 : 0;
+        return 0.55 * tokenCov + 0.25 * expandedCov + 0.15 * brandHit + 0.05 * priceFavor
+                - accessoryPenalty + catBoost;
     }
 
     private static double coverage(String name, List<String> tokens) {
         if (name == null || tokens.isEmpty()) return 0;
         long matched = tokens.stream().filter(t -> t != null && !t.isBlank() && name.contains(t)).count();
         return (double) matched / tokens.size();
+    }
+
+    /** Genuine relevance gate (vs the recall-first substring passes): keep a
+     *  product only if a detected brand word-matches the name, or the query's
+     *  tokens are mostly covered as WHOLE WORDS (synonym/typo aware). This stops
+     *  a single loose substring hit qualifying — "air"→"Airy" earphone,
+     *  "pants"→baby "Pants" diaper. */
+    private boolean isRelevant(Product p, List<String> queryTokens, Set<String> brandsLower) {
+        if (p == null || p.getName() == null) return false;
+        if (queryTokens.isEmpty()) return true;
+        String name = " " + p.getName().toLowerCase() + " ";
+        // a detected brand appearing as a whole word is the strongest single signal
+        for (String b : brandsLower) if (b.length() >= 2 && wordMatch(name, b)) return true;
+        int covered = 0;
+        for (String t : queryTokens) if (tokenHits(name, t)) covered++;
+        double cov = (double) covered / queryTokens.size();
+        // 1-token query: that token must hit. Multi-token: need >=60% coverage,
+        // so a 2-word query can't pass on one generic word alone.
+        return queryTokens.size() == 1 ? covered >= 1 : cov >= 0.6;
+    }
+
+    /** Whole-word hit for a token or any of its known synonyms/misspellings
+     *  (so apple↔iphone, xiaomi↔redmi, ipone→iphone still count). */
+    private boolean tokenHits(String paddedName, String token) {
+        if (token == null || token.length() < 2) return false;
+        if (wordMatch(paddedName, token)) return true;
+        for (String v : expander.expandTokens(java.util.List.of(token))) {
+            if (v != null && v.length() >= 2 && !v.equals(token) && wordMatch(paddedName, v)) return true;
+        }
+        return false;
+    }
+
+    /** True if {@code token} appears as a whole word in the (space-padded,
+     *  lowercased) name. Word-boundary: "air" does NOT match "airy", "pro" does
+     *  NOT match "product". */
+    private static boolean wordMatch(String paddedLowerName, String token) {
+        try {
+            return Pattern.compile("\\b" + Pattern.quote(token) + "\\b").matcher(paddedLowerName).find();
+        } catch (RuntimeException e) {
+            return paddedLowerName.contains(" " + token + " ");
+        }
     }
 
     /** Build an OR regex: any of the tokens may appear, anywhere. */

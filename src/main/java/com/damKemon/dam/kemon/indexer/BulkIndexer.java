@@ -790,35 +790,53 @@ public class BulkIndexer {
     private void recomputeAggregates(Product p) {
         List<SitePrice> prices = p.getPrices();
         if (prices == null || prices.isEmpty()) return;
-        double min = Double.MAX_VALUE, max = 0;
         double rsum = 0; int rn = 0; int reviews = 0;
+        List<Double> vals = new ArrayList<>();
         for (SitePrice sp : prices) {
-            if (sp.getPrice() != null) {
-                if (sp.getPrice() < min) min = sp.getPrice();
-                if (sp.getPrice() > max) max = sp.getPrice();
-            }
+            if (sp.getPrice() != null && sp.getPrice() > 0) vals.add(sp.getPrice());
             if (sp.getRating() != null) { rsum += sp.getRating(); rn++; }
             if (sp.getReviewCount() != null) reviews += sp.getReviewCount();
         }
-        p.setLowestPrice(min == Double.MAX_VALUE ? null : min);
-        p.setHighestPrice(max == 0 ? null : max);
         p.setAverageRating(rn == 0 ? null : Math.round(rsum / rn * 10.0) / 10.0);
         p.setTotalReviews(reviews == 0 ? null : reviews);
+        if (vals.isEmpty()) { p.setLowestPrice(null); p.setHighestPrice(null); p.setPriceVerdict(null); return; }
+        java.util.Collections.sort(vals);
 
-        // Price-truth: rate the cheapest seller against the cross-seller median,
-        // so the UI can flag genuine deals vs. inflated "discounts".
-        List<Double> vals = new ArrayList<>();
-        for (SitePrice sp : prices) if (sp.getPrice() != null && sp.getPrice() > 0) vals.add(sp.getPrice());
-        if (vals.size() >= 2) {
-            java.util.Collections.sort(vals);
-            double median = vals.get(vals.size() / 2);
-            double lo = vals.get(0);
+        // Drop EMI / down-payment / parse-error outliers from the HEADLINE price:
+        // an offer far below its peers — a ৳10,000 installment on a ৳45,000 phone,
+        // or the year "2026" parsed off "...price in Bangladesh 2026" — is not the
+        // real price and must never become "Low". (Offers stay in prices[]; only
+        // the aggregates ignore the outliers.)
+        List<Double> trusted = priceTrusted(vals);
+        p.setLowestPrice(trusted.get(0));
+        p.setHighestPrice(trusted.get(trusted.size() - 1));
+
+        // Price-truth: rate the cheapest TRUSTED seller against the trusted median.
+        if (trusted.size() >= 2) {
+            double median = trusted.get(trusted.size() / 2);
+            double lo = trusted.get(0);
             if (lo <= median * 0.85) p.setPriceVerdict("real_deal");
             else if (lo >= median * 1.05) p.setPriceVerdict("overpriced");
             else p.setPriceVerdict("fair");
         } else {
             p.setPriceVerdict(null);
         }
+    }
+
+    /** Filter EMI/parse-error price outliers for the headline aggregates.
+     *  ≥3 offers → trust a sane band around the median; 2 offers → drop only a
+     *  blatantly-tiny one (a year/৳1 error); 1 offer → as-is. Never empty. */
+    static List<Double> priceTrusted(List<Double> sortedVals) {
+        int n = sortedVals.size();
+        if (n <= 1) return sortedVals;
+        if (n == 2) {
+            double a = sortedVals.get(0), b = sortedVals.get(1);
+            return a < b * 0.12 ? List.of(b) : sortedVals;   // a is a blatant outlier
+        }
+        double median = sortedVals.get(n / 2);
+        List<Double> trusted = new ArrayList<>();
+        for (double v : sortedVals) if (v >= median * 0.35 && v <= median * 4.0) trusted.add(v);
+        return trusted.isEmpty() ? sortedVals : trusted;
     }
 
     private Double discount(Double original, Double current) {
