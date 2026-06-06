@@ -123,16 +123,36 @@ public class CatalogSearchService {
         if (intent.getBrands() != null)
             for (String b : intent.getBrands()) if (b != null) brandsLower.add(b.toLowerCase());
 
-        List<Product> raw = new ArrayList<>(textOrRegexSearch(bengaliFixed, expandedTokens));
+        // CATEGORY-BROWSE: a bare category term ("laptop", "gaming laptop") with no
+        // brand/model. Real products are named by model ("ASUS VivoBook"), so they
+        // never name-match — pull them straight from the detected category so the
+        // results are actual laptops, not just things with "laptop" in the name.
+        String catLabel = (intent.primaryCategory() == null) ? null : intent.primaryCategory().getLabel();
+        boolean categoryBrowse = isCategoryBrowse(catLabel, queryTokens, brandsLower);
+        String browseCat = categoryBrowse ? catLabel.toLowerCase() : null;
+
+        Map<String, Product> bag = new LinkedHashMap<>();
+        for (Product p : textOrRegexSearch(bengaliFixed, expandedTokens))
+            if (p.getId() != null) bag.put(p.getId(), p);
+        if (categoryBrowse) {
+            try {
+                for (Product p : productRepository
+                        .findByCategoryIgnoreCase(catLabel, PageRequest.of(0, pageSize)).getContent())
+                    if (p.getId() != null) bag.putIfAbsent(p.getId(), p);
+            } catch (DataAccessException e) {
+                log.debug("Category-browse fetch failed: {}", e.getMessage());
+            }
+        }
+        List<Product> raw = new ArrayList<>(bag.values());
 
         // RELEVANCE GATE. textOrRegexSearch is recall-first: OR-regex matches any
         // token as a SUBSTRING, so it drags in products that merely share a
         // letter-run with the query — "air conditiiners" hitting "Airy" earphones,
-        // "formal pants" hitting baby "Pants" diapers — and nothing dropped them.
-        // Keep a product only if it genuinely matches: a whole-word/synonym hit on
-        // a detected brand, or >=60% of the query tokens covered as whole words.
+        // "formal pants" hitting baby "Pants" diapers. Keep a product only if it
+        // genuinely matches: in the browsed category, a whole-word/synonym hit on a
+        // detected brand, or >=60% of the query tokens covered as whole words.
         if (!queryTokens.isEmpty()) {
-            raw.removeIf(p -> !isRelevant(p, queryTokens, brandsLower));
+            raw.removeIf(p -> !isRelevant(p, queryTokens, brandsLower, browseCat));
         }
 
         // Trigram fallback when the (now relevance-filtered) literal passes are thin
@@ -146,7 +166,7 @@ public class CatalogSearchService {
                     if (have.containsKey(h.id())) continue;
                     // a fuzzy hit still has to be about the query (synonym/typo aware),
                     // so a no-match query returns nothing instead of trigram noise.
-                    if (h.payload() instanceof Product p && isRelevant(p, queryTokens, brandsLower)) {
+                    if (h.payload() instanceof Product p && isRelevant(p, queryTokens, brandsLower, browseCat)) {
                         have.put(p.getId(), p);
                     }
                 }
@@ -178,6 +198,10 @@ public class CatalogSearchService {
         } catch (DataAccessException e) {
             log.debug("Sponsored pick failed (ignored): {}", e.getMessage());
         }
+
+        // Category browse can gather name-matches + a full category page; keep the
+        // top pageSize after ranking so the response stays a single page.
+        if (raw.size() > pageSize) raw = new ArrayList<>(raw.subList(0, pageSize));
 
         List<String> sitesSet = raw.stream()
                 .flatMap(p -> p.getPrices() == null ? java.util.stream.Stream.empty() : p.getPrices().stream())
@@ -348,8 +372,12 @@ public class CatalogSearchService {
         }
         double catBoost = (catLower != null && p.getCategory() != null
                 && catLower.equals(p.getCategory().toLowerCase())) ? 0.25 : 0;
+        // Popularity: multi-seller products are the ones people actually buy — this
+        // orders a category browse by real products, not the cheapest oddity.
+        int sellers = p.getPrices() == null ? 0 : p.getPrices().size();
+        double popular = Math.min(sellers, 5) / 5.0;
         return 0.55 * tokenCov + 0.25 * expandedCov + 0.15 * brandHit + 0.05 * priceFavor
-                - accessoryPenalty + catBoost;
+                - accessoryPenalty + catBoost + 0.06 * popular;
     }
 
     private static double coverage(String name, List<String> tokens) {
@@ -363,9 +391,14 @@ public class CatalogSearchService {
      *  tokens are mostly covered as WHOLE WORDS (synonym/typo aware). This stops
      *  a single loose substring hit qualifying — "air"→"Airy" earphone,
      *  "pants"→baby "Pants" diaper. */
-    private boolean isRelevant(Product p, List<String> queryTokens, Set<String> brandsLower) {
+    private boolean isRelevant(Product p, List<String> queryTokens, Set<String> brandsLower, String browseCat) {
         if (p == null || p.getName() == null) return false;
         if (queryTokens.isEmpty()) return true;
+        // category-browse: any product in the detected category qualifies — real
+        // laptops ("ASUS VivoBook") don't carry the word "laptop" so token matching
+        // alone can never surface them.
+        if (browseCat != null && p.getCategory() != null && browseCat.equals(p.getCategory().toLowerCase()))
+            return true;
         String name = " " + p.getName().toLowerCase() + " ";
         // a detected brand appearing as a whole word is the strongest single signal
         for (String b : brandsLower) if (b.length() >= 2 && wordMatch(name, b)) return true;
@@ -375,6 +408,16 @@ public class CatalogSearchService {
         // 1-token query: that token must hit. Multi-token: need >=60% coverage,
         // so a 2-word query can't pass on one generic word alone.
         return queryTokens.size() == 1 ? covered >= 1 : cov >= 0.6;
+    }
+
+    /** A bare category query ("laptop", "gaming laptop"): a specific category was
+     *  detected and there's no brand or model number that would make it a search
+     *  for a particular product (where name-matching already works). */
+    private static boolean isCategoryBrowse(String catLabel, List<String> queryTokens, Set<String> brandsLower) {
+        if (catLabel == null || catLabel.isBlank() || catLabel.equalsIgnoreCase("General")) return false;
+        if (queryTokens.isEmpty() || !brandsLower.isEmpty()) return false;
+        for (String t : queryTokens) if (t.matches(".*\\d.*")) return false;   // model number → specific
+        return true;
     }
 
     /** Whole-word hit for a token or any of its known synonyms/misspellings
