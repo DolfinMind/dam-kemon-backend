@@ -620,69 +620,55 @@ public class BulkIndexer {
                 .lastUpdated(LocalDateTime.now())
                 .build();
 
-        // 1. Try exact URL match first (re-crawl of a known URL just refreshes the price)
+        String key = productMatchKey(sp.getName());
+        String normName = normaliseForMatching(sp.getName());
+
+        // 1. Exact URL match — a re-crawl of a known listing just refreshes that
+        //    seller's offer in place.
         Optional<Product> byUrl = safeFindByUrl(url);
         if (byUrl.isPresent()) {
             Product existing = byUrl.get();
             existing.getPrices().removeIf(p -> Objects.equals(p.getProductUrl(), url));
-            existing.getPrices().add(price);
-            applyDescriptiveFieldsIfMissing(existing, sp);
-            recomputeAggregates(existing);
-            existing.setLastScraped(LocalDateTime.now());
-            existing.setUpdatedAt(LocalDateTime.now());
-            safeSave(existing);
-            merged.incrementAndGet();
+            mergeOffer(existing, price, sp, key, lsh, merged);
             return;
         }
 
-        // 2. Fuzzy match across shops via LSH. The 4-gram MinHash is only a
-        //    CANDIDATE finder — it happily matches different models that share a
-        //    brand + category word ("Amazfit Bip U Smart Watch" vs "Amazfit
-        //    Balance 2 Smart Watch"), which glued unrelated products (and their
-        //    wildly different prices) into one doc. So a candidate is only
-        //    accepted if sameProduct() agrees its discriminating tokens match.
-        String normName = normaliseForMatching(sp.getName());
-        MinHashLSH.Match match = lsh.findBest(normName, 0.50);
-        if (match != null) {
-            // The LSH stores ids only (memory-light), so load the matched product
-            // here. If it was deleted since the warm, the entry is stale → fall
-            // through and insert a fresh product.
-            Product existing = null;
-            try { existing = productRepository.findById(match.id()).orElse(null); }
-            catch (DataAccessException ignored) { /* treat as no-match */ }
-            if (existing != null && sameProduct(existing.getName(), sp.getName())) {
-                // Marketplace-aware merge: replace only the SAME seller's prior offer,
-                // so many sellers from one marketplace (e.g. Daraz storefronts) coexist
-                // as distinct offers on the product. When the incoming offer carries a
-                // seller, also drop any legacy seller-less aggregate the old
-                // one-per-shop behaviour left for that marketplace.
-                final String newKey = offerKey(price);
-                existing.getPrices().removeIf(p ->
-                        Objects.equals(offerKey(p), newKey)
-                        || (price.getSellerId() != null
-                            && Objects.equals(p.getSiteSlug(), shop.getSlug())
-                            && (p.getSellerId() == null || p.getSellerId().isBlank())));
-                existing.getPrices().add(price);
-                capSellers(existing);
-                applyDescriptiveFieldsIfMissing(existing, sp);
-                recomputeAggregates(existing);
-                existing.setLastScraped(LocalDateTime.now());
-                existing.setUpdatedAt(LocalDateTime.now());
-                Product saved = safeSave(existing);
-                if (saved != null && saved.getId() != null) {
-                    // Re-add to LSH under the canonical (possibly upgraded) name
-                    lsh.add(saved.getId(), normaliseForMatching(saved.getName()), null);
-                }
-                merged.incrementAndGet();
+        // 2. Deterministic matchKey — the SAME product from ANY seller, robust
+        //    across indexer runs and concurrency (unlike the per-run in-memory
+        //    fuzzy index, which let parallel sweeps duplicate the same product).
+        //    "Honor 400 (Official)" and "Honor 400" share a key and group;
+        //    "GTR 3 Pro" and "GTR 4" don't.
+        if (key != null) {
+            Optional<Product> byKey = safeFindByKey(key);
+            if (byKey.isPresent()) {
+                Product existing = byKey.get();
+                dropSupersededOffer(existing, price, shop);
+                mergeOffer(existing, price, sp, key, lsh, merged);
                 return;
             }
         }
 
-        // 3. Brand-new product
+        // 3. Fuzzy LSH + sameProduct — catches name variance the exact key misses
+        //    (brand-prefix, word order). The MinHash is only a candidate finder;
+        //    sameProduct() guards against gluing different models.
+        MinHashLSH.Match match = lsh.findBest(normName, 0.50);
+        if (match != null) {
+            Product existing = null;
+            try { existing = productRepository.findById(match.id()).orElse(null); }
+            catch (DataAccessException ignored) { /* stale entry → insert fresh */ }
+            if (existing != null && sameProduct(existing.getName(), sp.getName())) {
+                dropSupersededOffer(existing, price, shop);
+                mergeOffer(existing, price, sp, key, lsh, merged);
+                return;
+            }
+        }
+
+        // 4. Brand-new product
         var intent = classifier.classify(sp.getName());
         Product p = Product.builder()
                 .name(sp.getName())
                 .slug(slugify(sp.getName()))
+                .matchKey(key)
                 .category(intent.primaryCategory().getLabel().toLowerCase())
                 .brands(intent.getBrands())
                 .imageUrl(sp.getImageUrl())
@@ -694,9 +680,46 @@ public class BulkIndexer {
         recomputeAggregates(p);
         Product saved = safeSave(p);
         if (saved != null && saved.getId() != null) {
-            lsh.add(saved.getId(), normaliseForMatching(saved.getName()), null);
+            lsh.add(saved.getId(), normName, null);
         }
         inserted.incrementAndGet();
+    }
+
+    /** Marketplace-aware: drop this seller's superseded offer before re-adding,
+     *  so many sellers from one marketplace coexist but a re-crawl replaces (not
+     *  duplicates) the same seller's prior offer / legacy seller-less aggregate. */
+    private void dropSupersededOffer(Product existing, SitePrice price, Shop shop) {
+        final String ok = offerKey(price);
+        existing.getPrices().removeIf(p ->
+                Objects.equals(offerKey(p), ok)
+                || (price.getSellerId() != null
+                    && Objects.equals(p.getSiteSlug(), shop.getSlug())
+                    && (p.getSellerId() == null || p.getSellerId().isBlank())));
+    }
+
+    /** Add the offer to an existing product and persist: cap sellers, fill in
+     *  missing descriptive fields, backfill the matchKey, recompute aggregates,
+     *  and re-index in the LSH. Caller has already removed any superseded offer. */
+    private void mergeOffer(Product existing, SitePrice price, ScrapedProduct sp,
+                            String key, MinHashLSH lsh, AtomicInteger merged) {
+        existing.getPrices().add(price);
+        capSellers(existing);
+        applyDescriptiveFieldsIfMissing(existing, sp);
+        if (existing.getMatchKey() == null || existing.getMatchKey().isBlank())
+            existing.setMatchKey(key != null ? key : productMatchKey(existing.getName()));
+        recomputeAggregates(existing);
+        existing.setLastScraped(LocalDateTime.now());
+        existing.setUpdatedAt(LocalDateTime.now());
+        Product saved = safeSave(existing);
+        if (saved != null && saved.getId() != null) {
+            lsh.add(saved.getId(), normaliseForMatching(saved.getName()), null);
+        }
+        merged.incrementAndGet();
+    }
+
+    private Optional<Product> safeFindByKey(String key) {
+        try { return productRepository.findFirstByMatchKey(key); }
+        catch (DataAccessException e) { return Optional.empty(); }
     }
 
     /** Model qualifiers that distinguish otherwise-similar names (S24 vs S24 Ultra,
@@ -776,6 +799,28 @@ public class BulkIndexer {
         // Drop punctuation, collapse whitespace
         s = s.replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
         return s.isBlank() ? name.toLowerCase() : s;
+    }
+
+    /** Edition/region/condition noise that varies between sellers for the SAME
+     *  item and must not split it into separate products. (Model numbers and
+     *  pro/max/ultra/5g are NOT here — they distinguish real variants.) */
+    private static final java.util.regex.Pattern MATCHKEY_NOISE = java.util.regex.Pattern.compile(
+            "\\b(official|officially|unofficial|global|international|version|edition"
+          + "|limited|special|genuine|original|warranty)\\b");
+
+    /**
+     * Deterministic product-identity key for cross-seller grouping. Starts from
+     * the matching-normalised name (parens/storage/colour/spec-tails already
+     * gone) and additionally strips edition/region/"official"-style noise, so
+     * "Honor 400 (Official)" and "Honor 400" collapse to one key while
+     * "Amazfit GTR 3 Pro" and "Amazfit GTR 4" stay distinct. Stored on the
+     * Product and looked up at persist for run-independent grouping.
+     */
+    static String productMatchKey(String name) {
+        String s = normaliseForMatching(name);
+        if (s == null) return null;
+        s = MATCHKEY_NOISE.matcher(s).replaceAll(" ").replaceAll("\\s+", " ").trim();
+        return s.length() < 2 ? null : s;
     }
 
     private void applyDescriptiveFieldsIfMissing(Product existing, ScrapedProduct sp) {

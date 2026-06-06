@@ -19,6 +19,10 @@ public interface ProductRepository extends MongoRepository<Product, String> {
     Page<Product> findByCategoryIgnoreCase(String category, Pageable pageable);
     Optional<Product> findBySlug(String slug);
 
+    /** Deterministic same-product lookup for cross-seller grouping (robust across
+     *  indexer runs / concurrency, unlike the per-run in-memory fuzzy index). */
+    Optional<Product> findFirstByMatchKey(String matchKey);
+
     /** True Mongo text search over the indexed {@code name + description} fields. */
     @Query("{ $text: { $search: ?0 } }")
     List<Product> textSearch(String text, Pageable pageable);

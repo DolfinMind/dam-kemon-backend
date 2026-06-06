@@ -29,6 +29,13 @@ public class Product {
     @Indexed
     private String slug;
 
+    /** Deterministic product-identity key (brand+model+discriminators,
+     *  noise-stripped) used to group the SAME product across sellers robustly,
+     *  independent of the per-run fuzzy index. Two products share a matchKey iff
+     *  they are the same item. See BulkIndexer.productMatchKey. */
+    @Indexed
+    private String matchKey;
+
     /** Detected primary category (lower-case), eg "smartphone". */
     @Indexed
     private String category;
