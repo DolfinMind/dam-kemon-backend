@@ -1,0 +1,130 @@
+package com.damKemon.dam.kemon.service;
+
+import com.damKemon.dam.kemon.model.MarketplaceSeller;
+import com.damKemon.dam.kemon.model.Seller;
+import com.damKemon.dam.kemon.model.Shop;
+import com.damKemon.dam.kemon.repository.MarketplaceSellerRepository;
+import com.damKemon.dam.kemon.repository.SellerRepository;
+import com.damKemon.dam.kemon.repository.ShopRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * Builds the public Seller directory ({@code sellers}) from data we already
+ * collect, so the "Sellers" surface reflects the real breadth of the platform:
+ *
+ * <ul>
+ *   <li>every active indexed <b>shop</b> → a {@code website} (or {@code
+ *       marketplace} for Daraz/Othoba/etc.) seller;</li>
+ *   <li>every captured marketplace storefront (Daraz per-seller offers rolled
+ *       up into {@code marketplace_sellers}) → a {@code marketplace} seller.</li>
+ * </ul>
+ *
+ * <p>F-commerce (Facebook/Instagram) sellers are NOT scraped — Facebook's ToS
+ * forbids it — they arrive curated or opt-in via {@code POST
+ * /api/admin/sellers/bulk} and the f-commerce self-listing form, and are left
+ * untouched here.
+ *
+ * <p>Idempotent (dedupes by slug) and runs after the nightly harvest, so the
+ * directory grows automatically as the catalog and marketplace coverage grow.
+ */
+@Service
+public class SellerDirectoryService {
+
+    private static final Logger log = LoggerFactory.getLogger(SellerDirectoryService.class);
+
+    /** Indexed shops that are themselves multi-vendor marketplaces. */
+    private static final Set<String> MARKETPLACE_SLUGS =
+            Set.of("daraz", "chaldal", "othoba", "priyoshop", "ajkerdeal", "bagdoom", "pickaboo");
+
+    private final ShopRepository shops;
+    private final MarketplaceSellerRepository marketplaceSellers;
+    private final SellerRepository sellers;
+
+    @Value("${seller-sync.enabled:true}")
+    private boolean enabled;
+
+    public SellerDirectoryService(ShopRepository shops,
+                                  MarketplaceSellerRepository marketplaceSellers,
+                                  SellerRepository sellers) {
+        this.shops = shops;
+        this.marketplaceSellers = marketplaceSellers;
+        this.sellers = sellers;
+    }
+
+    /** Daily at 05:30, after the nightly indexer + marketplace harvests. */
+    @Scheduled(cron = "${seller-sync.cron:0 30 5 * * *}")
+    public void scheduled() {
+        if (enabled) syncOnce();
+    }
+
+    /** Upsert shops + marketplace storefronts into the seller directory.
+     *  Returns the number of NEW sellers added. Never throws. */
+    public int syncOnce() {
+        int added = 0;
+        try {
+            for (Shop s : shops.findAll()) {
+                if (s == null || !"active".equalsIgnoreCase(String.valueOf(s.getStatus()))) continue;
+                String name = (s.getName() != null && !s.getName().isBlank()) ? s.getName() : s.getSlug();
+                String slug = slugify(name);
+                if (slug.length() < 2 || exists(slug)) continue;
+                String type = MARKETPLACE_SLUGS.contains(String.valueOf(s.getSlug()).toLowerCase())
+                        ? "marketplace" : "website";
+                save(Seller.builder()
+                        .name(name).slug(slug).type(type).url(s.getBaseUrl())
+                        .categories(s.getCategories() != null ? s.getCategories() : new ArrayList<>())
+                        .verified(true).source("catalog")
+                        .joinedAt(LocalDateTime.now()).lastSeen(LocalDateTime.now())
+                        .build());
+                added++;
+            }
+            for (MarketplaceSeller m : marketplaceSellers.findAll()) {
+                if (m == null || m.getSellerName() == null || m.getSellerName().isBlank()) continue;
+                String slug = slugify(m.getSellerName());
+                if (slug.length() < 2 || exists(slug)) continue;
+                String mk = m.getMarketplace() != null ? m.getMarketplace() : "daraz";
+                save(Seller.builder()
+                        .name(m.getSellerName().trim()).slug(slug).type("marketplace")
+                        .url(m.getSellerId() != null ? "https://www.daraz.com.bd/shop/" + m.getSellerId() : null)
+                        .rating(m.getRatingAvg()).reviewCount(m.getReviewTotal())
+                        .tags(new ArrayList<>(List.of(mk)))
+                        .verified(false).source("marketplace")
+                        .joinedAt(LocalDateTime.now()).lastSeen(LocalDateTime.now())
+                        .build());
+                added++;
+            }
+            log.info("SellerDirectory: synced — {} new, {} total in directory", added, safeCount());
+        } catch (Exception e) {
+            log.warn("SellerDirectory sync failed: {}", e.getMessage());
+        }
+        return added;
+    }
+
+    private boolean exists(String slug) {
+        try { return sellers.findBySlug(slug).isPresent(); }
+        catch (Exception e) { return true; }   // on error, don't risk a dup
+    }
+
+    private void save(Seller s) {
+        try { sellers.save(s); }
+        catch (Exception e) { log.debug("SellerDirectory: save failed for {}: {}", s.getSlug(), e.getMessage()); }
+    }
+
+    private long safeCount() {
+        try { return sellers.count(); } catch (Exception e) { return -1; }
+    }
+
+    private static String slugify(String s) {
+        if (s == null) return "";
+        return s.toLowerCase().replaceAll("[^a-z0-9\\s-]", " ")
+                .replaceAll("\\s+", "-").replaceAll("-+", "-").replaceAll("^-|-$", "");
+    }
+}

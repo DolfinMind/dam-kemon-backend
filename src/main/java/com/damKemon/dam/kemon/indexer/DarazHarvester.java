@@ -88,7 +88,30 @@ public class DarazHarvester implements ShopHarvester {
             // — tools & stationery —
             "drill machine", "screwdriver set", "notebook diary", "ball pen",
             // — seasonal fan merch (kept) —
-            "argentina jersey", "brazil jersey", "portugal jersey", "football jersey", "national flag"
+            "argentina jersey", "brazil jersey", "portugal jersey", "football jersey", "national flag",
+            // — BRAND seeds: on Daraz each brand is stocked by MANY storefronts, so a
+            //   brand query surfaces lots of DISTINCT sellers (the goal for breadth) —
+            "anker", "baseus", "ugreen", "remax", "joyroom", "havit", "hoco", "awei", "ldnio", "wiwu",
+            "jbl", "soundcore", "boat", "edifier", "f&d", "oraimo", "realme buds", "xiaomi", "samsung",
+            "apple", "realme", "oppo", "vivo", "infinix", "tecno", "motorola", "nokia", "honor", "oneplus",
+            "logitech", "a4tech", "rapoo", "fantech", "redragon", "asus", "msi", "gigabyte", "kingston", "wd",
+            "amazfit", "haylou", "mibro", "colmi", "fire boltt", "noise", "walton", "vision", "singer", "miyako",
+            "conion", "philips", "panasonic", "lg", "haier", "transtec", "sony", "jvc", "tcl", "hisense",
+            "lakme", "loreal", "nivea", "garnier", "ponds", "himalaya", "dove", "sunsilk", "nature republic", "the body shop",
+            "skin cafe", "cetaphil", "neutrogena", "maybelline", "sheglam", "color studio", "wet n wild", "minimalist", "cosrx", "the ordinary",
+            // — niche categories: long-tail sellers —
+            "mobile accessories", "smart home", "kitchen appliance", "home decor", "gift item", "stationery",
+            "school bag", "office chair", "study table", "wall shelf", "led tv", "sound bar", "home theatre",
+            "gas burner", "pressure cooker", "non stick pan", "water bottle", "lunch box", "thermos flask",
+            "bed sheet", "blanket", "towel", "curtain", "door mat", "wall clock", "photo frame",
+            "three piece", "kurti", "sharee", "borka", "hijab", "tshirt men", "polo shirt", "denim jeans",
+            "kids dress", "baby toys", "feeding bottle", "baby diaper", "stroller", "walker",
+            "perfume", "attar", "body spray", "deodorant", "face wash", "hair oil", "shampoo", "lipstick",
+            "sunglass", "wrist watch men", "leather wallet", "ladies bag", "backpack", "trolley bag",
+            "power bank", "usb cable", "wall charger", "earphone", "neckband", "tws earbuds", "smart watch",
+            "trimmer", "shaver", "hair dryer", "hair straightener", "electric kettle", "blender", "rice cooker",
+            "drill machine", "hand tools", "measuring tape", "cricket bat ball", "badminton racket", "yoga mat set",
+            "car accessories", "bike accessories", "helmet", "fishing", "camping", "gardening tools"
     );
 
     private final ObjectMapper mapper = new ObjectMapper();
