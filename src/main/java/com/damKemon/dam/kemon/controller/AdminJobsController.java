@@ -3,6 +3,7 @@ package com.damKemon.dam.kemon.controller;
 import com.damKemon.dam.kemon.indexer.BulkIndexer;
 import com.damKemon.dam.kemon.indexer.ShopDiscoveryService;
 import com.damKemon.dam.kemon.service.HotDropsService;
+import com.damKemon.dam.kemon.service.SellerDirectoryService;
 import com.damKemon.dam.kemon.service.SyntheticMonitorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ public class AdminJobsController {
     private final ShopDiscoveryService discovery;
     private final HotDropsService hotDrops;
     private final SyntheticMonitorService synthetic;
+    private final SellerDirectoryService sellerDirectory;
 
     /** id → ring-buffer of last N run timestamps (manual only). */
     private final ConcurrentHashMap<String, java.util.Deque<Map<String, Object>>> recent =
@@ -40,11 +42,13 @@ public class AdminJobsController {
     public AdminJobsController(BulkIndexer indexer,
                                ShopDiscoveryService discovery,
                                HotDropsService hotDrops,
-                               SyntheticMonitorService synthetic) {
+                               SyntheticMonitorService synthetic,
+                               SellerDirectoryService sellerDirectory) {
         this.indexer = indexer;
         this.discovery = discovery;
         this.hotDrops = hotDrops;
         this.synthetic = synthetic;
+        this.sellerDirectory = sellerDirectory;
     }
 
     @GetMapping
@@ -60,6 +64,8 @@ public class AdminJobsController {
                         "Recomputes products with ≥10% drop vs 7d peak"),
                 jobRow("shop-discovery", "Shop discovery", "manual",
                         "Walks e-cab + BASIS, queues new shops into pending_shops"),
+                jobRow("seller-sync", "Seller directory sync", "0 30 5 * * *",
+                        "Upserts active shops + marketplace storefronts into the sellers directory"),
                 jobRow("synthetic-monitor", "Synthetic search canary", "every 15 min",
                         "Runs sample queries; flips /actuator/health/synthetic")
         ));
@@ -73,6 +79,7 @@ public class AdminJobsController {
                     case "indexer-nightly" -> indexer.runAll();
                     case "indexer-retry" -> indexer.runRetry();
                     case "shop-discovery" -> discovery.discover();
+                    case "seller-sync" -> sellerDirectory.syncOnce();
                     case "hot-drops-rebuild" -> hotDrops.rebuild();
                     case "synthetic-monitor" -> synthetic.run();
                     default -> {
