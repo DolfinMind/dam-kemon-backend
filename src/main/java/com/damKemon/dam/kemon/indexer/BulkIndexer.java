@@ -314,6 +314,19 @@ public class BulkIndexer {
         return shop.getLastIndexedCount() == null ? 0 : shop.getLastIndexedCount();
     }
 
+    /** Synchronously index a specific set of shops by slug, sharing one LSH warm.
+     *  Used to revive dormant shops on demand (e.g. with the browser enabled). */
+    public int runShops(List<String> slugs) {
+        List<Shop> shops = new ArrayList<>();
+        for (String slug : slugs) {
+            try { shopRepository.findBySlug(slug).ifPresent(shops::add); }
+            catch (DataAccessException ignored) { /* skip */ }
+        }
+        if (shops.isEmpty()) return 0;
+        RunSummary s = runSubset(shops);
+        return s.productsInserted + s.productsMerged;
+    }
+
     private RunSummary runSubset(List<Shop> shops) {
         RunSummary summary = new RunSummary();
         summary.startedAtEpochMs = System.currentTimeMillis();

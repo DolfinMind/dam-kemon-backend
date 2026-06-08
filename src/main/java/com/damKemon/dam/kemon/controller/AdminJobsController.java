@@ -68,6 +68,8 @@ public class AdminJobsController {
                         "Upserts active shops + marketplace storefronts into the sellers directory"),
                 jobRow("daraz-deep", "Daraz deep harvest", "manual",
                         "Re-harvests Daraz only with deep paging — more distinct sellers per product"),
+                jobRow("revive-tech", "Revive dormant tech shops", "manual",
+                        "Re-crawls dormant tech/mobile shops (run with browser on) to add sellers per product"),
                 jobRow("synthetic-monitor", "Synthetic search canary", "every 15 min",
                         "Runs sample queries; flips /actuator/health/synthetic")
         ));
@@ -83,6 +85,12 @@ public class AdminJobsController {
                     case "shop-discovery" -> discovery.discover();
                     case "seller-sync" -> sellerDirectory.syncOnce();
                     case "daraz-deep" -> indexer.runOne("daraz");
+                    case "revive-tech" -> indexer.runShops(java.util.List.of(
+                            // mobile first (phone depth), then computing/accessories
+                            "sumashtech", "mobilebuzzbd", "mobilezonebd", "gadgetnova", "priyoshop",
+                            "computervillage", "skyland", "ultratech", "ittechbd", "techbangla",
+                            "dhakatechbd", "toolsterminal", "miniso", "pcbuilderbd", "earphonebd",
+                            "smartzone", "ekshop", "singerbd", "sindabad", "robishop", "techcity"));
                     case "hot-drops-rebuild" -> hotDrops.rebuild();
                     case "synthetic-monitor" -> synthetic.run();
                     default -> {
