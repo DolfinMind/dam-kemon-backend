@@ -66,6 +66,8 @@ public class AdminJobsController {
                         "Walks e-cab + BASIS, queues new shops into pending_shops"),
                 jobRow("seller-sync", "Seller directory sync", "0 30 5 * * *",
                         "Upserts active shops + marketplace storefronts into the sellers directory"),
+                jobRow("daraz-deep", "Daraz deep harvest", "manual",
+                        "Re-harvests Daraz only with deep paging — more distinct sellers per product"),
                 jobRow("synthetic-monitor", "Synthetic search canary", "every 15 min",
                         "Runs sample queries; flips /actuator/health/synthetic")
         ));
@@ -80,6 +82,7 @@ public class AdminJobsController {
                     case "indexer-retry" -> indexer.runRetry();
                     case "shop-discovery" -> discovery.discover();
                     case "seller-sync" -> sellerDirectory.syncOnce();
+                    case "daraz-deep" -> indexer.runOne("daraz");
                     case "hot-drops-rebuild" -> hotDrops.rebuild();
                     case "synthetic-monitor" -> synthetic.run();
                     default -> {

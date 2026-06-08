@@ -49,6 +49,14 @@ indexer:
   global-parallelism: ${INDEXER_GLOBAL_PARALLELISM:24}
   user-agent: "${INDEXER_USER_AGENT:Mozilla/5.0 DamKemon/1.0 (+contact hello@damkemon.com)}"
 
+# ───── Daraz marketplace harvest (the per-product seller depth lever) ─────
+# Each Daraz listing is a distinct sub-seller (SitePrice.sellerId). Deeper paging
+# = more distinct sellers AND more sellers per product. Daraz paces ~1.5s/request.
+daraz:
+  max-pages-per-query: ${DARAZ_MAX_PAGES_PER_QUERY:3}
+  max-per-query: ${DARAZ_MAX_PER_QUERY:40}
+  max-products: ${DARAZ_MAX_PRODUCTS:3000}
+
 # ───── Autonomous shop discovery + lifecycle ─────
 # Weekly job: discover new BD shops (e-CAB/BASIS directories), auto-activate the
 # ones that pass a product-URL probe, and revive previously auto-blocked shops

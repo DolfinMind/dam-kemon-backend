@@ -890,7 +890,7 @@ public class BulkIndexer {
     }
 
     /** Most offers we keep on one product, so a flooded marketplace can't bloat it. */
-    private static final int MAX_OFFERS_PER_PRODUCT = 12;
+    private static final int MAX_OFFERS_PER_PRODUCT = 24;
 
     /**
      * Dedup identity for an offer. A marketplace sub-seller (sellerId present) is
