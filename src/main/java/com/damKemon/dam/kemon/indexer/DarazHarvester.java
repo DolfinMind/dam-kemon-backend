@@ -53,6 +53,47 @@ public class DarazHarvester implements ShopHarvester {
      * phones/laptops and spend the budget on what's missing.
      */
     private static final List<String> QUERIES = List.of(
+            // ===== TECH DEPTH (harvested FIRST) — SPECIFIC models so many distinct
+            // sellers converge on the SAME product, lifting sellers-per-product, not
+            // just raw catalog breadth. Daraz rate-limits ~500 products/run from one
+            // IP, so spend that budget on tech where the seller overlap is highest. =====
+            "iphone 15", "iphone 15 plus", "iphone 15 pro", "iphone 15 pro max",
+            "iphone 14", "iphone 14 pro max", "iphone 13", "iphone 12", "iphone 11",
+            "iphone 16", "iphone 16 pro max", "iphone se",
+            "samsung galaxy a05", "samsung galaxy a15", "samsung galaxy a25", "samsung galaxy a35",
+            "samsung galaxy a55", "samsung galaxy s24", "samsung galaxy s24 ultra", "samsung galaxy s23",
+            "samsung galaxy m15", "samsung galaxy f15",
+            "redmi note 13", "redmi note 13 pro", "redmi note 12", "redmi 13c", "redmi a3",
+            "poco x6", "poco x6 pro", "poco c65", "poco m6",
+            "realme c55", "realme c53", "realme c63", "realme 12", "realme 12 pro", "realme narzo 70",
+            "infinix hot 40", "infinix hot 40 pro", "infinix note 40", "infinix smart 8", "infinix zero 30",
+            "tecno spark 20", "tecno spark 20 pro", "tecno camon 30", "tecno pop 8",
+            "oppo a78", "oppo a58", "oppo a18", "oppo reno 11", "oppo reno 12",
+            "vivo y28", "vivo y17s", "vivo y27", "vivo v30", "vivo v29",
+            "oneplus nord ce 4", "oneplus 12r", "oneplus nord n30",
+            "xiaomi 14", "xiaomi 13t", "motorola g54", "motorola g34",
+            "nokia c32", "nokia g42", "honor x9b", "honor x8b", "honor 90",
+            "walton primo", "symphony mobile", "itel a70", "itel p55",
+            // — laptops (model-specific) —
+            "asus vivobook", "asus tuf gaming laptop", "asus zenbook", "acer aspire", "acer nitro 5",
+            "hp pavilion", "hp victus", "hp probook", "dell inspiron", "dell xps",
+            "lenovo ideapad", "lenovo legion", "lenovo thinkpad", "msi gaming laptop", "msi modern",
+            "macbook air m1", "macbook air m2", "macbook air m3", "macbook pro m3",
+            // — tablets —
+            "samsung galaxy tab a9", "samsung galaxy tab s9", "ipad 9th gen", "ipad 10th gen",
+            "ipad air", "xiaomi pad 6", "lenovo tab m10", "realme pad",
+            // — tech accessories (very high seller convergence per SKU) —
+            "type c cable", "lightning cable", "65w charger", "33w charger", "20w charger",
+            "power bank 20000mah", "power bank 10000mah", "tempered glass", "magsafe charger",
+            "anker power bank", "baseus charger", "ugreen cable", "joyroom power bank",
+            "airpods pro 2", "airpods 3", "tws earbuds", "bluetooth neckband", "wireless earbuds",
+            "samsung buds", "soundcore earbuds", "jbl earbuds", "havit earbuds",
+            "amazfit watch", "smart watch", "apple watch series 9", "redmi watch",
+            // — components & PC —
+            "ssd 256gb", "ssd 512gb", "ssd 1tb", "ram 8gb ddr4", "ram 16gb",
+            "wifi router", "pendrive 32gb", "pendrive 64gb", "memory card 64gb", "memory card 128gb",
+            "gaming mouse", "mechanical keyboard", "rtx 4060", "monitor 24 inch", "webcam",
+            // ===== END TECH DEPTH =====
             // Distinct seed queries fan out across Daraz's catalog; more diverse
             // seeds = more DISTINCT products (each ~20-40). Cover the high-inventory
             // categories so the marketplace contributes volume, not just WC merch.
