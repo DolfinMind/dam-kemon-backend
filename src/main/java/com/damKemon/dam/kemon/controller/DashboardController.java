@@ -8,6 +8,7 @@ import com.damKemon.dam.kemon.repository.PriceHistoryRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ReviewRepository;
 import com.damKemon.dam.kemon.repository.ScrapingJobRepository;
+import com.damKemon.dam.kemon.repository.SellerRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataAccessException;
@@ -32,17 +33,20 @@ public class DashboardController {
     private final PriceHistoryRepository priceHistoryRepository;
     private final ScrapingJobRepository scrapingJobRepository;
     private final ShopRepository shopRepository;
+    private final SellerRepository sellerRepository;
 
     public DashboardController(ProductRepository productRepository,
                                ReviewRepository reviewRepository,
                                PriceHistoryRepository priceHistoryRepository,
                                ScrapingJobRepository scrapingJobRepository,
-                               ShopRepository shopRepository) {
+                               ShopRepository shopRepository,
+                               SellerRepository sellerRepository) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.priceHistoryRepository = priceHistoryRepository;
         this.scrapingJobRepository = scrapingJobRepository;
         this.shopRepository = shopRepository;
+        this.sellerRepository = sellerRepository;
     }
 
     @GetMapping("/stats")
@@ -90,10 +94,12 @@ public class DashboardController {
         }
 
         long activeShops = siteStats.stream().filter(s -> "active".equals(s.getStatus())).count();
+        long totalSellers = safe(() -> sellerRepository.count());
 
         DashboardStats stats = DashboardStats.builder()
                 .totalProducts(totalProducts)
                 .totalSites((int) activeShops)
+                .totalSellers((int) totalSellers)
                 .totalReviews(totalReviews)
                 .totalPricePoints(totalPricePoints)
                 .recentSearches(recentSearches)

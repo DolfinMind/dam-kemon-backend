@@ -14,6 +14,8 @@ import java.util.List;
 public class DashboardStats {
     private Long totalProducts;
     private Integer totalSites;
+    /** Total distinct sellers in the directory (shops + marketplace storefronts + f-commerce). */
+    private Integer totalSellers;
     private Long totalReviews;
     private Long totalPricePoints;
     private List<String> recentSearches;
