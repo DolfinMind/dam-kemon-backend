@@ -67,6 +67,11 @@ discovery:
   cron: ${DISCOVERY_CRON:0 0 1 * * SUN}
   min-product-urls: ${DISCOVERY_MIN_PRODUCT_URLS:5}
   max-per-run: ${DISCOVERY_MAX_PER_RUN:20}
+  # SERP discovery: search-API endpoint template with {q} (SerpAPI/Bing/Google CSE
+  # JSON). When set, the 'serp-discover' job finds shops by searching popular
+  # products and harvesting BD shop domains from results. Empty = disabled.
+  # e.g. https://serpapi.com/search.json?engine=google&num=20&q={q}&api_key=XXXX
+  search-api-url: ${DISCOVERY_SEARCH_API_URL:}
 
 # ───── Search behaviour ─────
 search:

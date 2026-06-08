@@ -64,6 +64,8 @@ public class AdminJobsController {
                         "Recomputes products with ≥10% drop vs 7d peak"),
                 jobRow("shop-discovery", "Shop discovery", "manual",
                         "Walks e-cab + BASIS, queues new shops into pending_shops"),
+                jobRow("serp-discover", "SERP shop discovery", "manual",
+                        "Searches popular products, harvests BD shop domains into pending_shops (needs discovery.search-api-url)"),
                 jobRow("seller-sync", "Seller directory sync", "0 30 5 * * *",
                         "Upserts active shops + marketplace storefronts into the sellers directory"),
                 jobRow("daraz-deep", "Daraz deep harvest", "manual",
@@ -83,6 +85,7 @@ public class AdminJobsController {
                     case "indexer-nightly" -> indexer.runAll();
                     case "indexer-retry" -> indexer.runRetry();
                     case "shop-discovery" -> discovery.discover();
+                    case "serp-discover" -> discovery.discoverViaSearch();
                     case "seller-sync" -> sellerDirectory.syncOnce();
                     case "daraz-deep" -> indexer.runOne("daraz");
                     case "revive-tech" -> indexer.runShops(java.util.List.of(
