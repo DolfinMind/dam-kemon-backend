@@ -95,6 +95,10 @@ discovery:
 # ───── Search behaviour ─────
 search:
   page-size: ${SEARCH_PAGE_SIZE:30}
+  # Hard ceiling on a single requested page size, and how deep the ranked pool
+  # goes (how far "Load more" can page within one query).
+  max-page-size: ${SEARCH_MAX_PAGE_SIZE:60}
+  max-candidates: ${SEARCH_MAX_CANDIDATES:300}
   # Atlas Search ($search aggregation). Requires a Mongo Atlas cluster with
   # an Atlas Search index named below. Falls back to $text when disabled or
   # the index doesn't exist — no external service requirement.

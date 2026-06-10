@@ -24,10 +24,12 @@ public class SearchController {
 
     @GetMapping
     public ResponseEntity<SearchResponse> search(@RequestParam("q") String query,
+                                                 @RequestParam(value = "page", defaultValue = "0") int page,
+                                                 @RequestParam(value = "size", required = false) Integer size,
                                                  @RequestHeader(value = "X-Anon-Id", required = false) String anonId,
                                                  HttpServletRequest req) {
         long start = System.nanoTime();
-        SearchResponse resp = catalog.search(query);
+        SearchResponse resp = catalog.search(query, Math.max(0, page), size == null ? 0 : size);
         long latencyMs = (System.nanoTime() - start) / 1_000_000;
         String userId = (String) req.getAttribute("authUserId");
         analytics.recordSearch(query,

@@ -16,8 +16,16 @@ import java.util.List;
 public class SearchResponse {
     private String query;
     private List<Product> products;
+    /** Full number of ranked matches for the query (NOT just this page). */
     private Integer totalResults;
     private List<String> sitesSearched;
+
+    /** Zero-based page index of {@link #products} within the full ranked set. */
+    private Integer page;
+    /** Page size requested. */
+    private Integer size;
+    /** True when more ranked results exist beyond this page (drives "Load more"). */
+    private Boolean hasMore;
 
     /** Intent metadata: detected categories, brands, confidence. */
     private String detectedCategory;

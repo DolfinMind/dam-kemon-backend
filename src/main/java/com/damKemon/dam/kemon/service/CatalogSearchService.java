@@ -106,8 +106,22 @@ public class CatalogSearchService {
     private final TrigramSearchIndex trigram;
     private final AtlasSearchService atlasSearch;
 
+    /** Default page size when the caller doesn't specify one. */
     @Value("${search.page-size:30}")
     private int pageSize;
+
+    /** Upper bound on a single requested page size (guards against abuse). */
+    @Value("${search.max-page-size:60}")
+    private int maxPageSize;
+
+    /**
+     * How many candidates we gather + rank before paginating. The response is
+     * sliced from this ranked pool, so it bounds how deep "Load more" can go in
+     * one query. 300 keeps ranking in-memory cheap while covering broad browses
+     * (e.g. "laptop") far past the old 30-result wall.
+     */
+    @Value("${search.max-candidates:300}")
+    private int maxCandidates;
 
     public CatalogSearchService(ProductRepository productRepository,
                                 QueryClassifier classifier,
@@ -121,13 +135,26 @@ public class CatalogSearchService {
         this.atlasSearch = atlasSearch;
     }
 
+    /** Back-compat entry point: first page at the default size. */
+    public SearchResponse search(String query) {
+        return search(query, 0, pageSize);
+    }
+
+    /**
+     * Paginated search. We gather + rank up to {@code maxCandidates} once, then
+     * return the requested page slice with {@code hasMore} so the UI can offer
+     * "Load more" — replacing the old hard 30-result wall. Cached per
+     * (normalized query, page, size) for 60s.
+     */
     @Cacheable(
         value = "search",
-        key = "#query == null ? '' : T(java.util.regex.Pattern).compile('\\\\s+').matcher(#query.trim()).replaceAll(' ').toLowerCase()",
+        key = "(#query == null ? '' : T(java.util.regex.Pattern).compile('\\\\s+').matcher(#query.trim()).replaceAll(' ').toLowerCase()) + '|' + #page + '|' + #size",
         condition = "#query != null && #query.trim().length() >= 2",
         unless = "#result == null || #result.totalResults == null"
     )
-    public SearchResponse search(String query) {
+    public SearchResponse search(String query, int page, int size) {
+        final int pageIdx = Math.max(0, page);
+        final int pageLen = size <= 0 ? pageSize : Math.min(size, maxPageSize);
         String bengaliFixed = expander.normalizeBengali(query == null ? "" : query);
 
         // Price-intent: lift "under 20000 / below 50k / over 1 lakh / cheap" out of
@@ -158,7 +185,7 @@ public class CatalogSearchService {
         if (categoryBrowse) {
             try {
                 for (Product p : productRepository
-                        .findByCategoryIgnoreCase(catLabel, PageRequest.of(0, pageSize)).getContent())
+                        .findByCategoryIgnoreCase(catLabel, PageRequest.of(0, maxCandidates)).getContent())
                     if (p.getId() != null) bag.putIfAbsent(p.getId(), p);
             } catch (DataAccessException e) {
                 log.debug("Category-browse fetch failed: {}", e.getMessage());
@@ -179,7 +206,7 @@ public class CatalogSearchService {
         // Trigram fallback when the (now relevance-filtered) literal passes are thin
         String didYouMean = null;
         if (raw.size() < MIN_RECALL && trigram.isEnabled()) {
-            List<TrigramIndex.Hit> fuzzy = trigram.topK(bengaliFixed, pageSize, TRIGRAM_MIN);
+            List<TrigramIndex.Hit> fuzzy = trigram.topK(bengaliFixed, maxCandidates, TRIGRAM_MIN);
             if (!fuzzy.isEmpty()) {
                 Map<String, Product> have = new LinkedHashMap<>();
                 for (Product p : raw) if (p.getId() != null) have.put(p.getId(), p);
@@ -213,31 +240,43 @@ public class CatalogSearchService {
 
         // Sponsored injection — put one paid product into the top slot when
         // it isn't already in the list, is plausibly relevant, and (if a price
-        // range was asked for) fits it. We dedupe by id and surface IDs separately.
+        // range was asked for) fits it. Only on the first page (it's the top
+        // slot, not something that should reappear as the user pages down).
         List<String> sponsoredIds = new ArrayList<>();
-        try {
-            Product sponsor = pickSponsor(intent);
-            if (sponsor != null && sponsor.getId() != null && pf.matches(sponsor.getLowestPrice())) {
-                raw.removeIf(p -> sponsor.getId().equals(p.getId()));
-                raw.add(0, sponsor);
-                sponsoredIds.add(sponsor.getId());
+        if (pageIdx == 0) {
+            try {
+                Product sponsor = pickSponsor(intent);
+                if (sponsor != null && sponsor.getId() != null && pf.matches(sponsor.getLowestPrice())) {
+                    raw.removeIf(p -> sponsor.getId().equals(p.getId()));
+                    raw.add(0, sponsor);
+                    sponsoredIds.add(sponsor.getId());
+                }
+            } catch (DataAccessException e) {
+                log.debug("Sponsored pick failed (ignored): {}", e.getMessage());
             }
-        } catch (DataAccessException e) {
-            log.debug("Sponsored pick failed (ignored): {}", e.getMessage());
         }
 
-        // Category browse can gather name-matches + a full category page; keep the
-        // top pageSize after ranking so the response stays a single page.
-        if (raw.size() > pageSize) raw = new ArrayList<>(raw.subList(0, pageSize));
+        // Cap the ranked pool, then page over it. totalResults is the FULL ranked
+        // count (so the UI knows the real size); products is just this page's slice
+        // and hasMore drives "Load more".
+        if (raw.size() > maxCandidates) raw = new ArrayList<>(raw.subList(0, maxCandidates));
+        int total = raw.size();
+        int from = Math.min(pageIdx * pageLen, total);
+        int to = Math.min(from + pageLen, total);
+        List<Product> pageItems = new ArrayList<>(raw.subList(from, to));
+        boolean hasMore = to < total;
 
-        List<String> sitesSet = raw.stream()
+        List<String> sitesSet = pageItems.stream()
                 .flatMap(p -> p.getPrices() == null ? java.util.stream.Stream.empty() : p.getPrices().stream())
                 .map(sp -> sp.getSiteName()).filter(java.util.Objects::nonNull).distinct().toList();
 
         return SearchResponse.builder()
                 .query(query)
-                .products(raw)
-                .totalResults(raw.size())
+                .products(pageItems)
+                .totalResults(total)
+                .page(pageIdx)
+                .size(pageLen)
+                .hasMore(hasMore)
                 .sitesSearched(new ArrayList<>(sitesSet))
                 .sitesSkipped(List.of())
                 .detectedCategory(intent.primaryCategory().getLabel())
@@ -297,17 +336,19 @@ public class CatalogSearchService {
 
     private List<Product> textOrRegexSearch(String query, Set<String> expandedTokens) {
         if (query == null || query.isBlank()) return List.of();
-        Pageable page = PageRequest.of(0, pageSize);
+        // Gather a deep candidate pool (not just one page) so ranking + pagination
+        // have something to work with — this is what lets "Load more" go past 30.
+        Pageable page = PageRequest.of(0, maxCandidates);
         Map<String, Product> merged = new LinkedHashMap<>();
 
         // Pass 0: Atlas Search (fuzzy + autocomplete) — fast path on paid clusters
         if (atlasSearch.isEnabled()) {
-            List<Product> atlasHits = atlasSearch.search(query, pageSize);
+            List<Product> atlasHits = atlasSearch.search(query, maxCandidates);
             if (atlasHits != null) {
                 for (Product p : atlasHits) {
                     if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
                 }
-                if (merged.size() >= pageSize) return new ArrayList<>(merged.values());
+                if (merged.size() >= maxCandidates) return new ArrayList<>(merged.values());
             }
         }
 
@@ -324,7 +365,7 @@ public class CatalogSearchService {
         // Pass 2: OR-regex over expanded tokens. Earlier behaviour was AND;
         // we relax to OR so any token can match, then rely on rankInPlace
         // to surface the products that match the most tokens first.
-        if (!expandedTokens.isEmpty() && merged.size() < pageSize) {
+        if (!expandedTokens.isEmpty() && merged.size() < maxCandidates) {
             try {
                 for (Product p : productRepository.findByNamePrefix(buildOrRegex(expandedTokens), page)) {
                     if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
@@ -335,7 +376,7 @@ public class CatalogSearchService {
         }
 
         // Pass 3: raw substring — last-ditch contiguous-phrase match
-        if (merged.size() < pageSize) {
+        if (merged.size() < maxCandidates) {
             try {
                 for (Product p : productRepository.findByNameContainingIgnoreCase(query)) {
                     if (p.getId() != null) merged.putIfAbsent(p.getId(), p);

@@ -19,14 +19,14 @@ class SearchControllerTest {
         CatalogSearchService catalog = mock(CatalogSearchService.class);
         AnalyticsService analytics = mock(AnalyticsService.class);
         SearchResponse fake = SearchResponse.builder().query("iphone").totalResults(12).build();
-        when(catalog.search("iphone")).thenReturn(fake);
+        when(catalog.search(eq("iphone"), eq(0), eq(0))).thenReturn(fake);
 
         HttpServletRequest req = mock(HttpServletRequest.class);
         when(req.getRemoteAddr()).thenReturn("203.0.113.5");
         when(req.getAttribute("authUserId")).thenReturn("user-7");
 
         SearchController ctrl = new SearchController(catalog, analytics);
-        var resp = ctrl.search("iphone", "anon-id-123", req);
+        var resp = ctrl.search("iphone", 0, null, "anon-id-123", req);
 
         assertEquals(200, resp.getStatusCode().value());
         assertNotNull(resp.getBody());
@@ -45,13 +45,13 @@ class SearchControllerTest {
     void searchUsesXForwardedForWhenPresent() {
         CatalogSearchService catalog = mock(CatalogSearchService.class);
         AnalyticsService analytics = mock(AnalyticsService.class);
-        when(catalog.search(anyString())).thenReturn(SearchResponse.builder().totalResults(0).build());
+        when(catalog.search(anyString(), anyInt(), anyInt())).thenReturn(SearchResponse.builder().totalResults(0).build());
 
         HttpServletRequest req = mock(HttpServletRequest.class);
         when(req.getHeader("X-Forwarded-For")).thenReturn("1.2.3.4, 5.6.7.8");
 
         SearchController ctrl = new SearchController(catalog, analytics);
-        ctrl.search("x", null, req);
+        ctrl.search("x", 0, null, null, req);
 
         verify(analytics).recordSearch(eq("x"), eq(0), eq(null), eq("1.2.3.4"),
                 eq(null), org.mockito.ArgumentMatchers.anyLong());
