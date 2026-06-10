@@ -44,6 +44,10 @@ indexer:
   sitemap-timeout-ms: ${INDEXER_SITEMAP_TIMEOUT_MS:15000}
   max-urls-per-shop: ${INDEXER_MAX_URLS_PER_SHOP:1500}
   max-products-per-shop: ${INDEXER_MAX_PRODUCTS_PER_SHOP:500}
+  # Marketplace shops (Daraz etc.) carry many distinct-seller listings of the same
+  # model — those converge onto one product and lift sellers-per-product, so they
+  # get a far higher cap than first-party shops (which would just add breadth).
+  marketplace-max-offers: ${INDEXER_MARKETPLACE_MAX_OFFERS:4000}
   per-extract-timeout-ms: ${INDEXER_PER_EXTRACT_TIMEOUT_MS:15000}
   per-host-parallelism: ${INDEXER_PER_HOST_PARALLELISM:2}
   global-parallelism: ${INDEXER_GLOBAL_PARALLELISM:24}

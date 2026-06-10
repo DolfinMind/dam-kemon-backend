@@ -93,6 +93,12 @@ public class BulkIndexer {
     @Value("${indexer.max-products-per-shop:500}")
     private int maxProductsPerShop;
 
+    /** Per-harvest cap for MARKETPLACE shops (listings carry a distinct sellerId).
+     *  Much higher than the first-party cap because each extra listing is a
+     *  sub-seller that converges onto an existing product, not catalog breadth. */
+    @Value("${indexer.marketplace-max-offers:4000}")
+    private int marketplaceMaxOffers;
+
     /** Per-run cap on browser renders (sniffer + learner) so a nightly pass can't
      *  wedge on dozens of serial Playwright calls. Beyond it, 0-yield shops defer
      *  to the next run (both paths are 24h-throttled anyway). */
@@ -622,7 +628,16 @@ public class BulkIndexer {
                            MinHashLSH lsh,
                            AtomicInteger inserted,
                            AtomicInteger merged) {
-        int cap = Math.min(products.size(), maxProductsPerShop);
+        // Marketplace harvests (Daraz etc.) carry a distinct sellerId per listing,
+        // and many of those listings are the SAME model from different storefronts —
+        // exactly the sub-sellers that converge onto one product via matchKey and
+        // lift sellers-per-product (our core metric). Capping them at the first-party
+        // per-shop limit threw away that depth (Daraz returned 3000 listings but only
+        // 500 persisted). Let marketplace listings persist far deeper; first-party
+        // shops keep the breadth cap so they don't bloat the catalog.
+        boolean marketplace = products.stream().anyMatch(
+                sp -> sp != null && sp.getSellerId() != null && !sp.getSellerId().isBlank());
+        int cap = Math.min(products.size(), marketplace ? marketplaceMaxOffers : maxProductsPerShop);
         int ok = 0;
         for (int i = 0; i < cap; i++) {
             ScrapedProduct sp = products.get(i);

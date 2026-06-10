@@ -14,9 +14,11 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.bson.Document;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -72,6 +74,71 @@ public class AdminCatalogController {
         } catch (DataAccessException e) {
             return ResponseEntity.ok(Map.of("content", List.of(), "totalElements", 0));
         }
+    }
+
+    /**
+     * Seller-depth report — the core business metric. Server-side aggregation over
+     * {@code prices[]} length, so it's heap-safe at any catalog size. Returns the
+     * average sellers/product, the single-vs-multi split, and the deepest products.
+     * This is the number to watch: more sellers/product = real price comparison.
+     */
+    @GetMapping("/seller-depth")
+    public ResponseEntity<?> sellerDepth() {
+        try {
+            List<Document> pipeline = List.of(
+                new Document("$project", new Document("sellers",
+                        new Document("$size", new Document("$ifNull", List.of("$prices", List.of()))))),
+                new Document("$group", new Document("_id", null)
+                        .append("products", new Document("$sum", 1))
+                        .append("totalOffers", new Document("$sum", "$sellers"))
+                        .append("avgSellers", new Document("$avg", "$sellers"))
+                        .append("maxSellers", new Document("$max", "$sellers"))
+                        .append("single", countWhen(new Document("$lte", List.of("$sellers", 1))))
+                        .append("multi",  countWhen(new Document("$gte", List.of("$sellers", 2))))
+                        .append("atLeast3", countWhen(new Document("$gte", List.of("$sellers", 3))))
+                        .append("atLeast5", countWhen(new Document("$gte", List.of("$sellers", 5))))));
+            Document r = mongo.getCollection("products").aggregate(pipeline).first();
+            Map<String, Object> out = new LinkedHashMap<>();
+            if (r == null) { out.put("products", 0); return ResponseEntity.ok(out); }
+            long prods = num(r.get("products"));
+            long multi = num(r.get("multi"));
+            double avg = r.get("avgSellers") == null ? 0 : ((Number) r.get("avgSellers")).doubleValue();
+            out.put("products", prods);
+            out.put("totalOffers", num(r.get("totalOffers")));
+            out.put("avgSellersPerProduct", Math.round(avg * 100.0) / 100.0);
+            out.put("maxSellers", num(r.get("maxSellers")));
+            out.put("singleSeller", num(r.get("single")));
+            out.put("multiSeller", multi);
+            out.put("multiSellerPct", prods == 0 ? 0 : Math.round(multi * 1000.0 / prods) / 10.0);
+            out.put("atLeast3Sellers", num(r.get("atLeast3")));
+            out.put("atLeast5Sellers", num(r.get("atLeast5")));
+
+            // The deepest products — what good comparison looks like today.
+            List<Document> topPipe = List.of(
+                new Document("$project", new Document("name", 1)
+                        .append("sellers", new Document("$size", new Document("$ifNull", List.of("$prices", List.of()))))),
+                new Document("$sort", new Document("sellers", -1)),
+                new Document("$limit", 10));
+            List<Map<String, Object>> top = new ArrayList<>();
+            for (Document d : mongo.getCollection("products").aggregate(topPipe)) {
+                Map<String, Object> t = new LinkedHashMap<>();
+                t.put("name", d.getString("name"));
+                t.put("sellers", num(d.get("sellers")));
+                top.add(t);
+            }
+            out.put("deepestProducts", top);
+            return ResponseEntity.ok(out);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    private static Document countWhen(Document predicate) {
+        return new Document("$sum", new Document("$cond", List.of(predicate, 1, 0)));
+    }
+
+    private static long num(Object o) {
+        return o instanceof Number n ? n.longValue() : 0L;
     }
 
     /** Edit core fields of a product. Operator override of indexer detection. */
