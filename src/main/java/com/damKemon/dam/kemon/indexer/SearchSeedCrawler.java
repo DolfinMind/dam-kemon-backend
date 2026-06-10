@@ -127,28 +127,7 @@ public class SearchSeedCrawler {
         LinkedHashSet<String> urls = new LinkedHashSet<>();
         for (String seed : seeds) {
             if (urls.size() >= maxUrlsPerShop) break;
-            String url = template.replace("{q}", URLEncoder.encode(seed, StandardCharsets.UTF_8));
-            try {
-                Document doc = useJs ? browser.fetchDocument(url) : Jsoup.connect(url)
-                        .userAgent(userAgent)
-                        .timeout(timeoutMs)
-                        .followRedirects(true)
-                        .get();
-                if (doc == null) continue;
-                int added = 0;
-                for (Element a : doc.select("a[href]")) {
-                    String href = a.absUrl("href");
-                    if (href.isBlank()) continue;
-                    String linkHost = stripWww(hostOf(href));
-                    if (linkHost == null || !linkHost.equals(baseHost)) continue;
-                    if (!looksLikeProductUrl(href)) continue;
-                    if (urls.add(href)) added++;
-                    if (urls.size() >= maxUrlsPerShop) break;
-                }
-                log.debug("SearchSeed: shop '{}' seed '{}' → {} new product URLs", shop.getSlug(), seed, added);
-            } catch (Exception e) {
-                log.debug("SearchSeed: shop '{}' seed '{}' failed: {}", shop.getSlug(), seed, e.getMessage());
-            }
+            urls.addAll(searchProductUrls(shop, seed, useJs, maxUrlsPerShop - urls.size()));
         }
 
         if (!urls.isEmpty()) {
@@ -156,6 +135,46 @@ public class SearchSeedCrawler {
                     shop.getSlug(), urls.size(), seeds.size());
         }
         return new ArrayList<>(urls);
+    }
+
+    /**
+     * Run ONE query against the shop's search URL and return the product URLs
+     * on the results page (same-host, product-shaped), newest/topmost first.
+     *
+     * <p>Exposed for the {@link SellerDepthHarvester}, which fans a shared set of
+     * canonical tech-model queries across every shop to manufacture cross-shop
+     * overlap — searching the SAME "Samsung Galaxy A55" on 40 shops is what lifts
+     * sellers-per-product, whereas {@link #crawl} fires category seeds that return
+     * a different product mix per shop.
+     */
+    public List<String> searchProductUrls(Shop shop, String query, boolean useJs, int maxUrls) {
+        if (shop.getSearchUrlTemplate() == null || !shop.getSearchUrlTemplate().contains("{q}")) return List.of();
+        String baseHost = stripWww(hostOf(shop.getBaseUrl()));
+        if (baseHost == null) return List.of();
+        String url = shop.getSearchUrlTemplate()
+                .replace("{q}", URLEncoder.encode(query, StandardCharsets.UTF_8));
+        LinkedHashSet<String> out = new LinkedHashSet<>();
+        try {
+            Document doc = useJs ? browser.fetchDocument(url) : Jsoup.connect(url)
+                    .userAgent(userAgent)
+                    .timeout(timeoutMs)
+                    .followRedirects(true)
+                    .get();
+            if (doc == null) return List.of();
+            for (Element a : doc.select("a[href]")) {
+                String href = a.absUrl("href");
+                if (href.isBlank()) continue;
+                String linkHost = stripWww(hostOf(href));
+                if (linkHost == null || !linkHost.equals(baseHost)) continue;
+                if (!looksLikeProductUrl(href)) continue;
+                out.add(href);
+                if (out.size() >= Math.max(1, maxUrls)) break;
+            }
+            log.debug("SearchSeed: shop '{}' query '{}' → {} product URLs", shop.getSlug(), query, out.size());
+        } catch (Exception e) {
+            log.debug("SearchSeed: shop '{}' query '{}' failed: {}", shop.getSlug(), query, e.getMessage());
+        }
+        return new ArrayList<>(out);
     }
 
     private List<String> pickSeeds(List<String> categories) {

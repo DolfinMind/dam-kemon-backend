@@ -1,6 +1,7 @@
 package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.indexer.BulkIndexer;
+import com.damKemon.dam.kemon.indexer.SellerDepthHarvester;
 import com.damKemon.dam.kemon.indexer.ShopDiscoveryService;
 import com.damKemon.dam.kemon.service.HotDropsService;
 import com.damKemon.dam.kemon.service.SellerDirectoryService;
@@ -34,6 +35,7 @@ public class AdminJobsController {
     private final HotDropsService hotDrops;
     private final SyntheticMonitorService synthetic;
     private final SellerDirectoryService sellerDirectory;
+    private final SellerDepthHarvester sellerDepth;
 
     /** id → ring-buffer of last N run timestamps (manual only). */
     private final ConcurrentHashMap<String, java.util.Deque<Map<String, Object>>> recent =
@@ -43,12 +45,14 @@ public class AdminJobsController {
                                ShopDiscoveryService discovery,
                                HotDropsService hotDrops,
                                SyntheticMonitorService synthetic,
-                               SellerDirectoryService sellerDirectory) {
+                               SellerDirectoryService sellerDirectory,
+                               SellerDepthHarvester sellerDepth) {
         this.indexer = indexer;
         this.discovery = discovery;
         this.hotDrops = hotDrops;
         this.synthetic = synthetic;
         this.sellerDirectory = sellerDirectory;
+        this.sellerDepth = sellerDepth;
     }
 
     @GetMapping
@@ -70,6 +74,8 @@ public class AdminJobsController {
                         "Upserts active shops + marketplace storefronts into the sellers directory"),
                 jobRow("daraz-deep", "Daraz deep harvest", "manual",
                         "Re-harvests Daraz only with deep paging — more distinct sellers per product"),
+                jobRow("seller-depth", "Seller-depth fanout", "0 0 2 * * *",
+                        "Searches the same canonical tech models across every tech shop — stacks more sellers per product + adds new products"),
                 jobRow("revive-tech", "Revive dormant tech shops", "manual",
                         "Re-crawls dormant tech/mobile shops (run with browser on) to add sellers per product"),
                 jobRow("synthetic-monitor", "Synthetic search canary", "every 15 min",
@@ -88,6 +94,7 @@ public class AdminJobsController {
                     case "serp-discover" -> discovery.discoverViaSearch();
                     case "seller-sync" -> sellerDirectory.syncOnce();
                     case "daraz-deep" -> indexer.runOne("daraz");
+                    case "seller-depth" -> sellerDepth.run();
                     case "revive-tech" -> indexer.runShops(java.util.List.of(
                             // mobile first (phone depth), then computing/accessories
                             "sumashtech", "mobilebuzzbd", "mobilezonebd", "gadgetnova", "priyoshop",

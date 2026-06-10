@@ -57,6 +57,24 @@ daraz:
   max-per-query: ${DARAZ_MAX_PER_QUERY:40}
   max-products: ${DARAZ_MAX_PRODUCTS:3000}
 
+# ───── Seller-depth fanout (the overlapping-supply lever) ─────
+# Searches the SAME canonical tech models across every tech shop so the same
+# product lands on one matchKey with many sellers — lifts sellers-per-product
+# AND adds new tech products. Browserless by default (jsoup search pages), so
+# it's safe on the small prod box. A rotating window of models hits a rotating
+# slice of shops each pass; successive passes sweep the whole set.
+seller-depth:
+  enabled: ${SELLER_DEPTH_ENABLED:true}
+  cron: ${SELLER_DEPTH_CRON:0 0 2 * * *}
+  queries-per-shop: ${SELLER_DEPTH_QUERIES_PER_SHOP:14}
+  shops-per-run: ${SELLER_DEPTH_SHOPS_PER_RUN:50}
+  candidates-per-search: ${SELLER_DEPTH_CANDIDATES_PER_SEARCH:2}
+  request-delay-ms: ${SELLER_DEPTH_REQUEST_DELAY_MS:500}
+  run-budget-minutes: ${SELLER_DEPTH_RUN_BUDGET_MINUTES:15}
+  use-browser: ${SELLER_DEPTH_USE_BROWSER:false}
+  shallow-seller-threshold: ${SELLER_DEPTH_SHALLOW_THRESHOLD:3}
+  max-dynamic-queries: ${SELLER_DEPTH_MAX_DYNAMIC_QUERIES:40}
+
 # ───── Autonomous shop discovery + lifecycle ─────
 # Weekly job: discover new BD shops (e-CAB/BASIS directories), auto-activate the
 # ones that pass a product-URL probe, and revive previously auto-blocked shops

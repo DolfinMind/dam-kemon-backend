@@ -582,6 +582,37 @@ public class BulkIndexer {
     }
 
     /**
+     * A live merge session that keeps one warmed {@link MinHashLSH} across many
+     * per-shop batches, so an out-of-band enrichment pass (the
+     * {@link SellerDepthHarvester}) can stream matched offers through the exact
+     * same cross-shop matchKey/LSH/URL merge path the nightly indexer uses —
+     * without re-reading the catalog for every shop. Open once, feed many shops,
+     * read the counters when done.
+     */
+    public final class EnrichSession {
+        private final MinHashLSH lsh = new MinHashLSH();
+        private final AtomicInteger inserted = new AtomicInteger();
+        private final AtomicInteger merged = new AtomicInteger();
+        private EnrichSession() { warmLsh(lsh); }
+        public int inserted() { return inserted.get(); }
+        public int merged()   { return merged.get(); }
+    }
+
+    /** Open an enrichment session (warms the dedup index once). */
+    public EnrichSession openEnrichSession() { return new EnrichSession(); }
+
+    /**
+     * Merge a batch of matched offers for one shop into the catalog within an
+     * open {@link EnrichSession}. New products are inserted (catalog breadth);
+     * offers for products we already know attach as additional sellers (depth).
+     * Returns the number persisted.
+     */
+    public int enrich(EnrichSession session, Shop shop, List<ScrapedProduct> offers) {
+        if (session == null || shop == null || offers == null || offers.isEmpty()) return 0;
+        return harvestApi(shop, offers, session.lsh, session.inserted, session.merged);
+    }
+
+    /**
      * Persist products pulled by an API harvester (e.g. Chaldal) directly,
      * reusing the same cross-shop merge path as the URL pipeline. The
      * productUrl carried on each {@link ScrapedProduct} is the dedup key.

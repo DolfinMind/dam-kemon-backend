@@ -59,6 +59,17 @@ public interface ProductRepository extends MongoRepository<Product, String> {
     @Query(value = "{}", fields = "{ 'name' : 1 }")
     List<NameView> findAllNameViews();
 
+    /**
+     * Known products in the given categories that still carry fewer than
+     * {@code maxSellers} offers — the catalog rows the {@link com.damKemon.dam.kemon.indexer.SellerDepthHarvester}
+     * actively hunts across more shops to raise sellers-per-product. id+name
+     * projection only (heap-safe); page/sort supplied by the caller (e.g. most
+     * reviewed first, so we deepen the products shoppers actually compare).
+     */
+    @Query(value = "{ 'category': { $in: ?0 }, $expr: { $lt: [ { $size: { $ifNull: ['$prices', []] } }, ?1 ] } }",
+           fields = "{ 'name' : 1 }")
+    List<NameView> findShallowByCategoryIn(List<String> categories, int maxSellers, Pageable pageable);
+
     interface NameView {
         String getId();
         String getName();
