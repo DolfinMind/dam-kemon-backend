@@ -2,6 +2,9 @@ package com.damKemon.dam.kemon.indexer;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,6 +36,31 @@ class SellerDepthHarvesterTest {
                 "Samsung Galaxy S24 Ultra", "Samsung Galaxy S24 Ultra Back Cover Case"));
         assertFalse(SellerDepthHarvester.isSameModel(
                 "Apple Watch Series 10", "Apple Watch Series 10 Silicone Strap Band"));
+    }
+
+    @Test
+    void relevanceFilterDropsNavLinksAndKeepsRealResults() {
+        // A startech search page lists its mega-menu first; the real results sit
+        // deep. Only the slugs carrying the model number should survive.
+        List<String> urls = List.of(
+                "https://www.startech.com.bd/1stplayer-casing-cooler",   // nav
+                "https://www.startech.com.bd/4k-monitor",                 // nav
+                "https://www.startech.com.bd/gigabyte-geforce-rtx-4060-eagle-oc-8g-graphics-card",
+                "https://www.startech.com.bd/msi-geforce-rtx-4060-gaming-x-8g-graphics-card");
+        List<String> ranked = SellerDepthHarvester.rankByRelevance(urls, "RTX 4060 Graphics Card");
+        assertEquals(2, ranked.size());
+        assertTrue(ranked.stream().allMatch(u -> u.contains("4060")));
+    }
+
+    @Test
+    void relevanceFilterMatchesPhoneModelTokens() {
+        List<String> urls = List.of(
+                "https://shop.com/product/phone-case-universal",
+                "https://shop.com/product/samsung-galaxy-a55-5g-8-256gb",
+                "https://shop.com/product/samsung-galaxy-a15");
+        List<String> ranked = SellerDepthHarvester.rankByRelevance(urls, "Samsung Galaxy A55 5G");
+        assertFalse(ranked.isEmpty());
+        assertTrue(ranked.get(0).contains("a55"));
     }
 
     @Test

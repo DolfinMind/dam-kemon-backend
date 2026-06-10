@@ -68,7 +68,8 @@ seller-depth:
   cron: ${SELLER_DEPTH_CRON:0 0 2 * * *}
   queries-per-shop: ${SELLER_DEPTH_QUERIES_PER_SHOP:14}
   shops-per-run: ${SELLER_DEPTH_SHOPS_PER_RUN:50}
-  candidates-per-search: ${SELLER_DEPTH_CANDIDATES_PER_SEARCH:2}
+  candidates-per-search: ${SELLER_DEPTH_CANDIDATES_PER_SEARCH:3}
+  url-scan-limit: ${SELLER_DEPTH_URL_SCAN_LIMIT:80}
   request-delay-ms: ${SELLER_DEPTH_REQUEST_DELAY_MS:500}
   run-budget-minutes: ${SELLER_DEPTH_RUN_BUDGET_MINUTES:15}
   use-browser: ${SELLER_DEPTH_USE_BROWSER:false}

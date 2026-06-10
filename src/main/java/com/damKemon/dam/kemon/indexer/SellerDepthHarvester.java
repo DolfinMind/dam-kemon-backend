@@ -71,9 +71,15 @@ public class SellerDepthHarvester {
     @Value("${seller-depth.shops-per-run:50}")
     private int shopsPerRun;
 
-    /** Top-N product URLs to inspect per search before giving up on a model/shop. */
-    @Value("${seller-depth.candidates-per-search:2}")
+    /** Top-N RELEVANT product URLs to extract per search before giving up on a model/shop. */
+    @Value("${seller-depth.candidates-per-search:3}")
     private int candidatesPerSearch;
+
+    /** How many product links to scan off a search page before relevance-ranking them.
+     *  Must be generous: a shop's search page lists its whole mega-menu first, so the
+     *  actual results sit deep in the link list. */
+    @Value("${seller-depth.url-scan-limit:80}")
+    private int urlScanLimit;
 
     /** Politeness pause between two searches against the same shop. */
     @Value("${seller-depth.request-delay-ms:500}")
@@ -201,18 +207,30 @@ public class SellerDepthHarvester {
     }
 
     /**
-     * Search one model on one shop and return the matched offer, or null. Inspects
-     * the top results and accepts only a candidate that passes the strict
-     * same-product gate, so the offer we attach really is that model.
+     * Search one model on one shop and return the matched offer, or null.
+     *
+     * <p>A shop's search page lists its entire mega-menu before the actual results,
+     * so the first product-shaped links are navigation, not the model we searched
+     * for. We therefore scan many links, keep only those whose slug carries the
+     * model's distinctive (digit-bearing) tokens — "rtx-4060", "galaxy-a55", "15"
+     * — rank by relevance, and extract just the top few. If nothing relevant
+     * surfaces we skip extraction entirely (the search simply didn't carry the
+     * model), which is both correct and much faster than grinding nav pages.
      */
     private ScrapedProduct findModelInShop(Shop shop, String model, boolean js) {
         List<String> urls;
         try {
-            urls = searchSeedCrawler.searchProductUrls(shop, model, js, candidatesPerSearch);
+            urls = searchSeedCrawler.searchProductUrls(shop, model, js, urlScanLimit);
         } catch (Exception e) {
             return null;
         }
-        for (String url : urls) {
+        if (urls.isEmpty()) return null;
+
+        List<String> ranked = rankByRelevance(urls, model);
+        int tried = 0;
+        for (String url : ranked) {
+            if (tried >= candidatesPerSearch) break;
+            tried++;
             try {
                 ProductExtractor extractor = extractors.pickForShop(url, shop);
                 ScrapedProduct sp = extractor.extract(url, js);
@@ -225,6 +243,49 @@ public class SellerDepthHarvester {
             }
         }
         return null;
+    }
+
+    /**
+     * Keep only the product URLs whose slug carries the model's distinctive tokens,
+     * ranked most-relevant first. "Distinctive" = digit-bearing tokens (model
+     * numbers: 4060, a55, 15, m3); if the model has none, fall back to its longest
+     * word. URLs that carry none of those are nav/menu/unrelated links and are
+     * dropped — that's what stops the harvester from extracting the homepage menu
+     * instead of the search result.
+     */
+    static List<String> rankByRelevance(List<String> urls, String model) {
+        List<String> tokens = queryTokens(model);
+        List<String> keyTokens = new ArrayList<>();
+        for (String t : tokens) if (t.matches(".*\\d.*")) keyTokens.add(t);
+        if (keyTokens.isEmpty()) {
+            String longest = "";
+            for (String t : tokens) if (t.length() > longest.length()) longest = t;
+            if (longest.length() >= 4) keyTokens.add(longest);
+        }
+        if (keyTokens.isEmpty()) return List.of();   // nothing distinctive to match on
+
+        List<String> scored = new ArrayList<>();
+        java.util.Map<String, Integer> score = new java.util.HashMap<>();
+        for (String url : urls) {
+            String lower = url.toLowerCase();
+            int key = 0;
+            for (String t : keyTokens) if (lower.contains(t)) key++;
+            if (key == 0) continue;                  // no model token in the slug → skip
+            int extra = 0;
+            for (String t : tokens) if (lower.contains(t)) extra++;
+            score.put(url, key * 100 + extra);
+            scored.add(url);
+        }
+        scored.sort((a, b) -> Integer.compare(score.get(b), score.get(a)));
+        return scored;
+    }
+
+    /** Significant tokens of a model name (matching-normalised, length ≥ 2). */
+    private static List<String> queryTokens(String model) {
+        String n = BulkIndexer.normaliseForMatching(model);
+        List<String> out = new ArrayList<>();
+        for (String w : n.split(" ")) if (w.length() >= 2) out.add(w);
+        return out;
     }
 
     /**
@@ -306,9 +367,14 @@ public class SellerDepthHarvester {
                     && TechSeedCatalog.TECH_CATEGORIES.contains(c.toLowerCase()));
             if (tech) eligible.add(s);
         }
-        // Least-recently-indexed first so coverage rotates with the nightly indexer's notion of freshness.
-        eligible.sort(Comparator.comparing(Shop::getLastIndexedAt,
-                Comparator.nullsFirst(Comparator.naturalOrder())));
+        // Richest tech shops first: a shop that yielded many products last run has a
+        // deep, well-structured catalog + working search, so it's the best place to
+        // FIND a canonical model and stack another seller onto it. (The nightly
+        // indexer already handles freshness rotation; here we optimise for overlap
+        // yield.) The slice window below still rotates across passes to reach the tail.
+        eligible.sort(Comparator.comparing(
+                (Shop s) -> s.getLastIndexedCount() == null ? 0 : s.getLastIndexedCount())
+                .reversed());
         if (eligible.size() <= shopsPerRun) return eligible;
         int p = pass.get();
         int from = Math.floorMod(p * shopsPerRun, eligible.size());
