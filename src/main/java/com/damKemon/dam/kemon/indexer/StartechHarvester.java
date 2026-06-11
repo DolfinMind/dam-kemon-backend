@@ -58,9 +58,9 @@ public class StartechHarvester implements ShopHarvester {
 
     @Value("${startech.max-categories:60}")    private int maxCategories;
     @Value("${startech.max-pages-per-cat:12}")  private int maxPagesPerCat;
-    @Value("${startech.max-products:3000}")     private int maxProducts;
+    @Value("${startech.max-products:6000}")     private int maxProducts;
     @Value("${startech.timeout-ms:15000}")      private int timeoutMs;
-    @Value("${startech.fetch-threads:8}")       private int fetchThreads;
+    @Value("${startech.fetch-threads:12}")      private int fetchThreads;
 
     @Override
     public boolean supports(Shop shop) {
@@ -72,28 +72,45 @@ public class StartechHarvester implements ShopHarvester {
         String base = stripSlash(shop.getBaseUrl() == null || shop.getBaseUrl().isBlank()
                 ? "https://www.startech.com.bd" : shop.getBaseUrl());
 
-        List<String> categories = categoriesFromSitemap(base + "/sitemap.xml", base);
-        if (categories.isEmpty()) { log.warn("StarTech: no categories from sitemap"); return List.of(); }
+        List<String> locs = locsFromSitemap(base + "/sitemap.xml", base);
 
-        // Walk categories with pagination → product URLs.
+        // StarTech's sitemap.xml lists the WHOLE catalog (~25k entries): the long
+        // descriptive root-slugs ARE products, the short/nested ones are
+        // categories. Take the products directly — that's thousands of URLs, vs
+        // the few hundred the old "walk 60 categories" path scraped.
         LinkedHashSet<String> productUrls = new LinkedHashSet<>();
-        int cats = 0;
-        for (String cat : categories) {
-            if (cats >= maxCategories || productUrls.size() >= maxProducts) break;
-            cats++;
-            for (int page = 1; page <= maxPagesPerCat && productUrls.size() < maxProducts; page++) {
-                Document d = get(cat + (cat.contains("?") ? "&" : "?") + "page=" + page);
-                if (d == null) break;
-                int before = productUrls.size();
-                for (Element a : d.select("a[href]")) {
-                    String href = stripQuery(a.absUrl("href"));
-                    if (isProductUrl(href, base)) productUrls.add(href);
-                }
-                if (productUrls.size() == before) break; // page added nothing → end of category
+        List<String> categories = new ArrayList<>();
+        for (String u : locs) {
+            if (isProductUrl(u, base)) {
+                if (productUrls.size() < maxProducts) productUrls.add(u);
+            } else if (!u.equals(base)) {
+                categories.add(u);
             }
         }
-        log.info("StarTech: {} product URLs from {} categories", productUrls.size(), cats);
-        if (productUrls.isEmpty()) return List.of();
+        log.info("StarTech: sitemap gave {} product URLs directly + {} category pages",
+                productUrls.size(), categories.size());
+
+        // Fallback: if the sitemap was category-only (layout changed), walk
+        // categories with pagination as before so we never regress to ~0.
+        if (productUrls.size() < 200 && !categories.isEmpty()) {
+            int cats = 0;
+            for (String cat : categories) {
+                if (cats >= maxCategories || productUrls.size() >= maxProducts) break;
+                cats++;
+                for (int page = 1; page <= maxPagesPerCat && productUrls.size() < maxProducts; page++) {
+                    Document d = get(cat + (cat.contains("?") ? "&" : "?") + "page=" + page);
+                    if (d == null) break;
+                    int before = productUrls.size();
+                    for (Element a : d.select("a[href]")) {
+                        String href = stripQuery(a.absUrl("href"));
+                        if (isProductUrl(href, base)) productUrls.add(href);
+                    }
+                    if (productUrls.size() == before) break;
+                }
+            }
+            log.info("StarTech: category-pagination fallback brought total to {} product URLs", productUrls.size());
+        }
+        if (productUrls.isEmpty()) { log.warn("StarTech: no product URLs from sitemap"); return List.of(); }
 
         // Fetch + extract each product with bounded parallelism.
         List<ScrapedProduct> out = Collections.synchronizedList(new ArrayList<>());
@@ -116,15 +133,16 @@ public class StartechHarvester implements ShopHarvester {
         return new ArrayList<>(out);
     }
 
-    private List<String> categoriesFromSitemap(String sitemapUrl, String base) {
-        List<String> cats = new ArrayList<>();
+    /** Every same-host URL in the sitemap (products + categories), deduped, in order. */
+    private List<String> locsFromSitemap(String sitemapUrl, String base) {
+        LinkedHashSet<String> locs = new LinkedHashSet<>();
         Document d = get(sitemapUrl);
-        if (d == null) return cats;
+        if (d == null) return new ArrayList<>(locs);
         for (Element loc : d.select("loc")) {
-            String u = stripSlash(loc.text().trim());
-            if (u.startsWith(base) && !u.equals(base)) cats.add(u);
+            String u = stripSlash(stripQuery(loc.text().trim()));
+            if (u.startsWith(base) && !u.equals(base)) locs.add(u);
         }
-        return cats;
+        return new ArrayList<>(locs);
     }
 
     /** Product = long descriptive ROOT slug (brand-model-spec), not a short
