@@ -519,8 +519,9 @@ public class BulkIndexer {
                     // (currency unit confusion, leading zeros, etc).
                     if (sp.getPrice() < 10) return;
 
-                    persistOrMerge(sp, url, shop, lsh, inserted, merged);
-                    localOk.incrementAndGet();
+                    if (persistOrMerge(sp, url, shop, lsh, inserted, merged)) {
+                        localOk.incrementAndGet();
+                    }
                 } catch (Exception e) {
                     log.debug("Indexer: extract failed for {}: {}", url, e.getMessage());
                 } finally {
@@ -643,6 +644,7 @@ public class BulkIndexer {
                 sp -> sp != null && sp.getSellerId() != null && !sp.getSellerId().isBlank());
         int cap = Math.min(products.size(), marketplace ? marketplaceMaxOffers : maxProductsPerShop);
         int ok = 0;
+        int dropped = 0;
         for (int i = 0; i < cap; i++) {
             ScrapedProduct sp = products.get(i);
             // Same sanity floor the URL pipeline applies: sub-৳10 is almost
@@ -650,22 +652,26 @@ public class BulkIndexer {
             if (sp == null || sp.getName() == null || sp.getPrice() == null || sp.getPrice() < 10) continue;
             String url = sp.getProductUrl() != null ? sp.getProductUrl() : shop.getBaseUrl();
             try {
-                persistOrMerge(sp, url, shop, lsh, inserted, merged);
-                ok++;
+                if (persistOrMerge(sp, url, shop, lsh, inserted, merged)) ok++;
+                else dropped++;
             } catch (Exception e) {
                 log.debug("Indexer: shop '{}' API persist failed: {}", shop.getSlug(), e.getMessage());
             }
         }
-        log.info("Indexer: shop '{}' API harvest → {} products persisted", shop.getSlug(), ok);
+        log.info("Indexer: shop '{}' API harvest → {} persisted, {} out-of-scope dropped",
+                shop.getSlug(), ok, dropped);
         return ok;
     }
 
-    private synchronized void persistOrMerge(ScrapedProduct sp,
-                                             String url,
-                                             Shop shop,
-                                             MinHashLSH lsh,
-                                             AtomicInteger inserted,
-                                             AtomicInteger merged) {
+    /** @return true when the offer was written (merged or inserted); false when
+     *  the category gate dropped it. Callers use this for honest yield counts —
+     *  a shop whose items are all out-of-scope must record 0, not look healthy. */
+    private synchronized boolean persistOrMerge(ScrapedProduct sp,
+                                                String url,
+                                                Shop shop,
+                                                MinHashLSH lsh,
+                                                AtomicInteger inserted,
+                                                AtomicInteger merged) {
         SitePrice price = SitePrice.builder()
                 .siteName(shop.getName())
                 .siteSlug(shop.getSlug())
@@ -693,7 +699,7 @@ public class BulkIndexer {
             Product existing = byUrl.get();
             existing.getPrices().removeIf(p -> Objects.equals(p.getProductUrl(), url));
             mergeOffer(existing, price, sp, key, lsh, merged);
-            return;
+            return true;
         }
 
         // 2. Deterministic matchKey — the SAME product from ANY seller, robust
@@ -707,7 +713,7 @@ public class BulkIndexer {
                 Product existing = byKey.get();
                 dropSupersededOffer(existing, price, shop);
                 mergeOffer(existing, price, sp, key, lsh, merged);
-                return;
+                return true;
             }
         }
 
@@ -722,7 +728,7 @@ public class BulkIndexer {
             if (existing != null && sameProduct(existing.getName(), sp.getName())) {
                 dropSupersededOffer(existing, price, shop);
                 mergeOffer(existing, price, sp, key, lsh, merged);
-                return;
+                return true;
             }
         }
 
@@ -732,7 +738,7 @@ public class BulkIndexer {
         // item (TV, grocery, fashion…) is dropped here so it never enters the
         // catalog. Merges into EXISTING in-scope products above are unaffected.
         if (categoryFocus.isEnabled() && !categoryFocus.isAllowed(intent.primaryCategory())) {
-            return;
+            return false;
         }
         Product p = Product.builder()
                 .name(sp.getName())
@@ -752,6 +758,7 @@ public class BulkIndexer {
             lsh.add(saved.getId(), normName, null);
         }
         inserted.incrementAndGet();
+        return true;
     }
 
     /** Marketplace-aware: drop this seller's superseded offer before re-adding,
