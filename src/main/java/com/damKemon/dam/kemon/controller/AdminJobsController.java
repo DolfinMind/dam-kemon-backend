@@ -84,6 +84,8 @@ public class AdminJobsController {
                         "Consolidates duplicate product rows so their sellers stack onto one product — the biggest sellers-per-product lever"),
                 jobRow("revive-tech", "Revive dormant tech shops", "manual",
                         "Re-crawls dormant tech/mobile shops (run with browser on) to add sellers per product"),
+                jobRow("deep-components", "Deep-crawl component shops", "manual",
+                        "Sequentially deep-crawls the big PC/component shops (Star Tech, Ryans, Techland…) — the SAME GPUs/RAM/monitors across shops merge into multi-seller products"),
                 jobRow("synthetic-monitor", "Synthetic search canary", "every 15 min",
                         "Runs sample queries; flips /actuator/health/synthetic")
         ));
@@ -102,6 +104,14 @@ public class AdminJobsController {
                     case "daraz-deep" -> indexer.runOne("daraz");
                     case "seller-depth" -> sellerDepth.run();
                     case "catalog-remerge" -> remergeService.remerge(false);
+                    case "deep-components" -> indexer.runShops(java.util.List.of(
+                            // the big PC/component retailers — all sell the same GPUs/RAM/
+                            // monitors/SSDs, so deep-crawling them stacks sellers per SKU
+                            "startech", "ryans", "techlandbd", "pchouse", "binarylogic",
+                            "computersource", "ucc", "potakait", "skyland", "ultratech",
+                            "computervillage", "techbangla", "pcbuilderbd", "mmcomputerbd",
+                            "selltech", "creatus", "techmoonbd", "smartdeal", "onixcomputer",
+                            "executivemachines", "vibegaming", "gadgetandgear", "techshopbd"));
                     case "revive-tech" -> indexer.runShops(java.util.List.of(
                             // mobile first (phone depth), then computing/accessories
                             "sumashtech", "mobilebuzzbd", "mobilezonebd", "gadgetnova", "priyoshop",
