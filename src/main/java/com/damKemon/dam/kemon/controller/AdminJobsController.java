@@ -1,6 +1,7 @@
 package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.indexer.BulkIndexer;
+import com.damKemon.dam.kemon.indexer.CatalogRemergeService;
 import com.damKemon.dam.kemon.indexer.SellerDepthHarvester;
 import com.damKemon.dam.kemon.indexer.ShopDiscoveryService;
 import com.damKemon.dam.kemon.service.HotDropsService;
@@ -36,6 +37,7 @@ public class AdminJobsController {
     private final SyntheticMonitorService synthetic;
     private final SellerDirectoryService sellerDirectory;
     private final SellerDepthHarvester sellerDepth;
+    private final CatalogRemergeService remergeService;
 
     /** id → ring-buffer of last N run timestamps (manual only). */
     private final ConcurrentHashMap<String, java.util.Deque<Map<String, Object>>> recent =
@@ -46,13 +48,15 @@ public class AdminJobsController {
                                HotDropsService hotDrops,
                                SyntheticMonitorService synthetic,
                                SellerDirectoryService sellerDirectory,
-                               SellerDepthHarvester sellerDepth) {
+                               SellerDepthHarvester sellerDepth,
+                               CatalogRemergeService remergeService) {
         this.indexer = indexer;
         this.discovery = discovery;
         this.hotDrops = hotDrops;
         this.synthetic = synthetic;
         this.sellerDirectory = sellerDirectory;
         this.sellerDepth = sellerDepth;
+        this.remergeService = remergeService;
     }
 
     @GetMapping
@@ -76,6 +80,8 @@ public class AdminJobsController {
                         "Re-harvests Daraz only with deep paging — more distinct sellers per product"),
                 jobRow("seller-depth", "Seller-depth fanout", "0 0 2 * * *",
                         "Searches the same canonical tech models across every tech shop — stacks more sellers per product + adds new products"),
+                jobRow("catalog-remerge", "Catalog re-merge", "0 30 4 * * *",
+                        "Consolidates duplicate product rows so their sellers stack onto one product — the biggest sellers-per-product lever"),
                 jobRow("revive-tech", "Revive dormant tech shops", "manual",
                         "Re-crawls dormant tech/mobile shops (run with browser on) to add sellers per product"),
                 jobRow("synthetic-monitor", "Synthetic search canary", "every 15 min",
@@ -95,6 +101,7 @@ public class AdminJobsController {
                     case "seller-sync" -> sellerDirectory.syncOnce();
                     case "daraz-deep" -> indexer.runOne("daraz");
                     case "seller-depth" -> sellerDepth.run();
+                    case "catalog-remerge" -> remergeService.remerge(false);
                     case "revive-tech" -> indexer.runShops(java.util.List.of(
                             // mobile first (phone depth), then computing/accessories
                             "sumashtech", "mobilebuzzbd", "mobilezonebd", "gadgetnova", "priyoshop",

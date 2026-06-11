@@ -73,6 +73,14 @@ category-focus:
   # HEADPHONE = earbuds/headphones/speakers, kept as mobile accessories.
   allowed: ${CATEGORY_FOCUS_ALLOWED:SMARTPHONE,LAPTOP,DESKTOP,ACCESSORY,MONITOR,STORAGE,NETWORKING,PRINTER,HEADPHONE}
 
+# ───── Nightly catalog re-merge (duplicate-product consolidation) ─────
+# Consolidates near-duplicate product rows so their sellers stack onto one
+# product — runs after the indexer + retry land their offers. The single
+# biggest sellers-per-product lever (first run: avg 1.17 → 1.35).
+remerge:
+  enabled: ${REMERGE_ENABLED:true}
+  cron: ${REMERGE_CRON:0 30 4 * * *}
+
 # ───── Seller-depth fanout (the overlapping-supply lever) ─────
 # Searches the SAME canonical tech models across every tech shop so the same
 # product lands on one matchKey with many sellers — lifts sellers-per-product

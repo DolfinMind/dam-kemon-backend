@@ -6,9 +6,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -49,8 +51,25 @@ public class CatalogRemergeService {
 
     private final MongoTemplate mongo;
 
+    @Value("${remerge.enabled:true}")
+    private boolean scheduledEnabled;
+
     public CatalogRemergeService(MongoTemplate mongo) {
         this.mongo = mongo;
+    }
+
+    /**
+     * Nightly consolidation, after the 03:00 indexer + 04:00 retry have landed
+     * their offers — fragmentation re-accumulates with every crawl, so the merge
+     * runs continuously, not as a one-off. The first live run lifted avg
+     * sellers/product 1.17 → 1.35 and tripled the ≥5-seller products.
+     */
+    @Scheduled(cron = "${remerge.cron:0 30 4 * * *}")
+    public void scheduled() {
+        if (!scheduledEnabled) return;
+        log.info("Remerge: scheduled nightly consolidation firing");
+        try { remerge(false); }
+        catch (Exception e) { log.error("Remerge: scheduled run crashed", e); }
     }
 
     public Map<String, Object> remerge(boolean dryRun) {
