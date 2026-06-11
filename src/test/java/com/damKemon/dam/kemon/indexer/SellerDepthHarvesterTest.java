@@ -64,6 +64,41 @@ class SellerDepthHarvesterTest {
     }
 
     @Test
+    void remergeNoiseCollapsesButVariantsStayDistinct() {
+        // The real fragmentation cases found in the live catalog — these MUST
+        // now be recognised as the same product so the re-merge stacks sellers.
+        assertTrue(BulkIndexer.sameProduct(
+                "AMD Ryzen 9 9900X3D Gaming Processor",
+                "AMD Ryzen 9 9900X3D 12 Core 24 Thread AM5 Gaming Processor"));
+        assertTrue(BulkIndexer.sameProduct(
+                "MacBook Air M2 13-inch 2022",
+                "Apple Macbook Air M2 13.6 inch"));
+        assertTrue(BulkIndexer.sameProduct(
+                "Apple iPhone 15 Pro Max",
+                "Apple iPhone 15 Pro Max | With Apple International Warranty Claim Support"));
+        // …but true variants stay separate:
+        assertFalse(BulkIndexer.sameProduct(
+                "MacBook Air M2 13-inch 2022", "MacBook Air M2 15-inch 2023")); // size
+        assertFalse(BulkIndexer.sameProduct(
+                "AMD Ryzen 9 9900X Gaming Processor", "AMD Ryzen 9 9900X3D Gaming Processor")); // X vs X3D
+        // …and an accessory can never merge into the device:
+        assertFalse(BulkIndexer.sameProduct(
+                "Apple iPhone 15 Pro Max", "Spigen Ultra Hybrid MagFit Case for iPhone 15 Pro Max"));
+    }
+
+    @Test
+    void coarseKeyGroupsFragmentsAndSeparatesModels() {
+        assertEquals(
+                CatalogRemergeService.coarseKey("AMD Ryzen 9 9900X3D Gaming Processor"),
+                CatalogRemergeService.coarseKey("AMD Ryzen 9 9900X3D 12 Core 24 Thread AM5 Gaming Processor"));
+        assertEquals(
+                CatalogRemergeService.coarseKey("MacBook Air M2 13-inch 2022"),
+                CatalogRemergeService.coarseKey("Apple Macbook Air M2 13.6 inch"));
+        assertFalse(CatalogRemergeService.coarseKey("MacBook Air M2 13-inch 2022")
+                .equals(CatalogRemergeService.coarseKey("MacBook Air M2 15-inch 2023")));
+    }
+
+    @Test
     void rejectsSiblingAndDifferentModels() {
         // Different discriminators = different product, even if very close.
         assertFalse(SellerDepthHarvester.isSameModel(

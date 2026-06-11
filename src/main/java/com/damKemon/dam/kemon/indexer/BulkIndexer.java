@@ -826,7 +826,7 @@ public class BulkIndexer {
         return !uni.isEmpty() && (double) inter.size() / uni.size() >= 0.5;
     }
 
-    private static java.util.Set<String> words(String s) {
+    static java.util.Set<String> words(String s) {
         java.util.Set<String> out = new java.util.HashSet<>();
         if (s == null) return out;
         for (String w : s.split(" ")) if (!w.isBlank()) out.add(w);
@@ -836,7 +836,7 @@ public class BulkIndexer {
     /** Tokens that pin down a specific model: anything containing a digit, plus
      *  known qualifiers. Two names with different discriminators are different
      *  products even if the MinHash thinks they're similar. */
-    private static java.util.Set<String> discriminators(java.util.Set<String> words) {
+    static java.util.Set<String> discriminators(java.util.Set<String> words) {
         java.util.Set<String> out = new java.util.HashSet<>();
         for (String w : words) {
             if (w.matches(".*\\d.*") || MODEL_QUALIFIERS.contains(w)) out.add(w);
@@ -870,10 +870,23 @@ public class BulkIndexer {
         s = s.replaceAll("\\b\\d+\\s*[/\\\\]\\s*\\d+\\s*(gb|tb|mb)\\b", " ");
         s = s.replaceAll("\\b\\d{2,4}\\s*(gb|tb)\\b", " ");
         s = s.replaceAll("\\b\\d{1,2}\\s*gb\\b", " ");
+        // Drop year tokens — shops label the SAME SKU "2022"/"2023"/none.
+        s = s.replaceAll("\\b20[12]\\d\\b", " ");
+        // Drop redundant CPU spec tails ("12 core 24 thread", socket names) that
+        // the model number already implies — they fragment the same chip.
+        s = s.replaceAll("\\b\\d+\\s*cores?\\b", " ");
+        s = s.replaceAll("\\b\\d+\\s*threads?\\b", " ");
+        s = s.replaceAll("\\b(am[45]|lga\\s?\\d{3,4})\\b", " ");
         // Drop colour suffixes when at end-of-name (titanium, black, white, etc.)
         s = s.replaceAll("\\b(titanium|black|white|silver|gold|blue|red|green|graphite|onyx|natural|desert|midnight)\\b", " ");
         // Drop punctuation, collapse whitespace
         s = s.replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
+        // Collapse decimal screen sizes to the integer inch: "13.6 inch" (now
+        // "13 6 inch") and "13-inch" both become "13 inch", so the same laptop
+        // doesn't fragment on size formatting. 13" vs 15" stay distinct.
+        s = s.replaceAll("\\b(1[0-9])\\s[0-9]\\s*(inch|inches|in)\\b", "$1 inch");
+        s = s.replaceAll("\\b(1[0-9])\\s*(inch|inches|in)\\b", "$1 inch");
+        s = s.replaceAll("\\s+", " ").trim();
         return s.isBlank() ? name.toLowerCase() : s;
     }
 
@@ -908,7 +921,7 @@ public class BulkIndexer {
         }
     }
 
-    private void recomputeAggregates(Product p) {
+    static void recomputeAggregates(Product p) {
         List<SitePrice> prices = p.getPrices();
         if (prices == null || prices.isEmpty()) return;
         double rsum = 0; int rn = 0; int reviews = 0;
@@ -973,7 +986,7 @@ public class BulkIndexer {
      * its own offer; a first-party shop has a single offer keyed by its slug — so
      * non-marketplace behaviour is unchanged.
      */
-    private static String offerKey(SitePrice p) {
+    static String offerKey(SitePrice p) {
         if (p == null) return "";
         String slug = p.getSiteSlug() == null ? "" : p.getSiteSlug();
         return (p.getSellerId() != null && !p.getSellerId().isBlank())
@@ -985,7 +998,7 @@ public class BulkIndexer {
      * Keep a product from ballooning when a marketplace returns dozens of sellers:
      * retain the cheapest in-stock offers, drop the long tail.
      */
-    private static void capSellers(Product p) {
+    static void capSellers(Product p) {
         List<SitePrice> prices = p.getPrices();
         if (prices == null || prices.size() <= MAX_OFFERS_PER_PRODUCT) return;
         prices.sort((a, b) -> {
