@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.service;
 
+import com.damKemon.dam.kemon.intelligence.ProductCategory;
 import com.damKemon.dam.kemon.intelligence.QueryClassifier;
 import com.damKemon.dam.kemon.model.PriceHistory;
 import com.damKemon.dam.kemon.model.Product;
@@ -13,11 +14,17 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,6 +42,7 @@ public class ProductService {
     private final MongoTemplate mongoTemplate;
     private final AffiliateClickRepository affiliateClicks;
     private final QueryClassifier classifier;
+    private final CategoryFocusService categoryFocus;
 
     public ProductService(ProductRepository productRepository,
                           ReviewRepository reviewRepository,
@@ -42,7 +50,8 @@ public class ProductService {
                           TrustService trustService,
                           MongoTemplate mongoTemplate,
                           AffiliateClickRepository affiliateClicks,
-                          QueryClassifier classifier) {
+                          QueryClassifier classifier,
+                          CategoryFocusService categoryFocus) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.priceHistoryRepository = priceHistoryRepository;
@@ -50,6 +59,89 @@ public class ProductService {
         this.mongoTemplate = mongoTemplate;
         this.affiliateClicks = affiliateClicks;
         this.classifier = classifier;
+        this.categoryFocus = categoryFocus;
+    }
+
+    /**
+     * Bring the catalog down to the allowed category focus (computing + mobile).
+     * Heap-safe: streams the catalog in id-ordered pages reading only name+category,
+     * decides per product, then applies in batches. A product already in an allowed
+     * category is kept; one that isn't is re-classified by name and kept if it now
+     * resolves in-scope (rescues mislabeled phones/laptops in the 'general' bucket),
+     * otherwise deleted. {@code dryRun} reports the counts without changing anything.
+     */
+    public Map<String, Object> focusCleanup(boolean dryRun) {
+        if (!categoryFocus.isEnabled()) {
+            return Map.of("enabled", false, "note", "category-focus is disabled");
+        }
+        int scanned = 0, kept = 0, reclassified = 0;
+        List<String> deleteIds = new ArrayList<>();
+        Map<String, String> updates = new LinkedHashMap<>();
+        List<String> sampleDeletes = new ArrayList<>();
+
+        int page = 0;
+        final int pageSize = 1000;
+        try {
+            while (true) {
+                Query q = new Query().with(PageRequest.of(page, pageSize, Sort.by(Sort.Direction.ASC, "_id")));
+                q.fields().include("name").include("category");
+                List<Product> rows = mongoTemplate.find(q, Product.class);
+                if (rows.isEmpty()) break;
+                for (Product p : rows) {
+                    scanned++;
+                    if (categoryFocus.isAllowedLabel(p.getCategory())) { kept++; continue; }
+                    String name = p.getName();
+                    ProductCategory nc = (name == null || name.isBlank())
+                            ? null : classifier.classify(name).primaryCategory();
+                    if (nc != null && categoryFocus.isAllowed(nc)) {
+                        updates.put(p.getId(), nc.getLabel().toLowerCase());
+                        reclassified++;
+                    } else {
+                        deleteIds.add(p.getId());
+                        if (sampleDeletes.size() < 25 && name != null) {
+                            sampleDeletes.add(name + "  [" + p.getCategory() + "]");
+                        }
+                    }
+                }
+                page++;
+                if (page > 5000) break; // hard safety bound
+            }
+        } catch (DataAccessException e) {
+            return Map.of("error", "catalog scan failed", "scanned", scanned);
+        }
+
+        if (!dryRun) {
+            if (!updates.isEmpty()) {
+                try {
+                    BulkOperations bulk = mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, Product.class);
+                    LocalDateTime now = LocalDateTime.now();
+                    for (Map.Entry<String, String> e : updates.entrySet()) {
+                        bulk.updateOne(Query.query(Criteria.where("_id").is(e.getKey())),
+                                new Update().set("category", e.getValue()).set("updatedAt", now));
+                    }
+                    bulk.execute();
+                } catch (Exception e) { /* best-effort; rerun is safe */ }
+            }
+            int from = 0;
+            while (from < deleteIds.size()) {
+                int to = Math.min(from + pageSize, deleteIds.size());
+                try {
+                    mongoTemplate.remove(Query.query(Criteria.where("_id").in(deleteIds.subList(from, to))), Product.class);
+                } catch (Exception ignored) { /* skip batch */ }
+                from = to;
+            }
+        }
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("dryRun", dryRun);
+        out.put("scanned", scanned);
+        out.put("keptInScope", kept);
+        out.put("reclassifiedKept", reclassified);
+        out.put("deleted", deleteIds.size());
+        out.put("remainingAfter", kept + reclassified);
+        out.put("allowed", categoryFocus.allowed().stream().map(ProductCategory::getLabel).toList());
+        out.put("sampleDeletes", sampleDeletes);
+        return out;
     }
 
     /**

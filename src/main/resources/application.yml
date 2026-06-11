@@ -61,6 +61,18 @@ daraz:
   max-per-query: ${DARAZ_MAX_PER_QUERY:40}
   max-products: ${DARAZ_MAX_PRODUCTS:3000}
 
+# ───── Category focus ─────
+# Damkemon is scoped to computing + mobile only. The indexer drops any product
+# that doesn't classify into one of these categories at write time, and
+# POST /api/admin/catalog/focus-cleanup re-classifies + purges existing rows down
+# to this set. Categories are ProductCategory enum names (case-insensitive).
+# Default = smartphones, laptops, desktops/workstations + components & peripherals,
+# and accessories.
+category-focus:
+  enabled: ${CATEGORY_FOCUS_ENABLED:true}
+  # HEADPHONE = earbuds/headphones/speakers, kept as mobile accessories.
+  allowed: ${CATEGORY_FOCUS_ALLOWED:SMARTPHONE,LAPTOP,DESKTOP,ACCESSORY,MONITOR,STORAGE,NETWORKING,PRINTER,HEADPHONE}
+
 # ───── Seller-depth fanout (the overlapping-supply lever) ─────
 # Searches the SAME canonical tech models across every tech shop so the same
 # product lands on one matchKey with many sellers — lifts sellers-per-product

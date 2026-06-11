@@ -12,6 +12,7 @@ import com.damKemon.dam.kemon.repository.ShopRepository;
 import com.damKemon.dam.kemon.scraper.ExtractorRegistry;
 import com.damKemon.dam.kemon.scraper.ProductExtractor;
 import com.damKemon.dam.kemon.scraper.ScrapedProduct;
+import com.damKemon.dam.kemon.service.CategoryFocusService;
 import com.damKemon.dam.kemon.service.ShopHealthService;
 import java.time.Instant;
 import org.slf4j.Logger;
@@ -74,6 +75,7 @@ public class BulkIndexer {
     private final List<ShopHarvester> harvesters;
     private final ApiSniffer apiSniffer;
     private final DomCardHarvester domCardHarvester;
+    private final CategoryFocusService categoryFocus;
 
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
@@ -130,7 +132,8 @@ public class BulkIndexer {
                        ScraperLearningService learner,
                        List<ShopHarvester> harvesters,
                        ApiSniffer apiSniffer,
-                       DomCardHarvester domCardHarvester) {
+                       DomCardHarvester domCardHarvester,
+                       CategoryFocusService categoryFocus) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
@@ -144,6 +147,7 @@ public class BulkIndexer {
         this.harvesters = harvesters;
         this.apiSniffer = apiSniffer;
         this.domCardHarvester = domCardHarvester;
+        this.categoryFocus = categoryFocus;
     }
 
     private void persistRunRecord(String kind, RunSummary s) {
@@ -724,6 +728,12 @@ public class BulkIndexer {
 
         // 4. Brand-new product
         var intent = classifier.classify(sp.getName());
+        // Category focus: Damkemon indexes computing + mobile only. An out-of-scope
+        // item (TV, grocery, fashion…) is dropped here so it never enters the
+        // catalog. Merges into EXISTING in-scope products above are unaffected.
+        if (categoryFocus.isEnabled() && !categoryFocus.isAllowed(intent.primaryCategory())) {
+            return;
+        }
         Product p = Product.builder()
                 .name(sp.getName())
                 .slug(slugify(sp.getName()))

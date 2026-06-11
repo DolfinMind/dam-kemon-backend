@@ -43,7 +43,8 @@ public class QueryClassifier {
             "phone","mobile","smartphone","smart phone","handset","cellphone","cell phone","iphone","android",
             "galaxy","redmi","oppo","vivo","realme","poco","iqoo","oneplus","pixel","nothing phone","honor",
             "huawei","nokia","motorola","moto","symphony","itel","tecno","infinix","lava","5g phone","dual sim",
-            "feature phone","button phone","pro max","ultra","note","mobail","mobiles","ফোন","মোবাইল","হ্যান্ডসেট","আইফোন"
+            "feature phone","button phone","pro max","ultra","note","mobail","mobiles","one plus","oneplus nord",
+            "ফোন","মোবাইল","হ্যান্ডসেট","আইফোন"
         ));
         KW.put(ProductCategory.LAPTOP, kw(
             "laptop","notebook","ultrabook","macbook","macbook air","macbook pro","thinkpad","pavilion","ideapad",
@@ -84,7 +85,8 @@ public class QueryClassifier {
             "headphone","headphones","headset","earphone","earphones","earbud","earbuds","airpods","buds","tws",
             "true wireless","neckband","bluetooth headphone","gaming headset","over ear","in ear","wh-1000",
             "speaker","bluetooth speaker","portable speaker","soundbar","woofer","home theater","microphone","mic",
-            "audio","হেডফোন","ইয়ারফোন","স্পিকার"
+            "audio","noise cancelling","noise cancellation","active noise","qcy","soundpeats","soundcore","tribit",
+            "oraimo","havit","edifier","হেডফোন","ইয়ারফোন","স্পিকার"
         ));
         KW.put(ProductCategory.CAMERA, kw(
             "camera","dslr","mirrorless","gopro","insta360","camera lens","camera tripod","camcorder","drone",
@@ -178,6 +180,14 @@ public class QueryClassifier {
             "popsocket","cable organizer","cooling pad","usb hub","type c hub","converter","airpods case","phone skin",
             "card holder","phone cooler","cooling fan","powerport","power port","wireless charger","magsafe",
             "laptop charger","camera bag","car mount","bike mount","tablet case","gaming trigger",
+            // charger/cable/hub items that name themselves by spec or brand, not "charger"
+            "gan charger","pd charger","usb c hub","usb-c hub","usb c to hdmi","usb-c to hdmi","type c hub",
+            "docking station","power strip","extension socket","airtag","laptop backpack","card reader",
+            "acefast","ugreen","wiwu","ldnio","baseus charger","anker charger",
+            // input peripherals are computer accessories (often tagged gaming/stationery by brand)
+            "mouse","wireless mouse","gaming mouse","keyboard","wireless keyboard","bluetooth keyboard",
+            "mechanical keyboard","gaming keyboard","keypad","webcam","trackpad","stylus pen","s pen",
+            "apple pencil","smart pen","presentation remote","presenter","graphics tablet","kvm switch",
             "কভার","কেস","চার্জার","ক্যাবল","পাওয়ার ব্যাংক"
         ));
         KW.put(ProductCategory.HEALTH, kw(
