@@ -979,7 +979,7 @@ public class BulkIndexer {
      * "Amazfit GTR 3 Pro" and "Amazfit GTR 4" stay distinct. Stored on the
      * Product and looked up at persist for run-independent grouping.
      */
-    static String productMatchKey(String name) {
+    public static String productMatchKey(String name) {
         String s = normaliseForMatching(name);
         if (s == null) return null;
         s = MATCHKEY_NOISE.matcher(s).replaceAll(" ").replaceAll("\\s+", " ").trim();

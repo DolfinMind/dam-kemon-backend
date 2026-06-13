@@ -146,6 +146,66 @@ public class AdminCatalogController {
     public record OfferReq(String siteSlug, String siteName, Double price, Double originalPrice,
                            String productUrl, String imageUrl, String sellerName) {}
 
+    public record SplitReq(Double threshold, String lowName, String highName) {}
+
+    /**
+     * Split a lane-MIXED product into two by price: offers below {@code threshold}
+     * stay on this doc (renamed {@code lowName}, the grey/unofficial lane); offers
+     * at/above it move to a NEW doc ({@code highName}, the official lane). This is
+     * how a single "iPhone 16 Plus" doc spanning ৳92k–185k becomes a clean grey
+     * doc (৳92–112k) and a clean official doc (৳165–185k). Both re-aggregate and
+     * get fresh matchKeys. No-op (400) if a side would be empty.
+     */
+    @PostMapping("/{id}/split")
+    public ResponseEntity<?> splitByPrice(@PathVariable String id, @RequestBody SplitReq req) {
+        if (req == null || req.threshold() == null || req.threshold() <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "positive threshold required"));
+        }
+        try {
+            Product p = products.findById(id).orElse(null);
+            if (p == null) return ResponseEntity.notFound().build();
+            List<SitePrice> low = new ArrayList<>(), high = new ArrayList<>();
+            for (SitePrice sp : (p.getPrices() == null ? List.<SitePrice>of() : p.getPrices())) {
+                if (sp.getPrice() != null && sp.getPrice() >= req.threshold()) high.add(sp);
+                else low.add(sp);
+            }
+            if (low.isEmpty() || high.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "split leaves a side empty",
+                        "low", low.size(), "high", high.size()));
+            }
+            // original keeps the LOW (grey) lane
+            p.setPrices(low);
+            if (req.lowName() != null && !req.lowName().isBlank()) p.setName(req.lowName());
+            BulkIndexer.recomputeAggregates(p);
+            p.setMatchKey(BulkIndexer.productMatchKey(p.getName()));
+            p.setUpdatedAt(LocalDateTime.now());
+            // new doc gets the HIGH (official) lane
+            String hiName = req.highName() != null && !req.highName().isBlank()
+                    ? req.highName() : p.getName() + " (Official)";
+            Product hi = Product.builder()
+                    .name(hiName)
+                    .slug(hiName.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", ""))
+                    .matchKey(BulkIndexer.productMatchKey(hiName))
+                    .category(p.getCategory())
+                    .brands(p.getBrands())
+                    .imageUrl(p.getImageUrl())
+                    .prices(high)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            BulkIndexer.recomputeAggregates(hi);
+            products.save(p);
+            Product savedHi = products.save(hi);
+            return ResponseEntity.ok(Map.of(
+                    "low", Map.of("id", id, "name", p.getName(), "sellers", low.size(),
+                            "lowestPrice", String.valueOf(p.getLowestPrice()), "highestPrice", String.valueOf(p.getHighestPrice())),
+                    "high", Map.of("id", String.valueOf(savedHi.getId()), "name", hiName, "sellers", high.size(),
+                            "lowestPrice", String.valueOf(hi.getLowestPrice()), "highestPrice", String.valueOf(hi.getHighestPrice()))));
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     /**
      * Append (or refresh) one seller's offer on a SPECIFIC product — the precise,
      * lane-aware way to add a hand/web-verified price without the matchKey ingest

@@ -184,13 +184,36 @@ public class CatalogRemergeService {
                 // its offer URLs — flagging those would drop its real sellers. So
                 // (a) fires only when the product is a device category.
                 boolean device = isDeviceCategory(p.getCategory());
+                boolean phone = "smartphones".equalsIgnoreCase(p.getCategory() == null ? "" : p.getCategory().trim());
+                double maxv = vals.get(vals.size() - 1);
+                // 2-offer junk: a real official-vs-grey gap is ~2×, never ≥4× — so the
+                // LOW of a ≥4× pair is junk (৳90 / ৳125 / ৳10,000-booking vs the real price).
+                Double twoOfferJunk = (phone && vals.size() == 2 && vals.get(1) >= vals.get(0) * 4.0)
+                        ? vals.get(0) : null;
+                String prodBrand = phone ? phoneBrand(p.getName()) : null;
                 List<SitePrice> kept = new ArrayList<>();
                 List<SitePrice> dropped = new ArrayList<>();
                 for (SitePrice sp : offers) {
                     boolean bad = false;
+                    Double pr = sp.getPrice();
                     if (device && !nameAcc && slugHasAccessory(sp.getProductUrl())) bad = true;   // (a)
-                    if (!bad && vals.size() >= 3 && sp.getPrice() != null && sp.getPrice() > 0
-                            && (sp.getPrice() < median * 0.30 || sp.getPrice() > median * 3.5)) bad = true; // (b)
+                    if (!bad && vals.size() >= 3 && pr != null && pr > 0
+                            && (pr < median * 0.30 || pr > median * 3.5)) bad = true;             // (b) relative outlier
+                    if (!bad && twoOfferJunk != null && twoOfferJunk.equals(pr)) bad = true;       // (c) 2-offer junk-low
+                    // Phone-specific ABSOLUTE junk (won't touch legit grey, which is >৳5k):
+                    if (!bad && phone && pr != null && pr < 5000) bad = true;                      // (d) no smartphone < ৳5k
+                    if (!bad && phone && pr != null && pr == 10000.0 && maxv >= 25000) bad = true; // (e) ৳10k booking deposit
+                    // Wrong-product offer: the URL slug names a DIFFERENT phone brand
+                    // (e.g. a ".../realme-16-pro" offer glued onto "iPhone 16 Pro").
+                    // Read only the PATH — a shop domain like "applegadgetsbd.com" must
+                    // not make every non-Apple phone it sells look like a mismatch.
+                    if (!bad && prodBrand != null && sp.getProductUrl() != null) {
+                        String path = sp.getProductUrl();
+                        int proto = path.indexOf("://"); if (proto >= 0) path = path.substring(proto + 3);
+                        int slash = path.indexOf('/'); path = slash >= 0 ? path.substring(slash) : "";
+                        String ob = phoneBrand(path);
+                        if (ob != null && !ob.equals(prodBrand)) bad = true;                       // (f) brand mismatch
+                    }
                     if (bad) dropped.add(sp); else kept.add(sp);
                 }
                 if (dropped.isEmpty() || kept.isEmpty()) continue;   // never empty a product
@@ -234,6 +257,31 @@ public class CatalogRemergeService {
 
     private static boolean isDeviceCategory(String category) {
         return category != null && DEVICE_CATEGORIES.contains(category.trim().toLowerCase());
+    }
+
+    /** Canonical phone brand from a name or URL slug, or null if none/ambiguous.
+     *  Used to spot a wrong-product offer (a realme URL on an iPhone doc). Only
+     *  unambiguous brand tokens are mapped; first match wins. */
+    static String phoneBrand(String text) {
+        if (text == null) return null;
+        String s = " " + text.toLowerCase().replaceAll("[^a-z0-9]+", " ") + " ";
+        String[][] map = {
+            {"apple","iphone","ipad","macbook","airpods","imac"},
+            {"samsung","galaxy"},
+            {"xiaomi","redmi","poco"},
+            {"realme","narzo"},
+            {"oppo"}, {"vivo","iqoo"}, {"oneplus"}, {"infinix"}, {"tecno","itel"},
+            {"honor"}, {"huawei"}, {"motorola"}, {"nokia"}, {"google","pixel"},
+            {"nothing"}, {"asus","zenfone"}, {"walton"}, {"symphony"}
+        };
+        int best = Integer.MAX_VALUE; String brand = null;
+        for (String[] group : map) {
+            for (String tok : group) {
+                int i = s.indexOf(" " + tok + " ");
+                if (i >= 0 && i < best) { best = i; brand = group[0]; }
+            }
+        }
+        return brand;
     }
 
     /** True if a product-URL's slug contains an accessory noun token (split on
