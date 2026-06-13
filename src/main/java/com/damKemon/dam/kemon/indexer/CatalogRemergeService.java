@@ -142,6 +142,110 @@ public class CatalogRemergeService {
         return out;
     }
 
+    /**
+     * Eject offers that don't belong on a product — the price-comparison corruption
+     * a too-loose historic merge produced: a ৳4,400 case listed as the "lowest"
+     * seller of a ৳92,000 phone, or a ৳15,500 item among ৳3,730 earbuds. Offers
+     * carry no scraped name, so two robust signals flag a wrong offer:
+     * <ul>
+     *   <li>(a) its product-URL slug names an accessory (case/cover/charger…) the
+     *       product itself doesn't — it's literally a different item's page; or</li>
+     *   <li>(b) the product has ≥3 priced offers and this one is a hard price
+     *       outlier (&lt; 0.30× or &gt; 3.5× the median) — no real seller is 70%
+     *       under the field on a price-comparison catalog.</li>
+     * </ul>
+     * The offer is removed and the product re-aggregated; a product is never
+     * emptied. Idempotent; {@code dryRun} previews counts + samples.
+     */
+    public Map<String, Object> purgeMismatchedOffers(boolean dryRun) {
+        int scanned = 0, productsTouched = 0, offersRemoved = 0;
+        List<String> samples = new ArrayList<>();
+        int page = 0;
+        final int pageSize = 1000;
+        while (true) {
+            Query q = new Query(Criteria.where("prices.1").exists(true))   // ≥2 offers
+                    .with(PageRequest.of(page, pageSize, Sort.by(Sort.Direction.ASC, "_id")));
+            List<Product> rows;
+            try { rows = mongo.find(q, Product.class); }
+            catch (Exception e) { break; }
+            if (rows.isEmpty()) break;
+            for (Product p : rows) {
+                scanned++;
+                List<SitePrice> offers = p.getPrices();
+                if (offers == null || offers.size() < 2) continue;
+                List<Double> vals = new ArrayList<>();
+                for (SitePrice sp : offers) if (sp.getPrice() != null && sp.getPrice() > 0) vals.add(sp.getPrice());
+                if (vals.size() < 2) continue;
+                java.util.Collections.sort(vals);
+                double median = vals.get(vals.size() / 2);
+                boolean nameAcc = BulkIndexer.rawNameHasAccessory(p.getName());
+                // Signal (a) only makes sense for DEVICES. An accessory-type product
+                // (a charger/cable/case itself) legitimately has accessory words in
+                // its offer URLs — flagging those would drop its real sellers. So
+                // (a) fires only when the product is a device category.
+                boolean device = isDeviceCategory(p.getCategory());
+                List<SitePrice> kept = new ArrayList<>();
+                List<SitePrice> dropped = new ArrayList<>();
+                for (SitePrice sp : offers) {
+                    boolean bad = false;
+                    if (device && !nameAcc && slugHasAccessory(sp.getProductUrl())) bad = true;   // (a)
+                    if (!bad && vals.size() >= 3 && sp.getPrice() != null && sp.getPrice() > 0
+                            && (sp.getPrice() < median * 0.30 || sp.getPrice() > median * 3.5)) bad = true; // (b)
+                    if (bad) dropped.add(sp); else kept.add(sp);
+                }
+                if (dropped.isEmpty() || kept.isEmpty()) continue;   // never empty a product
+                if (samples.size() < 25) {
+                    SitePrice d = dropped.get(0);
+                    samples.add(p.getName() + "  ✂ dropped " + dropped.size() + " offer(s) (e.g. ৳"
+                            + (d.getPrice() == null ? "?" : Math.round(d.getPrice())) + " @ " + d.getSiteSlug()
+                            + " | median ৳" + Math.round(median) + ")");
+                }
+                offersRemoved += dropped.size();
+                productsTouched++;
+                if (!dryRun) {
+                    p.setPrices(kept);
+                    BulkIndexer.recomputeAggregates(p);
+                    p.setUpdatedAt(LocalDateTime.now());
+                    try { mongo.save(p); }
+                    catch (Exception e) { log.warn("Purge: save failed for '{}': {}", p.getName(), e.getMessage()); }
+                }
+            }
+            page++;
+            if (page > 2000) break;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("dryRun", dryRun);
+        out.put("scanned", scanned);
+        out.put("productsTouched", productsTouched);
+        out.put("offersRemoved", offersRemoved);
+        out.put("samples", samples);
+        log.info("Purge: scanned={} productsTouched={} offersRemoved={} (dryRun={})",
+                scanned, productsTouched, offersRemoved, dryRun);
+        return out;
+    }
+
+    /** Device categories where an accessory-slug offer is a genuine mismatch (a
+     *  case on a phone). Accessory-type categories (accessories/networking/storage/
+     *  power) are excluded — their own offers legitimately name cables/chargers. */
+    private static final Set<String> DEVICE_CATEGORIES = Set.of(
+            "smartphones", "laptops", "desktops & pc", "tablets", "headphones & audio",
+            "smartwatches", "cameras", "gaming", "tvs", "monitors",
+            "printers & scanners", "home appliances", "kitchen");
+
+    private static boolean isDeviceCategory(String category) {
+        return category != null && DEVICE_CATEGORIES.contains(category.trim().toLowerCase());
+    }
+
+    /** True if a product-URL's slug contains an accessory noun token (split on
+     *  non-alphanumerics so "showcase"/"skincare" don't false-match "case"/"skin"). */
+    private static boolean slugHasAccessory(String url) {
+        if (url == null) return false;
+        for (String w : url.toLowerCase().split("[^a-z0-9]+")) {
+            if (!w.isBlank() && BulkIndexer.ACCESSORY_WORDS.contains(w)) return true;
+        }
+        return false;
+    }
+
     private record MergeResult(String survivorName, int absorbed, int offersMoved, int totalOffers) {}
 
     /** Load the cluster's full docs, pick the survivor (most offers), absorb the

@@ -55,4 +55,16 @@ public class AdminMaintenanceController {
             @RequestParam(value = "dryRun", defaultValue = "true") boolean dryRun) {
         return ResponseEntity.ok(remerge.remerge(dryRun));
     }
+
+    /**
+     * Eject wrong offers from products — an accessory (case/charger) or a
+     * different-priced item the historic loose merge glued onto a device as a fake
+     * "seller", corrupting the headline price. {@code dryRun=true} (default)
+     * previews which offers would be dropped; {@code dryRun=false} applies.
+     */
+    @PostMapping("/purge-bad-offers")
+    public ResponseEntity<Map<String, Object>> purgeBadOffers(
+            @RequestParam(value = "dryRun", defaultValue = "true") boolean dryRun) {
+        return ResponseEntity.ok(remerge.purgeMismatchedOffers(dryRun));
+    }
 }

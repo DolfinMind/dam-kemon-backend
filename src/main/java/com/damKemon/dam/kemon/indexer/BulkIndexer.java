@@ -725,7 +725,8 @@ public class BulkIndexer {
             Product existing = null;
             try { existing = productRepository.findById(match.id()).orElse(null); }
             catch (DataAccessException ignored) { /* stale entry → insert fresh */ }
-            if (existing != null && sameProduct(existing.getName(), sp.getName())) {
+            if (existing != null && sameProduct(existing.getName(), sp.getName())
+                    && priceCompatible(existing, sp.getPrice())) {
                 dropSupersededOffer(existing, price, shop);
                 mergeOffer(existing, price, sp, key, lsh, merged);
                 return true;
@@ -798,6 +799,24 @@ public class BulkIndexer {
         catch (DataAccessException e) { return Optional.empty(); }
     }
 
+    /** Reject attaching an offer whose price is wildly off the product's established
+     *  band — a strong signal it's a different product (or an accessory/parse error)
+     *  the fuzzy matcher mistook for this one. Only applied once there are ≥2 offers
+     *  to define a band, so genuine seller spread (a phone at ৳92k–99k) is untouched
+     *  while a ৳4,400 case on that phone (0.05×) or a ৳15,500 item among ৳3,730
+     *  earbuds (4.2×) is kept out. */
+    static boolean priceCompatible(Product existing, Double incoming) {
+        if (incoming == null || incoming <= 0 || existing == null || existing.getPrices() == null)
+            return true;
+        List<Double> vals = new ArrayList<>();
+        for (SitePrice p : existing.getPrices())
+            if (p.getPrice() != null && p.getPrice() > 0) vals.add(p.getPrice());
+        if (vals.size() < 2) return true;
+        java.util.Collections.sort(vals);
+        double median = vals.get(vals.size() / 2);
+        return incoming >= median * 0.25 && incoming <= median * 4.0;
+    }
+
     /** Model qualifiers that distinguish otherwise-similar names (S24 vs S24 Ultra,
      *  GTR 3 vs GTR 3 Pro, MacBook Air vs MacBook Pro). */
     private static final java.util.Set<String> MODEL_QUALIFIERS = java.util.Set.of(
@@ -820,10 +839,40 @@ public class BulkIndexer {
         java.util.Set<String> wa = words(normaliseForMatching(a));
         java.util.Set<String> wb = words(normaliseForMatching(b));
         if (wa.isEmpty() || wb.isEmpty()) return false;
+        // An ACCESSORY (case/cover/charger/glass…) is never the same product as the
+        // bare device, even though their names overlap heavily and share every
+        // discriminator. This is the #1 cause of price-comparison corruption:
+        // a ৳4,400 "iPhone 16 Plus Case" gluing onto the ৳92,000 phone as its
+        // "lowest" seller. If exactly one side names an accessory, they differ.
+        // Over-splitting here is harmless (a duplicate listing); over-merging an
+        // accessory onto a device wrecks the headline price.
+        if (rawNameHasAccessory(a) != rawNameHasAccessory(b)) return false;
         if (!discriminators(wa).equals(discriminators(wb))) return false;
         java.util.Set<String> inter = new java.util.HashSet<>(wa); inter.retainAll(wb);
         java.util.Set<String> uni = new java.util.HashSet<>(wa); uni.addAll(wb);
         return !uni.isEmpty() && (double) inter.size() / uni.size() >= 0.5;
+    }
+
+    /** Accessory/peripheral nouns. A product whose name carries one of these is a
+     *  case/charger/protector/etc. — NOT the device it's "for" — so it must never
+     *  share a product (and therefore a price) with the bare device. Model
+     *  qualifiers (flip/fold/air/pro…) are deliberately absent. */
+    static final java.util.Set<String> ACCESSORY_WORDS = java.util.Set.of(
+            "case","cover","casing","bumper","sleeve","pouch","wallet","glass",
+            "protector","tempered","film","screenguard","screenprotector","guard",
+            "charger","cable","adapter","dock","holder","mount","stand","strap",
+            "skin","sticker","decal","grip","stylus","lanyard",
+            "casecover","backcover","flipcover");
+
+    /** True if the RAW name (including parenthetical content that
+     *  {@link #normaliseForMatching} strips) contains an accessory noun. Checked
+     *  raw so "iPhone 16 Plus (Silicone Case)" is still seen as an accessory. */
+    static boolean rawNameHasAccessory(String name) {
+        if (name == null) return false;
+        for (String w : name.toLowerCase().split("[^a-z0-9]+")) {
+            if (!w.isBlank() && ACCESSORY_WORDS.contains(w)) return true;
+        }
+        return false;
     }
 
     static java.util.Set<String> words(String s) {
@@ -909,7 +958,16 @@ public class BulkIndexer {
         String s = normaliseForMatching(name);
         if (s == null) return null;
         s = MATCHKEY_NOISE.matcher(s).replaceAll(" ").replaceAll("\\s+", " ").trim();
-        return s.length() < 2 ? null : s;
+        if (s.length() < 2) return null;
+        // Guard the path-2 (exact matchKey) collision: paren/spec stripping can erase
+        // an accessory's only distinguishing word ("iPhone 16 Plus (Silicone Case)"
+        // → "iphone 16 plus"), which would then share the phone's key and merge.
+        // If the raw name is an accessory but the normalised key shows no accessory
+        // word, mark the key so it can never collide with the bare device.
+        if (rawNameHasAccessory(name) && words(s).stream().noneMatch(ACCESSORY_WORDS::contains)) {
+            s = s + " acc";
+        }
+        return s;
     }
 
     private void applyDescriptiveFieldsIfMissing(Product existing, ScrapedProduct sp) {
