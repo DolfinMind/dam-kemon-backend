@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.controller;
 
+import com.damKemon.dam.kemon.indexer.BulkIndexer;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.SitePrice;
 import com.damKemon.dam.kemon.repository.ProductRepository;
@@ -142,6 +143,55 @@ public class AdminCatalogController {
     }
 
     /** Edit core fields of a product. Operator override of indexer detection. */
+    public record OfferReq(String siteSlug, String siteName, Double price, Double originalPrice,
+                           String productUrl, String imageUrl, String sellerName) {}
+
+    /**
+     * Append (or refresh) one seller's offer on a SPECIFIC product — the precise,
+     * lane-aware way to add a hand/web-verified price without the matchKey ingest
+     * possibly routing it to the wrong variant doc (official vs grey-market). A
+     * re-add from the same first-party shop replaces its prior offer. Aggregates
+     * are recomputed through the same trusted-price filter the indexer uses.
+     */
+    @PostMapping("/{id}/offer")
+    public ResponseEntity<?> addOffer(@PathVariable String id, @RequestBody OfferReq req) {
+        if (req == null || req.price() == null || req.price() <= 0
+                || req.siteSlug() == null || req.siteSlug().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "siteSlug and a positive price are required"));
+        }
+        try {
+            Product p = products.findById(id).orElse(null);
+            if (p == null) return ResponseEntity.notFound().build();
+            if (p.getPrices() == null) p.setPrices(new ArrayList<>());
+            // one offer per first-party shop: drop the same shop's prior offer, then add.
+            p.getPrices().removeIf(o -> java.util.Objects.equals(o.getSiteSlug(), req.siteSlug())
+                    && (o.getSellerId() == null || o.getSellerId().isBlank()));
+            p.getPrices().add(SitePrice.builder()
+                    .siteName(req.siteName() != null && !req.siteName().isBlank() ? req.siteName() : req.siteSlug())
+                    .siteSlug(req.siteSlug())
+                    .productUrl(req.productUrl())
+                    .price(req.price())
+                    .originalPrice(req.originalPrice())
+                    .currency("BDT")
+                    .inStock(true)
+                    .sellerName(req.sellerName())
+                    .lastUpdated(LocalDateTime.now())
+                    .build());
+            if ((p.getImageUrl() == null || p.getImageUrl().isBlank()) && req.imageUrl() != null) {
+                p.setImageUrl(req.imageUrl());
+            }
+            BulkIndexer.recomputeAggregates(p);
+            p.setUpdatedAt(LocalDateTime.now());
+            products.save(p);
+            return ResponseEntity.ok(Map.of("id", id, "name", p.getName(),
+                    "sellers", p.getPrices().size(),
+                    "lowestPrice", String.valueOf(p.getLowestPrice()),
+                    "highestPrice", String.valueOf(p.getHighestPrice())));
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PatchMapping("/{id}")
     public ResponseEntity<?> editProduct(@PathVariable String id, @RequestBody Map<String, Object> body) {
         try {

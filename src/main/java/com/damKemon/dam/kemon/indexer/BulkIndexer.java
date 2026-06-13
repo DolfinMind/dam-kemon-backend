@@ -847,6 +847,12 @@ public class BulkIndexer {
         // Over-splitting here is harmless (a duplicate listing); over-merging an
         // accessory onto a device wrecks the headline price.
         if (rawNameHasAccessory(a) != rawNameHasAccessory(b)) return false;
+        // BD market lanes: an OFFICIAL (local-warranty) unit and an UNOFFICIAL /
+        // international/grey-market unit of the same model sell ~2× apart. They are
+        // NOT the same purchasable product, so they must never merge into one price
+        // comparison (otherwise a ৳150k grey unit becomes the "lowest" of a ৳250k
+        // official phone). Only opposite explicit tags conflict; untagged stays neutral.
+        if (laneOf(a) * laneOf(b) < 0) return false;
         if (!discriminators(wa).equals(discriminators(wb))) return false;
         java.util.Set<String> inter = new java.util.HashSet<>(wa); inter.retainAll(wb);
         java.util.Set<String> uni = new java.util.HashSet<>(wa); uni.addAll(wb);
@@ -873,6 +879,25 @@ public class BulkIndexer {
             if (!w.isBlank() && ACCESSORY_WORDS.contains(w)) return true;
         }
         return false;
+    }
+
+    private static final java.util.regex.Pattern OFFICIAL_TAG =
+            java.util.regex.Pattern.compile("\\bofficial\\b");
+    private static final java.util.regex.Pattern GREY_TAG =
+            java.util.regex.Pattern.compile("\\b(unofficial|international|grey[- ]?market)\\b");
+
+    /** BD-market price lane from the name: +1 official (local warranty), -1
+     *  unofficial/international/grey, 0 neutral/untagged. Used to keep the two
+     *  lanes from merging — they're ~2× apart and not the same purchasable item.
+     *  "global" is intentionally NOT a grey tag (too often a neutral region label). */
+    static int laneOf(String name) {
+        if (name == null) return 0;
+        String s = name.toLowerCase();
+        boolean off = OFFICIAL_TAG.matcher(s).find();
+        boolean grey = GREY_TAG.matcher(s).find();
+        if (off && !grey) return 1;
+        if (grey && !off) return -1;
+        return 0;
     }
 
     static java.util.Set<String> words(String s) {
@@ -979,7 +1004,7 @@ public class BulkIndexer {
         }
     }
 
-    static void recomputeAggregates(Product p) {
+    public static void recomputeAggregates(Product p) {
         List<SitePrice> prices = p.getPrices();
         if (prices == null || prices.isEmpty()) return;
         double rsum = 0; int rn = 0; int reviews = 0;
