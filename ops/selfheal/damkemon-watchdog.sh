@@ -8,11 +8,13 @@
 #
 # Deliberately conservative so it can never restart-loop or fire on a mere
 # search slowdown:
-#   * probes /actuator/health/liveness only (cheap; stays UP when only search
-#     quality dips, so a slow search never triggers a restart),
+#   * treats ANY HTTP response (even a 404 or 503) as alive, and restarts only
+#     on NO response at all (000 = connection refused / timed out) — so a slow
+#     search, a 503 from a degraded health check, or a missing endpoint can
+#     never trigger a restart,
 #   * leaves the service alone for GRACE seconds after it (re)started, which
 #     covers deploys, crashes and our own restarts uniformly, and
-#   * requires THRESHOLD consecutive failures before acting.
+#   * requires THRESHOLD consecutive no-response checks before acting.
 #
 # Runs as root via damkemon-watchdog.timer (every 60s). No `set -e`: arithmetic
 # conditionals legitimately return non-zero and must not abort the script.
@@ -41,13 +43,16 @@ if [ -n "$started" ]; then
   fi
 fi
 
-# Healthy → reset the counter and we're done.
-if curl -fsS --max-time 8 "$URL" >/dev/null 2>&1; then
+# Alive = any HTTP response within the timeout. Restart only on 000 (no
+# response = crash/hang), never on a 404/503 or a slow-but-answering app.
+code=$(curl -s -o /dev/null --max-time 8 -w '%{http_code}' "$URL" 2>/dev/null)
+[ -z "$code" ] && code=000
+if [ "$code" != "000" ]; then
   echo 0 > "$FAILS"
   exit 0
 fi
 
-# Unhealthy → count it; restart once we cross the threshold.
+# No response → count it; restart once we cross the threshold.
 n=$(( $(cat "$FAILS" 2>/dev/null || echo 0) + 1 ))
 echo "$n" > "$FAILS"
 if [ "$n" -ge "$THRESHOLD" ]; then
