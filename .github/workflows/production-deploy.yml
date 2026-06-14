@@ -72,7 +72,19 @@ jobs:
           username: ${{ vars.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            bash /home/${{ vars.SERVER_USER }}/selfheal/install.sh
+            # install.sh needs root (writes /etc/systemd). Auto-apply only when
+            # the deploy user has passwordless sudo; otherwise stage the files
+            # and print the one-time activation command instead of failing.
+            if sudo -n true 2>/dev/null; then
+              bash /home/${{ vars.SERVER_USER }}/selfheal/install.sh
+            else
+              echo "Self-heal staged at ~/selfheal. The deploy user lacks passwordless sudo,"
+              echo "so activate it once by hand (persists across deploys & restarts):"
+              echo "    sudo bash ~/selfheal/install.sh"
+              echo "Or add a sudoers NOPASSWD rule for systemctl+install to automate this step."
+            fi
+            echo "current restart policy:"
+            systemctl show damkemon-prod-app.service -p Restart -p RestartSec 2>/dev/null || true
 
       - name: Show recent application logs
         uses: appleboy/ssh-action@v1.0.3
