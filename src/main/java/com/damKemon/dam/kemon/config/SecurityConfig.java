@@ -142,7 +142,12 @@ public class SecurityConfig {
         protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
                 throws ServletException, IOException {
             String path = req.getRequestURI();
-            if (path == null || !path.startsWith("/api/admin/")) {
+            // /api/scrape kicks off a full reindex (the crawl that OOMs the box),
+            // so it's admin-only too — not just rate-limited. The frontend never
+            // calls it; operator scripts use /api/admin/* with the key.
+            boolean gated = path != null
+                    && (path.startsWith("/api/admin/") || path.startsWith("/api/scrape"));
+            if (!gated) {
                 chain.doFilter(req, res);
                 return;
             }

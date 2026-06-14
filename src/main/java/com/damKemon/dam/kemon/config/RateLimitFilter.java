@@ -45,7 +45,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (path != null) {
             for (Rule r : rules) {
                 if (r.matches(path)) {
-                    if (!r.limiter().tryConsume(clientIp(req))) {
+                    long remaining = r.limiter().tryConsumeRemaining(clientIp(req));
+                    // Standard rate-limit headers — let clients/monitors (and us)
+                    // see the budget; also makes the limiter verifiable in prod.
+                    res.setHeader("X-RateLimit-Limit", Long.toString(r.limiter().capacity()));
+                    res.setHeader("X-RateLimit-Remaining", Long.toString(Math.max(remaining, 0)));
+                    if (remaining < 0) {
                         res.setStatus(429);
                         res.setHeader("Retry-After", Integer.toString(r.retryAfterSec()));
                         res.setContentType("application/json");
