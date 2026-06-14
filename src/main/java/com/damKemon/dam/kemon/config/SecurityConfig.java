@@ -42,15 +42,35 @@ public class SecurityConfig {
     @Value("${cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;
 
+    // ── Per-IP rate-limit tiers (bot/scraper defense). capacity = burst;
+    //    refill-per-sec ≈ sustained req/sec (×60 ≈ per-minute). All tunable via
+    //    env, e.g. RATELIMIT_DATA_CAPACITY / RATELIMIT_DATA_REFILL_PER_SEC.
     @Value("${ratelimit.capacity:60}")
-    private long rateLimitCapacity;
-
+    private long searchCapacity;                 // /api/search (+ /suggest)
     @Value("${ratelimit.refill-per-sec:1.0}")
-    private double rateLimitRefillPerSec;
+    private double searchRefillPerSec;
+    @Value("${ratelimit.data-capacity:180}")
+    private long dataCapacity;                    // scrapable catalog/price reads
+    @Value("${ratelimit.data-refill-per-sec:3.0}")
+    private double dataRefillPerSec;
+    @Value("${ratelimit.strict-capacity:20}")
+    private long strictCapacity;                  // expensive/abuse-prone triggers
+    @Value("${ratelimit.strict-refill-per-sec:0.34}")
+    private double strictRefillPerSec;
 
     @Bean
     public RateLimiter searchRateLimiter() {
-        return new RateLimiter(rateLimitCapacity, rateLimitRefillPerSec);
+        return new RateLimiter(searchCapacity, searchRefillPerSec);
+    }
+
+    @Bean
+    public RateLimiter dataRateLimiter() {
+        return new RateLimiter(dataCapacity, dataRefillPerSec);
+    }
+
+    @Bean
+    public RateLimiter strictRateLimiter() {
+        return new RateLimiter(strictCapacity, strictRefillPerSec);
     }
 
     @Bean
@@ -68,8 +88,19 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-            .addFilterBefore(new RateLimitFilter(searchRateLimiter()),
-                    UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(new RateLimitFilter(List.of(
+                    // expensive / abuse-prone triggers — tight (scrape kicks off a
+                    // crawl; assistant calls the LLM, so both cost real resources).
+                    new RateLimitFilter.Rule(strictRateLimiter(), 15,
+                            List.of("/api/scrape", "/api/assistant")),
+                    // search incl. /suggest autocomplete
+                    new RateLimitFilter.Rule(searchRateLimiter(), 5,
+                            List.of("/api/search")),
+                    // scrapable catalog + price/seller data — the bulk-mining surface
+                    new RateLimitFilter.Rule(dataRateLimiter(), 5, List.of(
+                            "/api/products", "/api/compare", "/api/sellers",
+                            "/api/shops", "/api/trust", "/api/stats"))
+                )), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new JwtAuthFilter(jwtService),
                     UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new AdminGateFilter(adminApiKey),
