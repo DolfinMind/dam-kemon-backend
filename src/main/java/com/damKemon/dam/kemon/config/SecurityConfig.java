@@ -57,6 +57,10 @@ public class SecurityConfig {
     private long strictCapacity;                  // expensive/abuse-prone triggers
     @Value("${ratelimit.strict-refill-per-sec:0.34}")
     private double strictRefillPerSec;
+    @Value("${ratelimit.auth-capacity:8}")
+    private long authCapacity;                    // login brute-force throttle
+    @Value("${ratelimit.auth-refill-per-sec:0.13}")
+    private double authRefillPerSec;
 
     @Bean
     public RateLimiter searchRateLimiter() {
@@ -71,6 +75,11 @@ public class SecurityConfig {
     @Bean
     public RateLimiter strictRateLimiter() {
         return new RateLimiter(strictCapacity, strictRefillPerSec);
+    }
+
+    @Bean
+    public RateLimiter authRateLimiter() {
+        return new RateLimiter(authCapacity, authRefillPerSec);
     }
 
     @Bean
@@ -89,6 +98,10 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
             .addFilterBefore(new RateLimitFilter(List.of(
+                    // login brute-force throttle — tight, password guessing only
+                    // (not /me or /sign-out). A human won't exceed 8/min.
+                    new RateLimitFilter.Rule(authRateLimiter(), 30,
+                            List.of("/api/auth/login")),
                     // expensive / abuse-prone triggers — tight (scrape kicks off a
                     // crawl; assistant calls the LLM, so both cost real resources).
                     new RateLimitFilter.Rule(strictRateLimiter(), 15,
