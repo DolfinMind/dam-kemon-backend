@@ -1,6 +1,7 @@
 package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.service.AnalyticsService;
+import com.damKemon.dam.kemon.util.ClientIp;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +29,7 @@ public class AnalyticsController {
     @PostMapping("/view")
     public ResponseEntity<Void> view(@RequestBody Map<String, Object> body,
                                      HttpServletRequest req) {
-        analytics.recordView(asString(body.get("productId")), asString(body.get("anonId")), clientIp(req));
+        analytics.recordView(asString(body.get("productId")), asString(body.get("anonId")), ClientIp.of(req));
         return ResponseEntity.noContent().build();
     }
 
@@ -39,20 +40,29 @@ public class AnalyticsController {
                 asString(body.get("productId")),
                 asString(body.get("sellerSlug")),
                 asString(body.get("anonId")),
-                clientIp(req));
+                ClientIp.of(req));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * A single-page-app route change. The client fires this on every navigation
+     * so the server sees the full page-by-page journey, not just API calls.
+     */
+    @PostMapping("/pageview")
+    public ResponseEntity<Void> pageview(@RequestBody Map<String, Object> body,
+                                         HttpServletRequest req) {
+        String userId = (String) req.getAttribute("authUserId");
+        analytics.recordPageView(
+                asString(body.get("path")),
+                asString(body.get("anonId")),
+                ClientIp.of(req),
+                userId,
+                asString(body.get("referer")),
+                req.getHeader("User-Agent"));
         return ResponseEntity.noContent().build();
     }
 
     private static String asString(Object o) {
         return o == null ? null : String.valueOf(o);
-    }
-
-    private static String clientIp(HttpServletRequest req) {
-        String fwd = req.getHeader("X-Forwarded-For");
-        if (fwd != null && !fwd.isBlank()) {
-            int comma = fwd.indexOf(',');
-            return (comma < 0 ? fwd : fwd.substring(0, comma)).trim();
-        }
-        return req.getRemoteAddr();
     }
 }

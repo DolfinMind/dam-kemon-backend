@@ -151,6 +151,17 @@ cors:
 admin:
   api-key: ${ADMIN_API_KEY:}
 
+# ───── Full-funnel analytics / request logging ─────
+# Every /api request is logged into request_log (the "every step" access log),
+# and search/view/click/pageview events into the events collection. Both carry
+# the RAW client IP when store-raw-ip is true so the operator can see who is
+# hitting the site (admin-only, surfaced under /api/admin/analytics). Set false
+# to fall back to the privacy-preserving hash-only behaviour. The timezone is
+# used to bucket "peak hour" and per-day stats — keep it on the audience's TZ.
+analytics:
+  store-raw-ip: ${ANALYTICS_STORE_RAW_IP:true}
+  timezone: ${ANALYTICS_TIMEZONE:Asia/Dhaka}
+
 # ───── Per-IP rate limit on /api/search* ─────
 # Token bucket: capacity tokens, refilled at refill-per-sec tokens/sec.
 # Defaults ≈ 60 req/min sustained per IP, brief burst to 60.

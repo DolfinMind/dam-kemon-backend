@@ -2,17 +2,15 @@ package com.damKemon.dam.kemon.service;
 
 import com.damKemon.dam.kemon.model.AnalyticsEvent;
 import com.damKemon.dam.kemon.repository.AnalyticsEventRepository;
+import com.damKemon.dam.kemon.util.ClientIp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.HexFormat;
 
 /**
  * Fire-and-forget event recorder. Every call is {@code @Async} so we don't
@@ -30,8 +28,13 @@ public class AnalyticsService {
 
     private final AnalyticsEventRepository repo;
 
-    public AnalyticsService(AnalyticsEventRepository repo) {
+    /** When false, only the IP hash is kept (the original no-PII behaviour). */
+    private final boolean storeRawIp;
+
+    public AnalyticsService(AnalyticsEventRepository repo,
+                            @Value("${analytics.store-raw-ip:true}") boolean storeRawIp) {
         this.repo = repo;
+        this.storeRawIp = storeRawIp;
     }
 
     @Async
@@ -53,7 +56,8 @@ public class AnalyticsService {
                 .anonId(safe(anonId))
                 .userId(safe(userId))
                 .latencyMs(latencyMs)
-                .ipHash(hashIp(ip))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
                 .ts(Instant.now())
                 .build());
     }
@@ -65,7 +69,8 @@ public class AnalyticsService {
                 .type("view")
                 .productId(productId)
                 .anonId(safe(anonId))
-                .ipHash(hashIp(ip))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
                 .ts(Instant.now())
                 .build());
     }
@@ -78,7 +83,28 @@ public class AnalyticsService {
                 .productId(productId)
                 .sellerSlug(sellerSlug)
                 .anonId(safe(anonId))
-                .ipHash(hashIp(ip))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
+                .ts(Instant.now())
+                .build());
+    }
+
+    /** A single SPA page navigation. Captures the route, referrer and device. */
+    @Async
+    public void recordPageView(String path, String anonId, String ip,
+                               String userId, String referer, String userAgent) {
+        if (path == null || path.isBlank()) return;
+        String p = path.trim();
+        if (p.length() > MAX_QUERY_LEN) p = p.substring(0, MAX_QUERY_LEN);
+        save(AnalyticsEvent.builder()
+                .type("pageview")
+                .path(p)
+                .anonId(safe(anonId))
+                .userId(safe(userId))
+                .referer(safe256(referer))
+                .userAgent(safe256(userAgent))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
                 .ts(Instant.now())
                 .build());
     }
@@ -89,21 +115,21 @@ public class AnalyticsService {
         catch (Exception ex) { log.debug("analytics unexpected: {}", ex.getMessage()); }
     }
 
+    /** Raw IP only when the operator has opted in; otherwise null (hash still kept). */
+    private String rawIp(String ip) {
+        return storeRawIp ? ip : null;
+    }
+
     private static String safe(String s) {
         if (s == null) return null;
         s = s.trim();
         return s.length() > 64 ? s.substring(0, 64) : s;
     }
 
-    /** SHA-256 hex of the IP, truncated. Not reversible without the IP. */
-    private static String hashIp(String ip) {
-        if (ip == null || ip.isBlank()) return null;
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] h = md.digest(ip.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(h).substring(0, 16);
-        } catch (NoSuchAlgorithmException e) {
-            return null;
-        }
+    private static String safe256(String s) {
+        if (s == null) return null;
+        s = s.trim();
+        if (s.isEmpty()) return null;
+        return s.length() > 256 ? s.substring(0, 256) : s;
     }
 }
