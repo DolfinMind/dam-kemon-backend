@@ -70,6 +70,8 @@ public class AffiliateController {
             clicks.save(AffiliateClick.builder()
                     .productId(p.getId())
                     .siteSlug(chosen.getSiteSlug())
+                    .category(p.getCategory())
+                    .productName(p.getName())
                     .userId(asString(req.getAttribute("authUserId")))
                     .anonId(req.getHeader("X-Anon-Id"))
                     .clickId(clickId)

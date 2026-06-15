@@ -78,6 +78,49 @@ public class AdminAnalyticsController {
         return ResponseEntity.ok(analytics.recentRequests(clamp(limit, 1, 500)));
     }
 
+    // ── Outbound-click intelligence (affiliate_clicks) ──
+
+    /** Which shop is clicked most for which category — shops ranked within each category. */
+    @GetMapping("/shop-clicks-by-category")
+    public ResponseEntity<List<Map<String, Object>>> shopClicksByCategory(
+            @RequestParam(value = "days", defaultValue = "7") int days,
+            @RequestParam(value = "categories", defaultValue = "12") int categories,
+            @RequestParam(value = "shops", defaultValue = "5") int shops) {
+        return ResponseEntity.ok(analytics.shopClicksByCategory(
+                clampDays(days), clamp(categories, 1, 50), clamp(shops, 1, 20)));
+    }
+
+    /** Shops ranked by outbound clicks — who we send the most traffic to. */
+    @GetMapping("/top-shops")
+    public ResponseEntity<List<Map<String, Object>>> topShops(
+            @RequestParam(value = "days", defaultValue = "7") int days,
+            @RequestParam(value = "limit", defaultValue = "25") int limit) {
+        return ResponseEntity.ok(analytics.topShops(clampDays(days), clamp(limit, 1, 200)));
+    }
+
+    /** Products ranked by outbound clicks — what shoppers click out to buy. */
+    @GetMapping("/top-products")
+    public ResponseEntity<List<Map<String, Object>>> topProducts(
+            @RequestParam(value = "days", defaultValue = "7") int days,
+            @RequestParam(value = "limit", defaultValue = "25") int limit) {
+        return ResponseEntity.ok(analytics.topClickedProducts(clampDays(days), clamp(limit, 1, 200)));
+    }
+
+    /** Search terms that drove the most outbound clicks (search → click attribution). */
+    @GetMapping("/top-converting-searches")
+    public ResponseEntity<List<Map<String, Object>>> topConvertingSearches(
+            @RequestParam(value = "days", defaultValue = "7") int days,
+            @RequestParam(value = "limit", defaultValue = "25") int limit) {
+        return ResponseEntity.ok(analytics.topConvertingSearches(clampDays(days), clamp(limit, 1, 200)));
+    }
+
+    /** Funnel: searches → product views → outbound clicks, with conversion rates. */
+    @GetMapping("/funnel")
+    public ResponseEntity<Map<String, Object>> funnel(
+            @RequestParam(value = "days", defaultValue = "7") int days) {
+        return ResponseEntity.ok(analytics.clickFunnel(clampDays(days)));
+    }
+
     private static int clampDays(int d) {
         return clamp(d, 1, 90);
     }

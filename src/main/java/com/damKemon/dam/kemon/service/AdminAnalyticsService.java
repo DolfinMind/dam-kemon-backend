@@ -62,6 +62,7 @@ public class AdminAnalyticsService {
 
     private static final String EVENTS = "events";
     private static final String REQUESTS = "request_log";
+    private static final String CLICKS = "affiliate_clicks";
     private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private final MongoTemplate mongo;
@@ -332,6 +333,168 @@ public class AdminAnalyticsService {
         }
     }
 
+    // ════════════════════ Outbound clicks (affiliate_clicks) ════════════════════
+    // Deep marketplace signal: which shop wins which category, which products and
+    // shops pull the most outbound traffic, and how search turns into clicks. All
+    // read the denormalised category/productName written at click time.
+
+    /**
+     * Which shop is clicked most for which category. For each category, the shops
+     * ranked by outbound clicks in the window; categories ordered by total clicks.
+     * The aggregation sorts globally by clicks-desc, so as we bucket rows by
+     * category each bucket already comes out highest-first.
+     */
+    public List<Map<String, Object>> shopClicksByCategory(int days, int maxCategories, int shopsPerCategory) {
+        Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
+        Map<String, List<Map<String, Object>>> byCat = new LinkedHashMap<>();
+        Map<String, Long> catTotals = new LinkedHashMap<>();
+        try {
+            Aggregation agg = newAggregation(
+                    match(where("ts").gte(cutoff)),
+                    group("category", "siteSlug").count().as("clicks").max("ts").as("lastSeen"),
+                    sort(Sort.Direction.DESC, "clicks"));
+            for (Document d : mongo.aggregate(agg, CLICKS, Document.class)) {
+                String category = "uncategorized", site = "unknown";
+                if (d.get("_id") instanceof Document id) {
+                    category = strOr(id.get("category"), "uncategorized");
+                    site = strOr(id.get("siteSlug"), "unknown");
+                }
+                long clicks = num(d.get("clicks"));
+                List<Map<String, Object>> shops = byCat.computeIfAbsent(category, k -> new ArrayList<>());
+                if (shops.size() < shopsPerCategory) {
+                    Map<String, Object> s = new LinkedHashMap<>();
+                    s.put("siteSlug", site);
+                    s.put("clicks", clicks);
+                    s.put("lastSeen", d.get("lastSeen"));
+                    shops.add(s);
+                }
+                catTotals.merge(category, clicks, Long::sum);
+            }
+        } catch (Exception ignored) { /* degrade to empty */ }
+
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map.Entry<String, List<Map<String, Object>>> e : byCat.entrySet()) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("category", e.getKey());
+            row.put("totalClicks", catTotals.getOrDefault(e.getKey(), 0L));
+            row.put("topShop", e.getValue().isEmpty() ? null : e.getValue().get(0).get("siteSlug"));
+            row.put("shops", e.getValue());
+            out.add(row);
+        }
+        out.sort((a, b) -> Long.compare((Long) b.get("totalClicks"), (Long) a.get("totalClicks")));
+        return out.size() > maxCategories ? new ArrayList<>(out.subList(0, maxCategories)) : out;
+    }
+
+    /** Shops ranked by outbound clicks — who gets the most traffic we send out. */
+    public List<Map<String, Object>> topShops(int days, int lim) {
+        Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
+        List<Map<String, Object>> out = new ArrayList<>();
+        try {
+            Aggregation agg = newAggregation(
+                    match(where("ts").gte(cutoff).and("siteSlug").ne(null)),
+                    group("siteSlug")
+                            .count().as("clicks")
+                            .addToSet("productId").as("products")
+                            .addToSet("anonId").as("visitors")
+                            .addToSet("category").as("categories")
+                            .max("ts").as("lastSeen"),
+                    sort(Sort.Direction.DESC, "clicks"),
+                    limit(lim));
+            for (Document d : mongo.aggregate(agg, CLICKS, Document.class)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("siteSlug", d.getString("_id"));
+                row.put("clicks", num(d.get("clicks")));
+                row.put("distinctProducts", sizeOf(d.get("products")));
+                row.put("distinctVisitors", nonNullCount(d.get("visitors")));
+                row.put("distinctCategories", nonNullCount(d.get("categories")));
+                row.put("lastSeen", d.get("lastSeen"));
+                out.add(row);
+            }
+        } catch (Exception ignored) { /* degrade to empty */ }
+        return out;
+    }
+
+    /** Products ranked by outbound clicks — what shoppers actually click out to buy. */
+    public List<Map<String, Object>> topClickedProducts(int days, int lim) {
+        Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
+        List<Map<String, Object>> out = new ArrayList<>();
+        try {
+            Aggregation agg = newAggregation(
+                    match(where("ts").gte(cutoff).and("productId").ne(null)),
+                    group("productId")
+                            .count().as("clicks")
+                            .last("productName").as("name")
+                            .last("category").as("category")
+                            .addToSet("siteSlug").as("shops")
+                            .max("ts").as("lastSeen"),
+                    sort(Sort.Direction.DESC, "clicks"),
+                    limit(lim));
+            for (Document d : mongo.aggregate(agg, CLICKS, Document.class)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("productId", d.getString("_id"));
+                row.put("name", d.getString("name"));
+                row.put("category", d.getString("category"));
+                row.put("clicks", num(d.get("clicks")));
+                row.put("distinctShops", sizeOf(d.get("shops")));
+                row.put("lastSeen", d.get("lastSeen"));
+                out.add(row);
+            }
+        } catch (Exception ignored) { /* degrade to empty */ }
+        return out;
+    }
+
+    /** Search terms that drove the most outbound clicks (search → click attribution). */
+    public List<Map<String, Object>> topConvertingSearches(int days, int lim) {
+        Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
+        List<Map<String, Object>> out = new ArrayList<>();
+        try {
+            Aggregation agg = newAggregation(
+                    match(where("ts").gte(cutoff).and("fromQuery").ne(null).and("fromQuery").ne("")),
+                    group("fromQuery")
+                            .count().as("clicks")
+                            .addToSet("productId").as("products")
+                            .addToSet("siteSlug").as("shops"),
+                    sort(Sort.Direction.DESC, "clicks"),
+                    limit(lim));
+            for (Document d : mongo.aggregate(agg, CLICKS, Document.class)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("query", d.getString("_id"));
+                row.put("clicks", num(d.get("clicks")));
+                row.put("distinctProducts", sizeOf(d.get("products")));
+                row.put("distinctShops", sizeOf(d.get("shops")));
+                out.add(row);
+            }
+        } catch (Exception ignored) { /* degrade to empty */ }
+        return out;
+    }
+
+    /**
+     * The marketplace funnel over the window: searches → product views → outbound
+     * clicks, with stage-to-stage conversion rates. Searches/views come from
+     * {@code events}; the authoritative outbound count from {@code affiliate_clicks}.
+     */
+    public Map<String, Object> clickFunnel(int days) {
+        Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("days", days);
+        try {
+            long searches = mongo.count(query(where("type").is("search").and("ts").gte(cutoff)), EVENTS);
+            long views = mongo.count(query(where("type").is("view").and("ts").gte(cutoff)), EVENTS);
+            long clicks = mongo.count(query(where("ts").gte(cutoff)), CLICKS);
+            out.put("searches", searches);
+            out.put("productViews", views);
+            out.put("outboundClicks", clicks);
+            out.put("searchToView", pct(views, searches));
+            out.put("viewToClick", pct(clicks, views));
+            out.put("searchToClick", pct(clicks, searches));
+        } catch (Exception e) {
+            out.put("searches", 0L);
+            out.put("productViews", 0L);
+            out.put("outboundClicks", 0L);
+        }
+        return out;
+    }
+
     // ──────────────────────────────── helpers ──────────────────────────────────
 
     private Instant todayStart() {
@@ -365,6 +528,19 @@ public class AdminAnalyticsService {
 
     private static long num(Object o) {
         return o instanceof Number ? ((Number) o).longValue() : 0L;
+    }
+
+    /** First non-blank string form of {@code o}, else {@code dflt}. */
+    private static String strOr(Object o, String dflt) {
+        if (o == null) return dflt;
+        String s = String.valueOf(o);
+        return s.isBlank() ? dflt : s;
+    }
+
+    /** {@code a} as a percentage of {@code b} (0–100, one decimal); null when b≤0. */
+    private static Double pct(long a, long b) {
+        if (b <= 0) return null;
+        return Math.round((a * 1000.0) / b) / 10.0;
     }
 
     private static int sizeOf(Object o) {

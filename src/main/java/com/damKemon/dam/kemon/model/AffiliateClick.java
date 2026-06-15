@@ -38,6 +38,13 @@ public class AffiliateClick {
     @Indexed
     private String siteSlug;
 
+    // Denormalised from the Product at click time so "which shop wins which
+    // category" and "top clicked products" are a single-collection aggregation
+    // (no $lookup join from a String productId to an ObjectId _id).
+    @Indexed
+    private String category;
+    private String productName;
+
     private String userId;
     private String anonId;
     private String clickId;     // value passed to the partner network for reconciliation
