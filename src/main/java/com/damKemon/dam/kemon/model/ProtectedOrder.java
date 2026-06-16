@@ -45,6 +45,8 @@ public class ProtectedOrder {
     private String productId;   // optional — set when bought via our catalog
     private String shopSlug;    // optional — set when the seller is a known shop
     private String sellerName;  // free text (e.g. a Facebook page name)
+    @Indexed
+    private String sellerIdentifier; // URL or Phone number from Trust Vault query
     private String itemName;
     private Double amount;
 

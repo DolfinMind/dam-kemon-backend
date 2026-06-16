@@ -12,4 +12,5 @@ public interface ProtectedOrderRepository extends MongoRepository<ProtectedOrder
     Optional<ProtectedOrder> findByProtectionCode(String protectionCode);
     boolean existsByProtectionCode(String protectionCode);
     List<ProtectedOrder> findByAnonIdOrderByCreatedAtDesc(String anonId);
+    List<ProtectedOrder> findBySellerIdentifierAndStatus(String sellerIdentifier, String status);
 }
