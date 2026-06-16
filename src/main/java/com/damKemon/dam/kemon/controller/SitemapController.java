@@ -46,6 +46,10 @@ public class SitemapController {
 
         // Static pages
         appendUrl(sb, base + "/", today, "daily", "1.0");
+        appendUrl(sb, base + "/guides", today, "weekly", "0.8");
+        appendUrl(sb, base + "/guides/why-one-search-beats-ten-browser-tabs", today, "weekly", "0.6");
+        appendUrl(sb, base + "/guides/buying-from-unknown-seller-use-protect", today, "weekly", "0.6");
+        appendUrl(sb, base + "/guides/how-trust-score-spots-fake-low-prices", today, "weekly", "0.6");
         appendUrl(sb, base + "/sellers", today, "weekly", "0.5");
         appendUrl(sb, base + "/compare", today, "monthly", "0.3");
         appendUrl(sb, base + "/submit-shop", today, "monthly", "0.3");
