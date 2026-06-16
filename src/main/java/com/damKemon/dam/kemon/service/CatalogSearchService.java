@@ -179,9 +179,20 @@ public class CatalogSearchService {
         boolean categoryBrowse = isCategoryBrowse(catLabel, queryTokens, brandsLower);
         String browseCat = categoryBrowse ? catLabel.toLowerCase() : null;
 
+        List<Product> atlasHits = null;
+        if (atlasSearch.isEnabled()) {
+            atlasHits = atlasSearch.search(bengaliFixed, maxCandidates);
+        }
+        boolean atlasSucceeded = (atlasHits != null);
+
         Map<String, Product> bag = new LinkedHashMap<>();
-        for (Product p : textOrRegexSearch(bengaliFixed, expandedTokens))
-            if (p.getId() != null) bag.put(p.getId(), p);
+        if (atlasSucceeded) {
+            for (Product p : atlasHits) if (p.getId() != null) bag.put(p.getId(), p);
+        } else {
+            for (Product p : textOrRegexSearch(bengaliFixed, expandedTokens))
+                if (p.getId() != null) bag.put(p.getId(), p);
+        }
+        
         if (categoryBrowse) {
             try {
                 for (Product p : productRepository
@@ -200,7 +211,8 @@ public class CatalogSearchService {
         // "formal pants" hitting baby "Pants" diapers. Keep a product only if it
         // genuinely matches: in the browsed category, a whole-word/synonym hit on a
         // detected brand, or >=60% of the query tokens covered as whole words.
-        if (!queryTokens.isEmpty()) {
+        // RELEVANCE GATE.
+        if (!atlasSucceeded && !queryTokens.isEmpty()) {
             raw.removeIf(p -> !isRelevant(p, queryTokens, brandsLower, browseCat));
         }
 
@@ -213,7 +225,8 @@ public class CatalogSearchService {
         // via the hybrid score, and the distinctive word excludes unrelated noise
         // (a baby "Pants" diaper never carries "formal", so "formal pants" stays
         // clean). Generalises to "samsung s30", "macbook m5", "pixel 12", etc.
-        if (raw.size() < MIN_RECALL && !queryTokens.isEmpty()) {
+        // GRACEFUL RECALL.
+        if (!atlasSucceeded && raw.size() < MIN_RECALL && !queryTokens.isEmpty()) {
             String key = distinctiveToken(queryTokens);
             if (key != null) {
                 Set<String> have = new java.util.HashSet<>();
@@ -228,9 +241,9 @@ public class CatalogSearchService {
             }
         }
 
-        // Trigram fallback when the (now relevance-filtered) literal passes are thin
+        // Trigram fallback
         String didYouMean = null;
-        if (raw.size() < MIN_RECALL && trigram.isEnabled()) {
+        if (!atlasSucceeded && raw.size() < MIN_RECALL && trigram.isEnabled()) {
             List<TrigramIndex.Hit> fuzzy = trigram.topK(bengaliFixed, maxCandidates, TRIGRAM_MIN);
             if (!fuzzy.isEmpty()) {
                 Map<String, Product> have = new LinkedHashMap<>();
@@ -260,8 +273,10 @@ public class CatalogSearchService {
             raw.removeIf(p -> !pf.matches(p.getLowestPrice()));
         }
 
-        // Hybrid re-rank
-        rankInPlace(raw, queryTokens, expandedTokens, intent, browseCat);
+        // Hybrid re-rank (only for legacy path, Atlas Search handles its own scoring)
+        if (!atlasSucceeded) {
+            rankInPlace(raw, queryTokens, expandedTokens, intent, browseCat);
+        }
 
         // Sponsored injection — put one paid product into the top slot when
         // it isn't already in the list, is plausibly relevant, and (if a price
@@ -365,17 +380,6 @@ public class CatalogSearchService {
         // have something to work with — this is what lets "Load more" go past 30.
         Pageable page = PageRequest.of(0, maxCandidates);
         Map<String, Product> merged = new LinkedHashMap<>();
-
-        // Pass 0: Atlas Search (fuzzy + autocomplete) — fast path on paid clusters
-        if (atlasSearch.isEnabled()) {
-            List<Product> atlasHits = atlasSearch.search(query, maxCandidates);
-            if (atlasHits != null) {
-                for (Product p : atlasHits) {
-                    if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
-                }
-                if (merged.size() >= maxCandidates) return new ArrayList<>(merged.values());
-            }
-        }
 
         // Pass 1: Mongo $text — try expanded query first, then raw if expansion was a no-op
         String expandedQuery = expandedTokens.isEmpty() ? query : String.join(" ", expandedTokens);
