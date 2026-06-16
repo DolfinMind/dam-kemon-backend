@@ -57,9 +57,12 @@ public class DarazHarvester implements ShopHarvester {
             // sellers converge on the SAME product, lifting sellers-per-product, not
             // just raw catalog breadth. Daraz rate-limits ~500 products/run from one
             // IP, so spend that budget on tech where the seller overlap is highest. =====
+            "iphone 17", "iphone 17 pro", "iphone 17 pro max", "iphone 17 air",
+            "iphone 16", "iphone 16 pro", "iphone 16 pro max", "iphone 16 plus",
             "iphone 15", "iphone 15 plus", "iphone 15 pro", "iphone 15 pro max",
-            "iphone 14", "iphone 14 pro max", "iphone 13", "iphone 12", "iphone 11",
-            "iphone 16", "iphone 16 pro max", "iphone se",
+            "iphone 14", "iphone 14 pro max", "iphone 13", "iphone 12", "iphone 11", "iphone se",
+            "samsung galaxy s26", "samsung galaxy s26 ultra", "samsung galaxy s26 plus",
+            "samsung galaxy s25", "samsung galaxy s25 ultra",
             "samsung galaxy a05", "samsung galaxy a15", "samsung galaxy a25", "samsung galaxy a35",
             "samsung galaxy a55", "samsung galaxy s24", "samsung galaxy s24 ultra", "samsung galaxy s23",
             "samsung galaxy m15", "samsung galaxy f15",
