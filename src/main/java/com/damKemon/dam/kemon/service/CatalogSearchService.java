@@ -191,7 +191,8 @@ public class CatalogSearchService {
                 log.debug("Category-browse fetch failed: {}", e.getMessage());
             }
         }
-        List<Product> raw = new ArrayList<>(bag.values());
+        List<Product> candidates = new ArrayList<>(bag.values());
+        List<Product> raw = new ArrayList<>(candidates);
 
         // RELEVANCE GATE. textOrRegexSearch is recall-first: OR-regex matches any
         // token as a SUBSTRING, so it drags in products that merely share a
@@ -201,6 +202,30 @@ public class CatalogSearchService {
         // detected brand, or >=60% of the query tokens covered as whole words.
         if (!queryTokens.isEmpty()) {
             raw.removeIf(p -> !isRelevant(p, queryTokens, brandsLower, browseCat));
+        }
+
+        // GRACEFUL RECALL. A brand/model query whose exact model isn't stocked
+        // ("iphone 17" when we only carry iPhone 16 + a few iPhone-17 accessories)
+        // shouldn't collapse to accessories-only or nothing. When the strict gate
+        // leaves us thin, re-admit candidates that share the query's most
+        // distinctive word (e.g. "iphone", "samsung", "macbook") so the shopper
+        // still sees the right family of products. They rank BELOW exact matches
+        // via the hybrid score, and the distinctive word excludes unrelated noise
+        // (a baby "Pants" diaper never carries "formal", so "formal pants" stays
+        // clean). Generalises to "samsung s30", "macbook m5", "pixel 12", etc.
+        if (raw.size() < MIN_RECALL && !queryTokens.isEmpty()) {
+            String key = distinctiveToken(queryTokens);
+            if (key != null) {
+                Set<String> have = new java.util.HashSet<>();
+                for (Product p : raw) if (p.getId() != null) have.add(p.getId());
+                for (Product p : candidates) {
+                    if (p.getId() == null || have.contains(p.getId()) || p.getName() == null) continue;
+                    if (tokenHits(" " + p.getName().toLowerCase() + " ", key)) {
+                        raw.add(p);
+                        have.add(p.getId());
+                    }
+                }
+            }
         }
 
         // Trigram fallback when the (now relevance-filtered) literal passes are thin
@@ -589,5 +614,23 @@ public class CatalogSearchService {
         if (s == null || s.isBlank()) return List.of();
         // Keep model-number tokens like "S24" / "M3" by lowering the length floor.
         return java.util.Arrays.stream(s.split("\\s+")).filter(t -> t.length() >= 2).toList();
+    }
+
+    /** The query's most distinctive word: the longest purely-alphabetic token of
+     *  length &ge; 4. We skip anything with a digit ("17", "s24") so a missing
+     *  model number never becomes the broadening key, and skip short/generic
+     *  stubs. Drives the graceful-recall relaxation ("iphone 17" → "iphone"). */
+    private static String distinctiveToken(List<String> tokens) {
+        String best = null;
+        for (String t : tokens) {
+            if (t == null || t.length() < 4) continue;
+            boolean hasDigit = false;
+            for (int i = 0; i < t.length(); i++) {
+                if (Character.isDigit(t.charAt(i))) { hasDigit = true; break; }
+            }
+            if (hasDigit) continue;
+            if (best == null || t.length() > best.length()) best = t;
+        }
+        return best;
     }
 }
