@@ -212,7 +212,7 @@ public class CatalogSearchService {
         // genuinely matches: in the browsed category, a whole-word/synonym hit on a
         // detected brand, or >=60% of the query tokens covered as whole words.
         // RELEVANCE GATE.
-        if (!atlasSucceeded && !queryTokens.isEmpty()) {
+        if (!queryTokens.isEmpty()) {
             raw.removeIf(p -> !isRelevant(p, queryTokens, brandsLower, browseCat));
         }
 
@@ -226,7 +226,7 @@ public class CatalogSearchService {
         // (a baby "Pants" diaper never carries "formal", so "formal pants" stays
         // clean). Generalises to "samsung s30", "macbook m5", "pixel 12", etc.
         // GRACEFUL RECALL.
-        if (!atlasSucceeded && raw.size() < MIN_RECALL && !queryTokens.isEmpty()) {
+        if (raw.size() < MIN_RECALL && !queryTokens.isEmpty()) {
             String key = distinctiveToken(queryTokens);
             if (key != null) {
                 Set<String> have = new java.util.HashSet<>();
@@ -243,7 +243,7 @@ public class CatalogSearchService {
 
         // Trigram fallback
         String didYouMean = null;
-        if (!atlasSucceeded && raw.size() < MIN_RECALL && trigram.isEnabled()) {
+        if (raw.size() < MIN_RECALL && trigram.isEnabled()) {
             List<TrigramIndex.Hit> fuzzy = trigram.topK(bengaliFixed, maxCandidates, TRIGRAM_MIN);
             if (!fuzzy.isEmpty()) {
                 Map<String, Product> have = new LinkedHashMap<>();
@@ -273,10 +273,8 @@ public class CatalogSearchService {
             raw.removeIf(p -> !pf.matches(p.getLowestPrice()));
         }
 
-        // Hybrid re-rank (only for legacy path, Atlas Search handles its own scoring)
-        if (!atlasSucceeded) {
-            rankInPlace(raw, queryTokens, expandedTokens, intent, browseCat);
-        }
+        // Hybrid re-rank
+        rankInPlace(raw, queryTokens, expandedTokens, intent, browseCat);
 
         // Sponsored injection — put one paid product into the top slot when
         // it isn't already in the list, is plausibly relevant, and (if a price

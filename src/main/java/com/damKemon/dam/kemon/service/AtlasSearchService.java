@@ -60,7 +60,7 @@ public class AtlasSearchService {
             Document textClause = new Document("text", new Document()
                     .append("query", query)
                     .append("path", List.of("name", "description"))
-                    .append("fuzzy", new Document("maxEdits", 1))
+                    .append("fuzzy", new Document("maxEdits", 1).append("prefixLength", 3))
                     .append("score", new Document("boost", new Document("value", 1))));
 
             Document autocompleteClause = new Document("autocomplete", new Document()
