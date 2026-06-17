@@ -185,6 +185,13 @@ auth:
   jwt-secret: ${AUTH_JWT_SECRET:}
   jwt-ttl-days: ${AUTH_JWT_TTL_DAYS:30}
 
+# ───── Resend API Integration ─────
+# Used for sending Newsletter welcomes and Feedback emails
+resend:
+  api-key: ${RESEND_API_KEY:}
+  from-email: ${RESEND_FROM_EMAIL:support@damkemon.com}
+  from-name: "${RESEND_FROM_NAME:DolfinMind}"
+
 # ───── Hot-drops rebuild ─────
 hot-drops:
   cron: ${HOT_DROPS_CRON:0 0 5 * * *}
