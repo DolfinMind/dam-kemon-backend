@@ -2,16 +2,18 @@ package com.damKemon.dam.kemon.intelligence;
 
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.repository.ProductRepository;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -48,11 +50,20 @@ public class TrigramSearchIndex {
         this.productRepository = productRepository;
     }
 
-    @PostConstruct
+    /**
+     * Build once after the web node is ready, OFF the boot thread, so readiness
+     * isn't blocked by a full {@code findAll()} over the catalog (minutes at 58k+
+     * over Atlas). Search degrades gracefully to non-fuzzy until the index lands
+     * (empty index → {@link #topK} returns nothing). Mirrors
+     * {@link com.damKemon.dam.kemon.service.HotDropsService#rebuildOnStartup}.
+     */
+    @EventListener(ApplicationReadyEvent.class)
     public void buildOnStartup() {
         if (!enabled) return;
-        try { rebuild(); }
-        catch (Exception e) { log.warn("Trigram initial build failed: {}", e.getMessage()); }
+        CompletableFuture.runAsync(() -> {
+            try { rebuild(); }
+            catch (Exception e) { log.warn("Trigram initial build failed: {}", e.getMessage()); }
+        });
     }
 
     /** Hourly refresh. Aligned to :05 so it never collides with the 03:00 cron. */
