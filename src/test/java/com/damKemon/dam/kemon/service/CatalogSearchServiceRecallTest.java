@@ -59,6 +59,7 @@ class CatalogSearchServiceRecallTest {
 
         // Identity normalisation/expansion — keeps the test about recall, not synonyms.
         when(expander.normalizeBengali(anyString())).thenAnswer(i -> i.getArgument(0));
+        when(expander.collapsePhrases(anyString())).thenAnswer(i -> i.getArgument(0));
         when(expander.expandTokens(any())).thenAnswer(i ->
                 new LinkedHashSet<>((Collection<String>) i.getArgument(0)));
 
@@ -87,11 +88,15 @@ class CatalogSearchServiceRecallTest {
         List<String> names = resp.getProducts().stream().map(Product::getName).toList();
 
         // Before the fix this collapsed to the accessory only (iPhone 16 fails the
-        // 60% gate on the unmatched "17"). The relaxation pulls it back in.
+        // 60% gate on the unmatched "17"). The relaxation pulls the related PHONE
+        // back in, which is the point: a model we don't stock still surfaces its family.
         assertTrue(names.stream().anyMatch(n -> n.contains("iPhone 16")),
                 "related iPhone phone should be recalled, not just the iPhone-17 accessory; got " + names);
-        assertTrue(names.stream().anyMatch(n -> n.contains("iPhone 17 Series")),
-                "the exact iPhone-17 item should still be present; got " + names);
+        // ...and the iPhone-17 item here is a CASE, so the default device search
+        // (accessories hidden) must drop it — searching "iphone 17" shows phones,
+        // not Spigen cases. (Pass acc=true to bring accessories back.)
+        assertFalse(names.stream().anyMatch(n -> n.contains("Case")),
+                "an accessory must be hidden on a default device search; got " + names);
         // Broadening keys off the distinctive word "iphone", so off-brand stays out.
         assertFalse(names.stream().anyMatch(n -> n.contains("Samsung")),
                 "off-brand product must not be pulled in by the relaxation; got " + names);

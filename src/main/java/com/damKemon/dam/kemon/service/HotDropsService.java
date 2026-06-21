@@ -71,10 +71,11 @@ public class HotDropsService {
     }
 
     /**
-     * Run nightly at 05:00, after the indexer (03:00) + price snapshot (04:00).
-     * Cheap enough to also run on demand from the admin endpoint.
+     * Rebuilt every 4h so the rail tracks fresh crawls through the day instead of
+     * going stale between nightly runs (00:00 still lands after the 03:00 indexer +
+     * 04:00 snapshot of the previous cycle). Cheap enough to also run on demand.
      */
-    @Scheduled(cron = "${hot-drops.cron:0 0 5 * * *}")
+    @Scheduled(cron = "${hot-drops.cron:0 0 */4 * * *}")
     public void rebuild() {
         try {
             LocalDateTime cutoff = LocalDateTime.now().minusDays(HISTORY_DAYS);

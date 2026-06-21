@@ -173,6 +173,13 @@ public class CatalogSearchService {
         final int pageIdx = Math.max(0, page);
         final int pageLen = size <= 0 ? pageSize : Math.min(size, maxPageSize);
         String bengaliFixed = expander.normalizeBengali(query == null ? "" : query);
+        // Canonicalise so different spellings of the SAME query converge: collapse
+        // known spaced phrases ("play station"→"playstation") then split glued
+        // letter/digit runs ("iphone17"→"iphone 17", "playstation5"→"playstation 5")
+        // so "iphone17" and "iphone 17" return identical results. Applied before
+        // classification + tokenisation so every downstream pass sees one form.
+        // Short model codes (ps5/s24/m3/g923) stay glued — products name them that way.
+        bengaliFixed = splitAlphaNum(expander.collapsePhrases(bengaliFixed));
 
         // Price-intent: lift "under 20000 / below 50k / over 1 lakh / cheap" out of
         // the query, search the remaining product words, then filter the results by
@@ -680,6 +687,43 @@ public class CatalogSearchService {
     private static String normalise(String s) {
         if (s == null) return "";
         return NON_ALPHA.matcher(s.toLowerCase()).replaceAll(" ").replaceAll("\\s+", " ").trim();
+    }
+
+    /**
+     * Insert a space between a maximal letter-run and an adjacent digit-run, but
+     * only when the LETTER run is &ge;3 chars. So "iphone17"→"iphone 17",
+     * "playstation5"→"playstation 5", "windows11"→"windows 11", while short model
+     * codes the catalog writes glued stay intact: "ps5", "s24", "m3", "a54",
+     * "g923", "5g", "256gb", "i7". This is what makes "iphone17" and "iphone 17"
+     * tokenise — and therefore classify, match and rank — identically.
+     */
+    static String splitAlphaNum(String s) {
+        if (s == null || s.length() < 2) return s;
+        StringBuilder out = new StringBuilder(s.length() + 4);
+        int n = s.length(), i = 0, prevKind = 0, prevAlphaLen = 0;
+        while (i < n) {
+            int kind = kindOf(s.charAt(i));
+            int j = i + 1;
+            while (j < n && kindOf(s.charAt(j)) == kind) j++;
+            int runLen = j - i;
+            boolean boundary = (prevKind == 1 && kind == 2) || (prevKind == 2 && kind == 1);
+            if (boundary) {
+                int alphaLen = (kind == 1) ? runLen : prevAlphaLen;   // length of the LETTER run at this boundary
+                if (alphaLen >= 3) out.append(' ');
+            }
+            out.append(s, i, j);
+            prevKind = kind;
+            prevAlphaLen = (kind == 1) ? runLen : 0;
+            i = j;
+        }
+        return out.toString();
+    }
+
+    /** 1 = letter, 2 = digit, 0 = anything else. */
+    private static int kindOf(char c) {
+        if (Character.isLetter(c)) return 1;
+        if (Character.isDigit(c)) return 2;
+        return 0;
     }
 
     private static List<String> tokens(String s) {

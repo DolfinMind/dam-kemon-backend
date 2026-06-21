@@ -72,6 +72,23 @@ public class EngagementController {
         return ResponseEntity.ok(Map.of("success", true, "message", "Subscribed successfully"));
     }
 
+    /** One-click unsubscribe linked from every newsletter email. Idempotent —
+     *  removing an already-removed address still returns the friendly page. */
+    @GetMapping("/newsletter/unsubscribe")
+    public ResponseEntity<String> unsubscribeNewsletter(@RequestParam("email") String email) {
+        if (email != null && !email.isBlank()) {
+            newsletterRepo.findByEmail(email.trim().toLowerCase()).ifPresent(newsletterRepo::delete);
+        }
+        String html = "<!doctype html><html><body style=\"font-family:-apple-system,Segoe UI,Roboto,sans-serif;"
+                + "background:#f6f5f1;margin:0;\"><div style=\"max-width:480px;margin:64px auto;background:#fff;"
+                + "border:1px solid #ecebe6;border-radius:16px;padding:32px;text-align:center;\">"
+                + "<div style=\"font-size:20px;font-weight:800;color:#15131a;\">You're unsubscribed</div>"
+                + "<p style=\"color:#6b6b6b;font-size:14px;line-height:1.6;\">You won't receive the Damkemon weekly anymore. "
+                + "Changed your mind? You can re-subscribe anytime on "
+                + "<a href=\"https://damkemon.com\" style=\"color:#15131a;\">damkemon.com</a>.</p></div></body></html>";
+        return ResponseEntity.ok().header("Content-Type", "text/html; charset=utf-8").body(html);
+    }
+
     @PostMapping("/feedback")
     public ResponseEntity<?> submitFeedback(@RequestBody Map<String, String> payload) {
         String name = payload.get("name");

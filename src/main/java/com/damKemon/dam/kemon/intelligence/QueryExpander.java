@@ -25,6 +25,10 @@ public final class QueryExpander {
 
     private static final Map<String, List<String>> SYNONYMS = new HashMap<>();
     private static final Map<String, String> BENGALI_TO_LATIN = new HashMap<>();
+    /** Multi-word phrases the user types spaced that the catalog writes glued —
+     *  collapsed before tokenising so "play station" doesn't match a "Docking
+     *  Station" on the loose word "station". */
+    private static final Map<String, String> PHRASES = new LinkedHashMap<>();
 
     static {
         bidir("apple", "iphone");
@@ -114,6 +118,16 @@ public final class QueryExpander {
         bidir("motorola", "moto");
         bidir("nothing", "cmf");
 
+        // ── gaming consoles ── abbreviations the catalog names both ways
+        // ("Sony PS5 …" vs "PlayStation 5 …"). Each console abbreviation maps to
+        // the spelled-out brand so "ps5", "playstation" and "play station" all hit
+        // the same family instead of three disjoint result sets.
+        bidir("playstation", "ps5");
+        bidir("playstation", "ps4");
+        bidir("playstation", "ps3");
+        bidir("xbox", "xseries");
+        bidir("nintendo", "switch");
+
         // ── more misspellings the inbox sees ──
         misspell("mobile", "moblie", "mobil", "mobail");
         misspell("laptop", "labtop", "leptop", "laptp");
@@ -148,6 +162,9 @@ public final class QueryExpander {
         bengaliMap("খাতা", "exercise book");
         bengaliMap("ফ্যান", "fan");
         bengaliMap("ওভেন", "oven");
+
+        PHRASES.put("play station", "playstation");
+        PHRASES.put("x box", "xbox");
     }
 
     private static void bidir(String a, String b) {
@@ -163,6 +180,17 @@ public final class QueryExpander {
 
     private static void bengaliMap(String bn, String en) {
         BENGALI_TO_LATIN.put(bn, en);
+    }
+
+    /** Collapse known spaced phrases to their glued catalog form (case-insensitive),
+     *  e.g. "play station 5" → "playstation 5". No-op when none apply. */
+    public String collapsePhrases(String query) {
+        if (query == null || query.isBlank()) return query;
+        String out = query;
+        for (Map.Entry<String, String> e : PHRASES.entrySet()) {
+            out = out.replaceAll("(?i)\\b" + java.util.regex.Pattern.quote(e.getKey()) + "\\b", e.getValue());
+        }
+        return out;
     }
 
     public Set<String> expandTokens(List<String> tokens) {

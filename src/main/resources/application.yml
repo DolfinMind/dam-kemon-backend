@@ -201,8 +201,20 @@ feedback:
   notify-email: ${USER_FEEDBACK_EMAIL:${resend.from-email:support@damkemon.com}}
 
 # ───── Hot-drops rebuild ─────
+# Rebuilt every 4h (was once daily) so the "price drops" rail tracks fresh
+# crawls through the day instead of going stale between nightly runs.
 hot-drops:
-  cron: ${HOT_DROPS_CRON:0 0 5 * * *}
+  cron: ${HOT_DROPS_CRON:0 0 */4 * * *}
+
+# ───── Weekly newsletter ─────
+# Monday 09:00 Asia/Dhaka. Composes the current hot-drops into an HTML digest
+# and sends one per subscriber via Resend. Disable with NEWSLETTER_ENABLED=false.
+newsletter:
+  enabled: ${NEWSLETTER_ENABLED:true}
+  cron: ${NEWSLETTER_CRON:0 0 9 * * MON}
+  site-url: ${NEWSLETTER_SITE_URL:https://damkemon.com}
+  max-products: ${NEWSLETTER_MAX_PRODUCTS:10}
+  send-delay-ms: ${NEWSLETTER_SEND_DELAY_MS:120}
 
 # ───── Spring Boot Actuator (health, info) ─────
 management:
