@@ -86,6 +86,41 @@ jobs:
             echo "current restart policy:"
             systemctl show damkemon-prod-app.service -p Restart -p RestartSec 2>/dev/null || true
 
+      # Out-of-process crawl worker: a oneshot service + nightly timer installed
+      # from the SAME jar (worker profile, no HTTP server, memory-capped). This is
+      # what keeps all heavy scraping off the request-serving API JVM. Non-fatal so
+      # it never blocks a deploy.
+      - name: Copy crawl-worker ops files
+        continue-on-error: true
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "ops/worker/*"
+          target: "/home/${{ vars.SERVER_USER }}/worker/"
+          strip_components: 2
+
+      - name: Install crawl worker (oneshot service + nightly timer)
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # install-worker.sh needs root (writes /etc/systemd). Auto-apply only
+            # when the deploy user has passwordless sudo; otherwise stage + print.
+            if sudo -n true 2>/dev/null; then
+              bash /home/${{ vars.SERVER_USER }}/worker/install-worker.sh
+            else
+              echo "Crawl worker staged at ~/worker. The deploy user lacks passwordless sudo,"
+              echo "so activate it once by hand (persists across deploys & restarts):"
+              echo "    sudo bash ~/worker/install-worker.sh"
+            fi
+            echo "worker timer:"
+            systemctl list-timers damkemon-prod-worker.timer --no-pager 2>/dev/null || true
+
       - name: Show recent application logs
         uses: appleboy/ssh-action@v1.0.3
         with:
