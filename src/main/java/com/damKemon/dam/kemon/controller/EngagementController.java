@@ -21,8 +21,11 @@ public class EngagementController {
     private final FeedbackRepository feedbackRepo;
     private final ResendService resendService;
 
-    @Value("${resend.from-email:support@damkemon.com}")
-    private String supportEmail;
+    /** Recipient for the public "Contact us" / feedback form. Configured via
+     *  USER_FEEDBACK_EMAIL (see application.yml feedback.notify-email); falls
+     *  back to the Resend from-address when unset. */
+    @Value("${feedback.notify-email:${resend.from-email:support@damkemon.com}}")
+    private String feedbackEmail;
 
     @Autowired
     public EngagementController(NewsletterSubscriberRepository newsletterRepo, 
@@ -99,7 +102,7 @@ public class EngagementController {
                 + "<blockquote style=\"border-left: 4px solid #ccc; padding-left: 10px;\">" + message.replace("\n", "<br>") + "</blockquote>"
                 + "</div>";
 
-        resendService.sendEmail(supportEmail, subject, htmlContent);
+        resendService.sendEmail(feedbackEmail, subject, htmlContent);
 
         return ResponseEntity.ok(Map.of("success", true, "message", "Feedback submitted"));
     }

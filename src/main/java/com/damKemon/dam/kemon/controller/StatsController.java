@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.controller;
 
+import com.damKemon.dam.kemon.service.HeadlineStatsService;
 import com.damKemon.dam.kemon.service.HotDropsService;
 import com.damKemon.dam.kemon.service.LiveStatsService;
 import com.damKemon.dam.kemon.service.WorldCupService;
@@ -24,11 +25,22 @@ public class StatsController {
     private final LiveStatsService liveStats;
     private final HotDropsService hotDrops;
     private final WorldCupService worldCup;
+    private final HeadlineStatsService headlineStats;
 
-    public StatsController(LiveStatsService liveStats, HotDropsService hotDrops, WorldCupService worldCup) {
+    public StatsController(LiveStatsService liveStats, HotDropsService hotDrops, WorldCupService worldCup,
+                          HeadlineStatsService headlineStats) {
         this.liveStats = liveStats;
         this.hotDrops = hotDrops;
         this.worldCup = worldCup;
+        this.headlineStats = headlineStats;
+    }
+
+    /** Homepage social-proof headline figures: money saved this month, price
+     *  comparisons today, price drops tracked this week. Real-derived,
+     *  baseline-floored so the widgets always feel alive. */
+    @GetMapping("/headline")
+    public ResponseEntity<Map<String, Object>> headline() {
+        return ResponseEntity.ok(headlineStats.headline());
     }
 
     @GetMapping("/live")

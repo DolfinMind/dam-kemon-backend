@@ -4,6 +4,8 @@ import com.damKemon.dam.kemon.dto.SearchResponse;
 import com.damKemon.dam.kemon.intelligence.QueryClassifier;
 import com.damKemon.dam.kemon.intelligence.QueryExpander;
 import com.damKemon.dam.kemon.intelligence.QueryIntent;
+import com.damKemon.dam.kemon.intelligence.SpecExtractor;
+import com.damKemon.dam.kemon.intelligence.Stemmer;
 import com.damKemon.dam.kemon.intelligence.TrigramIndex;
 import com.damKemon.dam.kemon.intelligence.TrigramSearchIndex;
 import com.damKemon.dam.kemon.model.Product;
@@ -137,22 +139,37 @@ public class CatalogSearchService {
 
     /** Back-compat entry point: first page at the default size. */
     public SearchResponse search(String query) {
-        return search(query, 0, pageSize);
+        return search(query, 0, pageSize, false, java.util.Map.of());
+    }
+
+    /** Back-compat entry point: accessories hidden by default on device queries. */
+    public SearchResponse search(String query, int page, int size) {
+        return search(query, page, size, false, java.util.Map.of());
+    }
+
+    /** Back-compat entry point without spec/variant filters. */
+    public SearchResponse search(String query, int page, int size, boolean includeAccessories) {
+        return search(query, page, size, includeAccessories, java.util.Map.of());
     }
 
     /**
      * Paginated search. We gather + rank up to {@code maxCandidates} once, then
      * return the requested page slice with {@code hasMore} so the UI can offer
      * "Load more" — replacing the old hard 30-result wall. Cached per
-     * (normalized query, page, size) for 60s.
+     * (normalized query, page, size, includeAccessories) for 60s.
+     *
+     * <p>{@code includeAccessories} re-admits cases/covers/protectors on a device
+     * query (the UI's "Show accessories" toggle); by default they're hidden so a
+     * "phone" / "iphone 15" search surfaces phones, not phone cases.
      */
     @Cacheable(
         value = "search",
-        key = "(#query == null ? '' : T(java.util.regex.Pattern).compile('\\\\s+').matcher(#query.trim()).replaceAll(' ').toLowerCase()) + '|' + #page + '|' + #size",
+        key = "(#query == null ? '' : T(java.util.regex.Pattern).compile('\\\\s+').matcher(#query.trim()).replaceAll(' ').toLowerCase()) + '|' + #page + '|' + #size + '|' + #includeAccessories + '|' + (#specFilters == null ? '' : #specFilters)",
         condition = "#query != null && #query.trim().length() >= 2",
         unless = "#result == null || #result.totalResults == null"
     )
-    public SearchResponse search(String query, int page, int size) {
+    public SearchResponse search(String query, int page, int size, boolean includeAccessories,
+                                 Map<String, String> specFilters) {
         final int pageIdx = Math.max(0, page);
         final int pageLen = size <= 0 ? pageSize : Math.min(size, maxPageSize);
         String bengaliFixed = expander.normalizeBengali(query == null ? "" : query);
@@ -163,9 +180,13 @@ public class CatalogSearchService {
         PriceFilter pf = parsePriceIntent(bengaliFixed);
         bengaliFixed = pf.cleanedQuery();
 
-        QueryIntent intent = classifier.classify(bengaliFixed);
+        // Singularize the query so the boundary-aware classifier + keyword match
+        // fire on plurals too — "smart watches"/"smartwatches" now classify the
+        // same as "smart watch"/"smartwatch". See Stemmer + AhoCorasick.
+        String stemmed = Stemmer.singularizePhrase(bengaliFixed);
+        QueryIntent intent = classifier.classify(stemmed);
 
-        List<String> queryTokens = tokens(normalise(bengaliFixed));
+        List<String> queryTokens = tokens(normalise(stemmed));
         Set<String> expandedTokens = expander.expandTokens(queryTokens);
         Set<String> brandsLower = new java.util.HashSet<>();
         if (intent.getBrands() != null)
@@ -267,6 +288,28 @@ public class CatalogSearchService {
             }
         }
 
+        // HARD accessory exclusion (item 2). When the shopper is clearly after a
+        // DEVICE (a device category or a brand/model query, not an accessory
+        // query), DROP accessory products instead of merely demoting them — so
+        // "phone" / "iphone 15" surface phones, not cases & covers. Never empties
+        // the page: if only accessories matched, keep them. The UI's "Show
+        // accessories" toggle re-includes them via includeAccessories.
+        if (!includeAccessories && isDeviceIntent(intent)
+                && !isAccessoryQuery(intent, queryTokens) && !raw.isEmpty()) {
+            List<Product> nonAcc = new ArrayList<>();
+            for (Product p : raw) if (!isAccessoryProduct(p)) nonAcc.add(p);
+            if (!nonAcc.isEmpty()) raw = nonAcc;
+        }
+
+        // Variant spec facets + filter (item 3). Facets are computed over the
+        // relevance-gated matches BEFORE narrowing, so the shopper always sees the
+        // full set of RAM/Storage/Display options; the selected specs then narrow
+        // the results. Specs are parsed from product names — phones/computing first.
+        Map<String, List<Map<String, Object>>> facets = computeFacets(raw);
+        if (specFilters != null && !specFilters.isEmpty()) {
+            raw.removeIf(p -> !matchesSpecs(p, specFilters));
+        }
+
         // Price-intent filter: drop products whose lowest price falls outside the
         // requested range (a no-price product can't satisfy a price constraint).
         if (pf.hasConstraint()) {
@@ -323,6 +366,7 @@ public class CatalogSearchService {
                 .confidence(intent.getConfidence())
                 .didYouMean(didYouMean)
                 .sponsoredProductIds(sponsoredIds)
+                .facets(facets)
                 .build();
     }
 
@@ -529,6 +573,32 @@ public class CatalogSearchService {
         return true;
     }
 
+    /** True when the shopper is clearly after a DEVICE (a specific non-accessory,
+     *  non-general category was detected) — the case where stray accessory matches
+     *  should be hidden rather than just demoted. */
+    private static boolean isDeviceIntent(QueryIntent intent) {
+        if (intent == null || intent.primaryCategory() == null) return false;
+        String n = intent.primaryCategory().name();
+        return !"ACCESSORY".equals(n) && !"GENERAL".equals(n);
+    }
+
+    /** True when the query itself is FOR an accessory — so we must NOT hide them
+     *  ("phone case", "screen protector", "charger" stay visible). */
+    private static boolean isAccessoryQuery(QueryIntent intent, List<String> queryTokens) {
+        if (intent != null && intent.primaryCategory() != null
+                && "ACCESSORY".equals(intent.primaryCategory().name())) return true;
+        return ACCESSORY.matcher(String.join(" ", queryTokens)).find();
+    }
+
+    /** A product that is itself an accessory — by an accessory noun in its name
+     *  (case/cover/protector/glass…) or an accessory category. */
+    private static boolean isAccessoryProduct(Product p) {
+        if (p == null || p.getName() == null) return false;
+        if (ACCESSORY.matcher(p.getName().toLowerCase()).find()) return true;
+        String c = p.getCategory();
+        return c != null && c.toLowerCase().contains("accessor");
+    }
+
     // ── price-intent ──────────────────────────────────────────────────────────
     /** A parsed price constraint plus the query with the price phrase removed. */
     private record PriceFilter(Double min, Double max, String cleanedQuery) {
@@ -634,5 +704,46 @@ public class CatalogSearchService {
             if (best == null || t.length() > best.length()) best = t;
         }
         return best;
+    }
+
+    // ── spec facets (item 3) ────────────────────────────────────────────────────
+    /** Count RAM/Storage/Display values across the matched products, sorted
+     *  ascending so "8GB" precedes "12GB" and "256GB" precedes "1TB". */
+    private static Map<String, List<Map<String, Object>>> computeFacets(List<Product> products) {
+        Map<String, Map<String, Integer>> counts = new LinkedHashMap<>();   // dim -> value -> count
+        for (Product p : products) {
+            if (p == null || p.getName() == null) continue;
+            for (Map.Entry<String, String> e : SpecExtractor.extract(p.getName()).entrySet()) {
+                counts.computeIfAbsent(e.getKey(), k -> new java.util.HashMap<>())
+                        .merge(e.getValue(), 1, Integer::sum);
+            }
+        }
+        Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
+        for (String dim : new String[]{SpecExtractor.RAM, SpecExtractor.STORAGE, SpecExtractor.DISPLAY}) {
+            Map<String, Integer> vc = counts.get(dim);
+            if (vc == null || vc.isEmpty()) continue;
+            List<Map<String, Object>> values = new ArrayList<>();
+            vc.entrySet().stream()
+                    .sorted(Comparator.comparingDouble((Map.Entry<String, Integer> en) -> SpecExtractor.numericOf(en.getKey())))
+                    .forEach(en -> {
+                        Map<String, Object> m = new LinkedHashMap<>();
+                        m.put("value", en.getKey());
+                        m.put("count", en.getValue());
+                        values.add(m);
+                    });
+            out.put(dim, values);
+        }
+        return out;
+    }
+
+    /** A product matches when its parsed specs satisfy every requested filter. */
+    private static boolean matchesSpecs(Product p, Map<String, String> filters) {
+        if (p == null || p.getName() == null) return false;
+        Map<String, String> specs = SpecExtractor.extract(p.getName());
+        for (Map.Entry<String, String> f : filters.entrySet()) {
+            String have = specs.get(f.getKey());
+            if (have == null || !have.equalsIgnoreCase(f.getValue())) return false;
+        }
+        return true;
     }
 }

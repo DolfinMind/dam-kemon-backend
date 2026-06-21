@@ -9,9 +9,12 @@ set -euo pipefail
 SRC="$(cd "$(dirname "$0")" && pwd)"
 SVC=damkemon-prod-app.service
 
-# 1) Restart on crash / OOM-kill.
+# 1) Restart on crash / OOM-kill, plus memory hygiene (exit-on-OOM + bounded
+#    heap) so a heap exhaustion recovers cleanly instead of GC-thrashing. The
+#    drop-ins apply on the next restart of the service.
 sudo mkdir -p "/etc/systemd/system/${SVC}.d"
 sudo install -m 0644 "$SRC/10-self-heal.conf" "/etc/systemd/system/${SVC}.d/10-self-heal.conf"
+sudo install -m 0644 "$SRC/20-mem.conf"       "/etc/systemd/system/${SVC}.d/20-mem.conf"
 
 # 2) Liveness watchdog for the hung-but-alive case.
 sudo install -m 0755 "$SRC/damkemon-watchdog.sh"      /usr/local/bin/damkemon-watchdog.sh

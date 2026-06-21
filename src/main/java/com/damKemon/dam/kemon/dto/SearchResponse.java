@@ -7,7 +7,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -51,4 +53,14 @@ public class SearchResponse {
      */
     @Builder.Default
     private List<String> sponsoredProductIds = new ArrayList<>();
+
+    /**
+     * Variant spec facets computed over the ranked matches (item 3): for a
+     * phones/computing query, the available RAM / Storage / Display values + their
+     * counts, so the UI can offer variant filters. Shape:
+     * {@code { "RAM": [ {value:"8GB", count:12}, … ], "Storage": [ … ] } }.
+     * Empty when the matched products carry no parseable specs.
+     */
+    @Builder.Default
+    private Map<String, List<Map<String, Object>>> facets = new LinkedHashMap<>();
 }

@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.controller;
 
+import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.indexer.BulkIndexer;
 import com.damKemon.dam.kemon.indexer.CatalogRemergeService;
 import com.damKemon.dam.kemon.indexer.SellerDepthHarvester;
@@ -38,6 +39,15 @@ public class AdminJobsController {
     private final SellerDirectoryService sellerDirectory;
     private final SellerDepthHarvester sellerDepth;
     private final CatalogRemergeService remergeService;
+    private final AppRole appRole;
+
+    /** Jobs that spawn a crawl — refused on the API node (the worker owns them,
+     *  so a manual click or the operate-prod-indexer.sh script can't spike the
+     *  request-serving JVM). DB-only jobs (seller-sync, hot-drops, remerge,
+     *  synthetic) stay runnable here. */
+    private static final java.util.Set<String> CRAWL_JOBS = java.util.Set.of(
+            "indexer-nightly", "indexer-retry", "shop-discovery", "serp-discover",
+            "daraz-deep", "seller-depth", "deep-components", "revive-tech");
 
     /** id → ring-buffer of last N run timestamps (manual only). */
     private final ConcurrentHashMap<String, java.util.Deque<Map<String, Object>>> recent =
@@ -49,7 +59,8 @@ public class AdminJobsController {
                                SyntheticMonitorService synthetic,
                                SellerDirectoryService sellerDirectory,
                                SellerDepthHarvester sellerDepth,
-                               CatalogRemergeService remergeService) {
+                               CatalogRemergeService remergeService,
+                               AppRole appRole) {
         this.indexer = indexer;
         this.discovery = discovery;
         this.hotDrops = hotDrops;
@@ -57,6 +68,7 @@ public class AdminJobsController {
         this.sellerDirectory = sellerDirectory;
         this.sellerDepth = sellerDepth;
         this.remergeService = remergeService;
+        this.appRole = appRole;
     }
 
     @GetMapping
@@ -93,6 +105,12 @@ public class AdminJobsController {
 
     @PostMapping("/{id}/run")
     public ResponseEntity<Map<String, Object>> runNow(@PathVariable String id) {
+        if (CRAWL_JOBS.contains(id) && !appRole.isWorker()) {
+            return ResponseEntity.status(409).body(Map.of(
+                    "started", false, "id", id, "error", "crawl_disabled_on_api",
+                    "message", "This job crawls — run it on the worker: "
+                            + "sudo systemctl start damkemon-prod-worker.service"));
+        }
         CompletableFuture.runAsync(() -> {
             try {
                 switch (id) {

@@ -26,10 +26,18 @@ public class SearchController {
     public ResponseEntity<SearchResponse> search(@RequestParam("q") String query,
                                                  @RequestParam(value = "page", defaultValue = "0") int page,
                                                  @RequestParam(value = "size", required = false) Integer size,
+                                                 @RequestParam(value = "acc", defaultValue = "false") boolean includeAccessories,
+                                                 @RequestParam(value = "ram", required = false) String ram,
+                                                 @RequestParam(value = "storage", required = false) String storage,
+                                                 @RequestParam(value = "display", required = false) String display,
                                                  @RequestHeader(value = "X-Anon-Id", required = false) String anonId,
                                                  HttpServletRequest req) {
+        java.util.Map<String, String> specFilters = new java.util.LinkedHashMap<>();
+        if (ram != null && !ram.isBlank()) specFilters.put("RAM", ram.trim());
+        if (storage != null && !storage.isBlank()) specFilters.put("Storage", storage.trim());
+        if (display != null && !display.isBlank()) specFilters.put("Display", display.trim());
         long start = System.nanoTime();
-        SearchResponse resp = catalog.search(query, Math.max(0, page), size == null ? 0 : size);
+        SearchResponse resp = catalog.search(query, Math.max(0, page), size == null ? 0 : size, includeAccessories, specFilters);
         long latencyMs = (System.nanoTime() - start) / 1_000_000;
         String userId = (String) req.getAttribute("authUserId");
         analytics.recordSearch(query,

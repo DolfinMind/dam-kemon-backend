@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.controller;
 
+import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.indexer.BulkIndexer;
 import com.damKemon.dam.kemon.indexer.BulkIndexer.RunSummary;
 import com.damKemon.dam.kemon.indexer.ScraperLearningService;
@@ -53,6 +54,7 @@ public class AdminController {
     private final ScraperLearningService learner;
     private final ShopDiagnosticRepository diagnosticRepo;
     private final MarketplaceSellerService sellerService;
+    private final AppRole appRole;
 
     public AdminController(BulkIndexer indexer,
                            ShopRepository shopRepository,
@@ -64,7 +66,8 @@ public class AdminController {
                            IndexerRunRepository indexerRunRepo,
                            ScraperLearningService learner,
                            ShopDiagnosticRepository diagnosticRepo,
-                           MarketplaceSellerService sellerService) {
+                           MarketplaceSellerService sellerService,
+                           AppRole appRole) {
         this.indexer = indexer;
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
@@ -76,6 +79,17 @@ public class AdminController {
         this.learner = learner;
         this.diagnosticRepo = diagnosticRepo;
         this.sellerService = sellerService;
+        this.appRole = appRole;
+    }
+
+    /** Heavy crawl triggers are refused on the API ("web") node — they run on the
+     *  worker (damkemon-prod-worker.service) so a crawl can never spike the
+     *  request-serving JVM. Returns 409 with the one-liner to start the worker. */
+    private ResponseEntity<Map<String, Object>> crawlOnWorkerOnly() {
+        return ResponseEntity.status(409).body(Map.of(
+                "error", "crawl_disabled_on_api",
+                "message", "Crawling runs on the worker, not the API node. "
+                        + "Start it with: sudo systemctl start damkemon-prod-worker.service"));
     }
 
     /** Recompute marketplace per-seller reputation from the current catalog. */
@@ -109,6 +123,7 @@ public class AdminController {
 
     @PostMapping("/discover-shops")
     public ResponseEntity<Map<String, Object>> discoverShops() {
+        if (!appRole.isWorker()) return crawlOnWorkerOnly();
         return ResponseEntity.ok(discovery.discover());
     }
 
@@ -226,6 +241,7 @@ public class AdminController {
     @PostMapping("/index/run")
     public ResponseEntity<Map<String, Object>> kickoff(
             @RequestParam(value = "wipe", defaultValue = "false") boolean wipe) {
+        if (!appRole.isWorker()) return crawlOnWorkerOnly();
         if (wipe) {
             try {
                 long before = productRepository.count();
@@ -248,6 +264,7 @@ public class AdminController {
 
     @PostMapping("/index/retry")
     public ResponseEntity<Map<String, Object>> retry() {
+        if (!appRole.isWorker()) return crawlOnWorkerOnly();
         CompletableFuture.runAsync(() -> {
             try { indexer.runRetry(); }
             catch (Exception e) { log.error("Manual retry crashed", e); }
@@ -260,6 +277,7 @@ public class AdminController {
 
     @PostMapping("/index/shop/{slug}")
     public ResponseEntity<Map<String, Object>> reindexOne(@PathVariable String slug) {
+        if (!appRole.isWorker()) return crawlOnWorkerOnly();
         CompletableFuture.runAsync(() -> {
             try { indexer.runOne(slug); }
             catch (Exception e) { log.error("Reindex of {} crashed", slug, e); }

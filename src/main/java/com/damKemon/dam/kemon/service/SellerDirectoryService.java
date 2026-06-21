@@ -1,20 +1,26 @@
 package com.damKemon.dam.kemon.service;
 
+import com.damKemon.dam.kemon.model.AffiliateClick;
 import com.damKemon.dam.kemon.model.MarketplaceSeller;
 import com.damKemon.dam.kemon.model.Seller;
 import com.damKemon.dam.kemon.model.Shop;
 import com.damKemon.dam.kemon.repository.MarketplaceSellerRepository;
 import com.damKemon.dam.kemon.repository.SellerRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -48,22 +54,78 @@ public class SellerDirectoryService {
     private final ShopRepository shops;
     private final MarketplaceSellerRepository marketplaceSellers;
     private final SellerRepository sellers;
+    private final MongoTemplate mongo;
 
     @Value("${seller-sync.enabled:true}")
     private boolean enabled;
 
     public SellerDirectoryService(ShopRepository shops,
                                   MarketplaceSellerRepository marketplaceSellers,
-                                  SellerRepository sellers) {
+                                  SellerRepository sellers,
+                                  MongoTemplate mongo) {
         this.shops = shops;
         this.marketplaceSellers = marketplaceSellers;
         this.sellers = sellers;
+        this.mongo = mongo;
     }
 
-    /** Daily at 05:30, after the nightly indexer + marketplace harvests. */
+    /** Daily at 05:30, after the nightly indexer + marketplace harvests: refresh
+     *  the directory, then re-rank it by real outbound-click engagement. */
     @Scheduled(cron = "${seller-sync.cron:0 30 5 * * *}")
     public void scheduled() {
-        if (enabled) syncOnce();
+        if (!enabled) return;
+        syncOnce();
+        recomputeOutboundClicks();
+    }
+
+    /**
+     * Rank the directory by real engagement: total outbound clicks per shop (from
+     * {@code affiliate_clicks}, keyed by the SitePrice siteSlug = the shop slug)
+     * folded onto each Seller. A Seller's slug is slugify(shop name), so we bridge
+     * shop.slug → seller via the shop's name. Returns the number updated; never throws.
+     */
+    public int recomputeOutboundClicks() {
+        int updated = 0;
+        try {
+            Map<String, Long> byShopSlug = clicksByShopSlug();
+            if (byShopSlug.isEmpty()) return 0;
+            for (Shop s : shops.findAll()) {
+                if (s == null || s.getSlug() == null) continue;
+                Long n = byShopSlug.get(s.getSlug().toLowerCase());
+                if (n == null || n <= 0) continue;
+                String name = (s.getName() != null && !s.getName().isBlank()) ? s.getName() : s.getSlug();
+                try {
+                    Seller seller = sellers.findBySlug(slugify(name)).orElse(null);
+                    if (seller == null) continue;
+                    seller.setOutboundClicks(n.intValue());
+                    seller.setLastSeen(LocalDateTime.now());
+                    sellers.save(seller);
+                    updated++;
+                } catch (Exception e) {
+                    log.debug("SellerDirectory: click-rank save failed for {}: {}", name, e.getMessage());
+                }
+            }
+            log.info("SellerDirectory: outbound-click ranking updated for {} seller(s)", updated);
+        } catch (Exception e) {
+            log.warn("SellerDirectory: recomputeOutboundClicks failed: {}", e.getMessage());
+        }
+        return updated;
+    }
+
+    /** Total outbound clicks grouped by SitePrice siteSlug (lower-cased). */
+    private Map<String, Long> clicksByShopSlug() {
+        Map<String, Long> out = new HashMap<>();
+        try {
+            Aggregation agg = Aggregation.newAggregation(Aggregation.group("siteSlug").count().as("n"));
+            for (Document d : mongo.aggregate(agg, AffiliateClick.class, Document.class)) {
+                Object id = d.get("_id");
+                Object n = d.get("n");
+                if (id != null && n instanceof Number num) out.put(id.toString().toLowerCase(), num.longValue());
+            }
+        } catch (Exception e) {
+            log.debug("SellerDirectory: clicksByShopSlug failed: {}", e.getMessage());
+        }
+        return out;
     }
 
     /** Upsert shops + marketplace storefronts into the seller directory.

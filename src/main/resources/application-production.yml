@@ -21,13 +21,17 @@ indexer:
   max-products-per-shop: 1500
   max-urls-per-shop: 1500
   per-extract-timeout-ms: 30000
-  scheduled: true
+  # CRAWLING MOVED OUT-OF-PROCESS (2026-06-21): the heavy crawl that used to run
+  # here every 3h + ~10 min after each boot is what spiked CPU/memory and hung the
+  # API JVM. It now runs in damkemon-prod-worker.service (oneshot + nightly timer),
+  # so the API node is crawl-free — scheduled + catch-up OFF, browser OFF below.
+  scheduled: false
   cron: 0 0 3 * * *
   user-agent: "Mozilla/5.0 (compatible; DamKemonBot/1.0; +https://damkemon.com/bot)"
   # Catch-up driver: keep running full passes until we hit the product target,
   # then idle. Fires ~1 min after deploy, then every 2h after the previous pass
   # completes. Backs off automatically if the catalog plateaus (shops drained).
-  catchup-enabled: true              # gentle 24/7 driver — cheap JSON harvest makes this 1 GB-safe
+  catchup-enabled: false             # OFF on the API node — the worker owns catch-up now
   target-products: 30000
   catchup-interval-ms: 10800000      # 3h between passes — faster shop-set rotation (box is idle ~95% of the time)
   catchup-initial-delay-ms: 600000   # first pass ~10 min after boot (not a tight loop if a run is heavy)
@@ -54,8 +58,18 @@ json-harvest:
   max-pages: 30                      # was 15 — let big Shopify/Woo catalogs reach the 1500 cap
 
 browser:
-  enabled: true        # ON: 2 GB swap (added 2026-06-04) is the OOM safety net. Unlocks SPA shops
-                       # (Pickaboo/Aarong) via the render-once ApiSniffer. Revert to false if the box thrashes.
+  enabled: false       # OFF on the API node — no Chromium in the request-serving JVM, ever.
+                       # SPA-shop rendering lives in the worker (WORKER_BROWSER_ENABLED, needs >= 2 GB).
+
+# Heavy crawl/consolidation @Scheduled jobs are OFF on the API node — the worker
+# (damkemon-prod-worker.service) owns them. Light, serving-side jobs stay ON here:
+# price-history snapshot, hot-drops rebuild, trigram refresh, price alerts, seller sync.
+remerge:
+  enabled: false
+seller-depth:
+  enabled: false
+discovery:
+  enabled: false
 
 price-history:
   enabled: true

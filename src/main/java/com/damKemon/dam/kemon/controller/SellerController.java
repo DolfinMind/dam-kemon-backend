@@ -25,13 +25,22 @@ public class SellerController {
             @RequestParam(required = false) String city,
             @RequestParam(required = false) Boolean verified) {
         try {
-            if (verified != null && verified) return sellerRepository.findByVerifiedTrue();
-            if (category != null && !category.isBlank()) return sellerRepository.findByCategoriesContaining(category.toUpperCase());
-            if (city != null && !city.isBlank()) return sellerRepository.findByCityIgnoreCase(city);
-            return sellerRepository.findAll();
+            if (verified != null && verified) return rank(sellerRepository.findByVerifiedTrue());
+            if (category != null && !category.isBlank()) return rank(sellerRepository.findByCategoriesContaining(category.toUpperCase()));
+            if (city != null && !city.isBlank()) return rank(sellerRepository.findByCityIgnoreCase(city));
+            return rank(sellerRepository.findAll());
         } catch (DataAccessException e) {
             return Collections.emptyList();
         }
+    }
+
+    /** Most-clicked sellers first — the directory's default ordering reflects real
+     *  outbound engagement (Seller.outboundClicks, recomputed from affiliate_clicks). */
+    private static List<Seller> rank(List<Seller> sellers) {
+        List<Seller> out = new java.util.ArrayList<>(sellers);
+        out.sort(java.util.Comparator.comparingInt(
+                (Seller s) -> s.getOutboundClicks() == null ? 0 : s.getOutboundClicks()).reversed());
+        return out;
     }
 
     @GetMapping("/{id}")

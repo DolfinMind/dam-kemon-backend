@@ -43,6 +43,9 @@ public class Seller {
     private Long followers;
     private Double rating;
     private Integer reviewCount;
+    /** Total tracked outbound clicks to this seller — powers the click-based
+     *  ranking on the Sellers directory (recomputed from affiliate_clicks). */
+    private Integer outboundClicks;
     private Boolean verified;
     private Boolean codAvailable;
     private Boolean sameDayDelivery;

@@ -6,6 +6,7 @@ import com.damKemon.dam.kemon.model.PriceHistory;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.Review;
 import com.damKemon.dam.kemon.model.ShopTrust;
+import com.damKemon.dam.kemon.model.SitePrice;
 import com.damKemon.dam.kemon.repository.AffiliateClickRepository;
 import com.damKemon.dam.kemon.repository.PriceHistoryRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
@@ -230,15 +231,38 @@ public class ProductService {
      */
     public Optional<Product> findByIdOrSlug(String idOrSlug) {
         if (idOrSlug == null || idOrSlug.isBlank()) return Optional.empty();
+        Optional<Product> found = Optional.empty();
         try {
-            Optional<Product> byId = productRepository.findById(idOrSlug);
-            if (byId.isPresent()) return byId;
+            found = productRepository.findById(idOrSlug);
         } catch (DataAccessException ignored) {}
-        try {
-            return productRepository.findBySlug(idOrSlug);
-        } catch (DataAccessException e) {
-            return Optional.empty();
+        if (found.isEmpty()) {
+            try {
+                found = productRepository.findBySlug(idOrSlug);
+            } catch (DataAccessException e) {
+                return Optional.empty();
+            }
         }
+        found.ifPresent(ProductService::dedupeOffers);
+        return found;
+    }
+
+    /** Drop duplicate offers from a product's price list so a comparison set never
+     *  shows the same seller/offer twice (item 1). Identity = the offer URL, else
+     *  siteSlug+sellerId+price. In-memory only (the served object), not persisted. */
+    private static void dedupeOffers(Product p) {
+        if (p == null || p.getPrices() == null || p.getPrices().size() < 2) return;
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        List<SitePrice> out = new ArrayList<>(p.getPrices().size());
+        for (SitePrice sp : p.getPrices()) {
+            if (sp == null) continue;
+            String key = (sp.getProductUrl() != null && !sp.getProductUrl().isBlank())
+                    ? "u:" + sp.getProductUrl()
+                    : "s:" + String.valueOf(sp.getSiteSlug() == null ? sp.getSiteName() : sp.getSiteSlug()).toLowerCase()
+                            + "|" + (sp.getSellerId() == null ? "" : sp.getSellerId())
+                            + "|" + (sp.getPrice() == null ? "" : sp.getPrice());
+            if (seen.add(key)) out.add(sp);
+        }
+        if (out.size() != p.getPrices().size()) p.setPrices(out);
     }
 
     public List<PriceHistory> getPriceHistory(String productIdOrSlug) {
