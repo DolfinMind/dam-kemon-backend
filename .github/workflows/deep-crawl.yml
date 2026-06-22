@@ -55,6 +55,7 @@ jobs:
           PER_SHOP:    ${{ github.event.inputs.per_shop    || '5000' }}
           HEAP:        ${{ github.event.inputs.heap        || '5g' }}
           BROWSER_ENABLED: 'false'
+          CATEGORY_FOCUS_ENABLED: 'false'   # open the catalogue gate — index ALL categories
         run: |
           if [ -z "$MONGODB_URI" ]; then
             echo "::error::Set the MONGODB_URI repo secret first (see this file's header)."; exit 1
