@@ -55,6 +55,33 @@ class FeedSyncServiceTest {
     }
 
     @Test
+    void parsesWooCommerceStoreApiAndDividesMinorUnits() {
+        String json = """
+            [{"name":"Phone Mount","permalink":"https://s/p/mount",
+              "prices":{"price":"199000","currency_minor_unit":2},
+              "images":[{"src":"http://img/m.jpg"}],"is_in_stock":true},
+             {"name":"No price item","prices":null}]""";
+        Shop shop = Shop.builder().baseUrl("https://s/").build();
+        List<ScrapedProduct> out = svc().parseWoo(json, shop);
+
+        assertEquals(1, out.size(), "item without prices is skipped");
+        ScrapedProduct p = out.get(0);
+        assertEquals("Phone Mount", p.getName());
+        assertEquals(1990.0, p.getPrice(), "199000 minor units / 10^2 = 1990.00");
+        assertEquals("https://s/p/mount", p.getProductUrl());
+        assertTrue(p.getInStock());
+    }
+
+    @Test
+    void parseRoutesWooArrayToWooParser() {
+        // bare array carrying a prices object → must NOT go through the Shopify path
+        String json = "[{\"name\":\"X\",\"permalink\":\"https://s/x\",\"prices\":{\"price\":\"5000\",\"currency_minor_unit\":2}}]";
+        List<ScrapedProduct> out = svc().parse(json, Shop.builder().baseUrl("https://s/").build());
+        assertEquals(1, out.size());
+        assertEquals(50.0, out.get(0).getPrice());
+    }
+
+    @Test
     void numStripsCurrencyAndCommas() {
         assertEquals(1234.5, FeedSyncService.num("৳ 1,234.50 BDT"));
         assertNull(FeedSyncService.num("call for price"));

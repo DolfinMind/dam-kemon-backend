@@ -112,9 +112,8 @@ public class FeedSyncService {
 
     private int syncOne(Shop shop, BulkIndexer.EnrichSession session) {
         try {
-            String body = fetch(shop.getFeedUrl());
-            if (body == null) return -1;
-            List<ScrapedProduct> items = parse(body, shop);
+            List<ScrapedProduct> items = fetchAllPages(shop.getFeedUrl(), shop);
+            if (items == null) return -1;
             if (items.isEmpty()) {
                 log.info("Feed sync: {} returned 0 parseable items", shop.getSlug());
                 return 0;
@@ -126,6 +125,32 @@ public class FeedSyncService {
             log.warn("Feed sync: {} failed — {}", shop.getSlug(), e.getMessage());
             return -1;
         }
+    }
+
+    /**
+     * Fetch every page of a paginated JSON feed (Shopify {@code products.json} +
+     * Woo Store API both page via {@code &page=N}; defaults are tiny — 10–30/page —
+     * so a single fetch gets almost nothing). XML feeds are one file → single fetch.
+     * Stops at the first empty page or {@code maxItems}. Returns null only if the
+     * very first fetch failed (so the caller can mark the shop dead vs. empty).
+     */
+    private List<ScrapedProduct> fetchAllPages(String url, Shop shop) throws Exception {
+        boolean paged = url.contains("products.json") || url.contains("wp-json");
+        if (!paged) {                                   // XML / GMC: one document
+            String body = fetch(url);
+            return body == null ? null : parse(body, shop);
+        }
+        String sep = url.contains("?") ? "&" : "?";
+        String perPage = url.contains("wp-json") ? "per_page=100" : "limit=250";
+        List<ScrapedProduct> out = new ArrayList<>();
+        for (int page = 1; page <= 100 && out.size() < maxItems; page++) {
+            String body = fetch(url + sep + perPage + "&page=" + page);
+            if (body == null) { if (page == 1) return null; break; }
+            List<ScrapedProduct> items = parse(body, shop);
+            if (items.isEmpty()) break;                 // past the last page
+            out.addAll(items);
+        }
+        return out;
     }
 
     private static boolean hasFeed(Shop s) {
@@ -152,9 +177,68 @@ public class FeedSyncService {
         String t = body.trim();
         if (t.isEmpty()) return List.of();
         char c = t.charAt(0);
-        if (c == '{' || c == '[') return parseShopify(t, shop);
+        if (c == '{' || c == '[') {
+            // WooCommerce Store API (/wp-json/wc/store/products) is a bare array whose
+            // items carry a `prices` object — distinct from Shopify's {products:[{variants}]}.
+            // It's the most common BD platform, so sniff and route to the right parser.
+            if (looksLikeWoo(t)) return parseWoo(t, shop);
+            return parseShopify(t, shop);
+        }
         if (c == '<') return parseXml(t);
         return List.of();
+    }
+
+    /** WooCommerce Store API fingerprint — `currency_minor_unit` is unique to it. */
+    private static boolean looksLikeWoo(String json) {
+        return json.contains("\"currency_minor_unit\"")
+                || (json.contains("\"prices\"") && json.contains("\"permalink\""));
+    }
+
+    /**
+     * WooCommerce Store API: bare array of products with {@code name} +
+     * {@code prices{price, currency_minor_unit}}. <b>Price is in MINOR units</b>
+     * (e.g. {@code "199000"} with minor_unit 2 → ৳1990.00), so divide by
+     * 10^minor_unit — getting this wrong inflates every price 100×.
+     */
+    List<ScrapedProduct> parseWoo(String json, Shop shop) {
+        List<ScrapedProduct> out = new ArrayList<>();
+        try {
+            JsonNode tree = mapper.readTree(json);
+            JsonNode arr = tree.isArray() ? tree : tree.get("products");
+            if (arr == null || !arr.isArray()) return out;
+            for (JsonNode p : arr) {
+                if (out.size() >= maxItems) break;
+                String name = text(p, "name");
+                JsonNode prices = p.get("prices");
+                if (name == null || prices == null || prices.isNull()) continue;
+                Double price = wooPrice(prices);
+                if (price == null) continue;
+                boolean inStock = !p.has("is_in_stock") || p.get("is_in_stock").asBoolean(true);
+                out.add(ScrapedProduct.builder()
+                        .name(name).price(price).inStock(inStock)
+                        .productUrl(text(p, "permalink"))
+                        .imageUrl(wooImage(p))
+                        .build());
+            }
+        } catch (Exception e) {
+            log.warn("Feed sync: WooCommerce JSON parse failed — {}", e.getMessage());
+        }
+        return out;
+    }
+
+    /** Woo prices are integer minor units; divide by 10^currency_minor_unit. */
+    static Double wooPrice(JsonNode prices) {
+        Double v = num(text(prices, "price"));
+        if (v == null) return null;
+        int minor = prices.has("currency_minor_unit") ? prices.get("currency_minor_unit").asInt(0) : 0;
+        for (int i = 0; i < minor; i++) v /= 10.0;
+        return v;
+    }
+
+    private static String wooImage(JsonNode p) {
+        JsonNode imgs = p.get("images");
+        if (imgs != null && imgs.isArray() && imgs.size() > 0) return text(imgs.get(0), "src");
+        return null;
     }
 
     /** Shopify {@code /products.json} (or any {products:[...]} / bare array). */
