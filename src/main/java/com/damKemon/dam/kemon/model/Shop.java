@@ -44,6 +44,14 @@ public class Shop {
     private String sitemapUrl;
 
     /**
+     * Merchant-published product feed URL — Shopify {@code /products.json},
+     * WooCommerce Store API, or a Google Merchant / RSS XML feed. When set,
+     * {@code FeedSyncService} pulls it on a schedule (no scraping) and merges the
+     * items into the catalog, adding products + sellers.
+     */
+    private String feedUrl;
+
+    /**
      * Search URL template with {@code {q}} as the query placeholder, used as
      * fallback when {@code sitemapUrl} is null or returned 0 product URLs.
      * Example: {@code https://www.applegadgetsbd.com/?s={q}}.

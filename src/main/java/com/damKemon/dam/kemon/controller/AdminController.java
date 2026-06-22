@@ -303,6 +303,7 @@ public class AdminController {
                 m.put("name", s.getName());
                 m.put("baseUrl", s.getBaseUrl());
                 m.put("platform", s.getPlatform());
+                m.put("feedUrl", s.getFeedUrl());
                 m.put("categories", s.getCategories());
                 m.put("status", s.getStatus());
                 m.put("health", s.getHealth());
@@ -356,6 +357,10 @@ public class AdminController {
             if (body.containsKey("sitemapUrl")) {
                 Object v = body.get("sitemapUrl");
                 s.setSitemapUrl(v == null || String.valueOf(v).isBlank() ? null : String.valueOf(v));
+            }
+            if (body.containsKey("feedUrl")) {
+                Object v = body.get("feedUrl");
+                s.setFeedUrl(v == null || String.valueOf(v).isBlank() ? null : String.valueOf(v));
             }
             if (body.containsKey("platform")) s.setPlatform(String.valueOf(body.get("platform")));
             if (body.containsKey("requiresJs")) s.setRequiresJs(Boolean.parseBoolean(String.valueOf(body.get("requiresJs"))));

@@ -228,6 +228,16 @@ affiliate:
     affs: ${AFFILIATE_ROKOMARI_AFFS:66715}
     cma: ${AFFILIATE_ROKOMARI_CMA:604800}
 
+# ───── Merchant feed sync (pull published catalogs; no scraping) ─────
+# Worker-only + opt-in: pulls each shop's feedUrl (Shopify products.json / WooCommerce
+# Store API / Google-Merchant or RSS XML) and merges items into the catalog via the
+# same matchKey path as the crawler — adding products + sellers. Heavy merge, so it
+# never auto-runs on the web JVM. Enable on the worker with FEED_SYNC_ENABLED=true.
+feed-sync:
+  enabled: ${FEED_SYNC_ENABLED:false}
+  cron: ${FEED_SYNC_CRON:0 30 2 * * *}
+  max-items: ${FEED_SYNC_MAX_ITEMS:2000}
+
 # ───── Spring Boot Actuator (health, info) ─────
 management:
   endpoints:
