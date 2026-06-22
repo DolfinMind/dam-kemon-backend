@@ -2,10 +2,11 @@ package com.damKemon.dam.kemon.service;
 
 import com.damKemon.dam.kemon.model.User;
 import com.damKemon.dam.kemon.repository.UserRepository;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -43,7 +44,9 @@ public class OwnerBootstrap {
         this.users = users;
     }
 
-    @PostConstruct
+    // ApplicationReadyEvent, not @PostConstruct — guarantees Mongo is up so the owner
+    // user is reliably (re)created on every boot, even on a cold/slow start.
+    @EventListener(ApplicationReadyEvent.class)
     public void ensureOwner() {
         if (ownerUsername == null || ownerUsername.isBlank()
                 || ownerPassword == null || ownerPassword.isBlank()) {

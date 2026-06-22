@@ -5,9 +5,10 @@ import com.damKemon.dam.kemon.repository.ShopTrustRepository;
 import com.damKemon.dam.kemon.service.TrustService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
@@ -44,7 +45,9 @@ public class ShopTrustBootstrap {
         this.trustService = trustService;
     }
 
-    @PostConstruct
+    // ApplicationReadyEvent, not @PostConstruct — see ShopCatalogBootstrap: avoids a
+    // silent no-op when Mongo isn't ready yet at bean-init time on a cold box.
+    @EventListener(ApplicationReadyEvent.class)
     public void seed() {
         List<TrustEntry> entries = load();
         if (entries.isEmpty()) return;

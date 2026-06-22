@@ -4,9 +4,10 @@ import com.damKemon.dam.kemon.model.Seller;
 import com.damKemon.dam.kemon.repository.SellerRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
@@ -67,7 +68,10 @@ public class SellersBootstrap {
         this.sellerRepository = sellerRepository;
     }
 
-    @PostConstruct
+    // ApplicationReadyEvent, not @PostConstruct: @PostConstruct can run before Mongo
+    // is ready on a cold box, throw, and silently no-op — leaving the sellers
+    // collection empty so the public "Shops" (/sellers) directory shows nothing.
+    @EventListener(ApplicationReadyEvent.class)
     public void seed() {
         List<SellerEntry> entries = loadDirectory();
         if (entries.isEmpty()) return;
