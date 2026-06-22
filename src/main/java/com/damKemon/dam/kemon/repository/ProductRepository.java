@@ -74,4 +74,15 @@ public interface ProductRepository extends MongoRepository<Product, String> {
         String getId();
         String getName();
     }
+
+    /** Lightweight id+slug projection for /sitemap.xml — capped via Pageable and
+     *  carrying no prices array, so the sitemap never loads the whole catalog
+     *  into heap (which OOM-crashed the app once the catalog grew large). */
+    @Query(value = "{}", fields = "{ 'slug' : 1 }")
+    List<SlugView> findAllSlugViews(Pageable pageable);
+
+    interface SlugView {
+        String getId();
+        String getSlug();
+    }
 }

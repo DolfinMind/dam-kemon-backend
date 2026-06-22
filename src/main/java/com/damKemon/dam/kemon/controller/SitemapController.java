@@ -1,8 +1,8 @@
 package com.damKemon.dam.kemon.controller;
 
-import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -55,13 +55,12 @@ public class SitemapController {
         appendUrl(sb, base + "/submit-shop", today, "monthly", "0.3");
 
         try {
-            int count = 0;
-            for (Product p : productRepository.findAll()) {
-                if (count++ >= MAX_URLS) break;
+            // id+slug projection, capped at MAX_URLS — never loads the whole
+            // products collection (with its prices arrays) into heap.
+            for (ProductRepository.SlugView p : productRepository.findAllSlugViews(PageRequest.of(0, MAX_URLS))) {
                 String slug = (p.getSlug() == null || p.getSlug().isBlank()) ? p.getId() : p.getSlug();
                 if (slug == null) continue;
-                String lastmod = today;
-                appendUrl(sb, base + "/product/" + escape(slug), lastmod, "daily", "0.7");
+                appendUrl(sb, base + "/product/" + escape(slug), today, "daily", "0.7");
             }
         } catch (DataAccessException ignored) { /* empty sitemap is fine */ }
 
