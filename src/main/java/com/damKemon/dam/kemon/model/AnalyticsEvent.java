@@ -44,6 +44,13 @@ public class AnalyticsEvent {
     /** Count of products returned (only set for type=search). */
     private Integer resultCount;
 
+    /**
+     * Distinct shop slugs of the result set in ranked order (only set for
+     * type=search). Index 0 is the shop the user sees first — powers the
+     * "which shops rank first" admin analytic. Capped to the top ~10.
+     */
+    private java.util.List<String> resultShops;
+
     /** Product id (set for type=view and type=click). */
     @Indexed
     private String productId;

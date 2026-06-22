@@ -121,6 +121,31 @@ public class AdminAnalyticsController {
         return ResponseEntity.ok(analytics.clickFunnel(clampDays(days)));
     }
 
+    // ── Search result intelligence ──
+
+    /** Which shops show first in search results (and how often they appear at all). */
+    @GetMapping("/result-shops")
+    public ResponseEntity<List<Map<String, Object>>> resultShops(
+            @RequestParam(value = "days", defaultValue = "7") int days,
+            @RequestParam(value = "limit", defaultValue = "25") int limit) {
+        return ResponseEntity.ok(analytics.topResultShops(clampDays(days), clamp(limit, 1, 200)));
+    }
+
+    /** Searches that returned nothing — unmet demand / catalog gaps. */
+    @GetMapping("/zero-result-searches")
+    public ResponseEntity<List<Map<String, Object>>> zeroResultSearches(
+            @RequestParam(value = "days", defaultValue = "7") int days,
+            @RequestParam(value = "limit", defaultValue = "25") int limit) {
+        return ResponseEntity.ok(analytics.zeroResultSearches(clampDays(days), clamp(limit, 1, 200)));
+    }
+
+    /** Shop price-win rate: how often each shop holds the cheapest offer where it appears. */
+    @GetMapping("/shop-price-wins")
+    public ResponseEntity<List<Map<String, Object>>> shopPriceWins(
+            @RequestParam(value = "limit", defaultValue = "25") int limit) {
+        return ResponseEntity.ok(analytics.shopPriceWins(clamp(limit, 1, 200)));
+    }
+
     private static int clampDays(int d) {
         return clamp(d, 1, 90);
     }

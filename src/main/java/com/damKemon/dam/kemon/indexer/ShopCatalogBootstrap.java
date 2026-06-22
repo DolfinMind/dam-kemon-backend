@@ -4,9 +4,10 @@ import com.damKemon.dam.kemon.model.Shop;
 import com.damKemon.dam.kemon.repository.ShopRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
@@ -42,7 +43,11 @@ public class ShopCatalogBootstrap {
         this.shopRepository = shopRepository;
     }
 
-    @PostConstruct
+    // Runs on ApplicationReadyEvent, not @PostConstruct: @PostConstruct can fire
+    // before the Mongo connection is ready on a cold/slow box, throw, and silently
+    // no-op — leaving the shops collection (and so both the public and admin shop
+    // views) empty. By ready-time the data layer is up, so the upsert lands.
+    @EventListener(ApplicationReadyEvent.class)
     public void seed() {
         List<ShopEntry> entries = loadCatalog();
         if (entries.isEmpty()) return;

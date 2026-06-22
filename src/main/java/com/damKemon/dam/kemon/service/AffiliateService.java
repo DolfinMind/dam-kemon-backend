@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -24,14 +24,19 @@ import java.util.Map;
 @Service
 public class AffiliateService {
 
-    private final Map<String, String> codes = new HashMap<>();
-
     @Value("${affiliate.daraz.id:damkemon}")    private String darazId;
     @Value("${affiliate.pickaboo.id:damkemon}") private String pickabooId;
     @Value("${affiliate.othoba.id:damkemon}")   private String othobaId;
-    @Value("${affiliate.startech.id:damkemon}") private String startechId;
     @Value("${affiliate.ryans.id:damkemon}")    private String ryansId;
     @Value("${affiliate.fallback.utm-source:damkemon}") private String fallbackUtm;
+
+    // Star Tech affiliate program: a single opaque ?tracking= id on the product URL.
+    @Value("${affiliate.startech.tracking:6a32e1823fd8a}") private String startechTracking;
+
+    // Rokomari affiliate program: affId + affs (campaign) + cma (cookie window, secs).
+    @Value("${affiliate.rokomari.aff-id:3rM48i61o4MRi1O}") private String rokomariAffId;
+    @Value("${affiliate.rokomari.affs:66715}")             private String rokomariAffs;
+    @Value("${affiliate.rokomari.cma:604800}")             private String rokomariCma;
 
     /**
      * Append the right tracking parameter for the partner. {@code clickId}
@@ -42,7 +47,7 @@ public class AffiliateService {
         if (originalUrl == null || originalUrl.isBlank()) return originalUrl;
         if (clickId == null) clickId = "0";
 
-        Map<String, String> params = new HashMap<>();
+        Map<String, String> params = new LinkedHashMap<>();
         String partnerCode = codeFor(siteSlug);
         switch (siteSlug == null ? "" : siteSlug.toLowerCase()) {
             case "daraz" -> {
@@ -55,7 +60,15 @@ public class AffiliateService {
                 params.put("clickid", clickId);
                 params.put("affid", partnerCode);
             }
-            case "othoba", "startech", "ryans", "bdshop", "priyoshop" -> {
+            // Star Tech: program tracks via a single ?tracking= id — no UTM needed.
+            case "startech" -> params.put("tracking", startechTracking);
+            // Rokomari: ?affId=<id>&affs=<campaign>&cma=<cookie-window-secs>.
+            case "rokomari" -> {
+                params.put("affId", rokomariAffId);
+                params.put("affs", rokomariAffs);
+                params.put("cma", rokomariCma);
+            }
+            case "othoba", "ryans", "bdshop", "priyoshop" -> {
                 params.put("utm_source", "damkemon");
                 params.put("utm_medium", "compare");
                 params.put("utm_campaign", partnerCode);
@@ -75,7 +88,6 @@ public class AffiliateService {
             case "daraz" -> darazId;
             case "pickaboo" -> pickabooId;
             case "othoba" -> othobaId;
-            case "startech" -> startechId;
             case "ryans" -> ryansId;
             default -> fallbackUtm;
         };

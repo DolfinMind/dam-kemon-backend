@@ -39,12 +39,12 @@ public class AnalyticsService {
 
     @Async
     public void recordSearch(String query, int resultCount, String anonId, String ip) {
-        recordSearch(query, resultCount, anonId, ip, null, null);
+        recordSearch(query, resultCount, anonId, ip, null, null, null);
     }
 
     @Async
     public void recordSearch(String query, int resultCount, String anonId, String ip,
-                             String userId, Long latencyMs) {
+                             String userId, Long latencyMs, java.util.List<String> resultShops) {
         if (query == null) return;
         String q = query.trim();
         if (q.isEmpty()) return;
@@ -53,6 +53,7 @@ public class AnalyticsService {
                 .type("search")
                 .query(q.toLowerCase())
                 .resultCount(resultCount)
+                .resultShops(resultShops == null || resultShops.isEmpty() ? null : resultShops)
                 .anonId(safe(anonId))
                 .userId(safe(userId))
                 .latencyMs(latencyMs)

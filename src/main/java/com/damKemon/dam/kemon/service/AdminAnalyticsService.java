@@ -9,6 +9,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
 import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
 import org.springframework.data.mongodb.core.aggregation.DateOperators;
 import org.springframework.data.mongodb.core.aggregation.DateOperators.Timezone;
@@ -34,6 +35,7 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.matc
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.sort;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.unwind;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
@@ -502,6 +504,115 @@ public class AdminAnalyticsService {
             out.put("outboundClicks", 0L);
         }
         return out;
+    }
+
+    // ════════════════════ Search result ranking & gaps ══════════════════════════
+
+    /**
+     * Which shops appear first in search results. For each search we logged the
+     * cheapest-offer shop of every result product in ranked order; this counts how
+     * often each shop took the #1 slot (what the shopper sees first) and how often
+     * it appeared anywhere in the top results.
+     */
+    public List<Map<String, Object>> topResultShops(int days, int lim) {
+        Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
+        Map<String, long[]> byShop = new LinkedHashMap<>();   // slug -> [shownFirst, appears]
+        long totalFirst = 0;
+        try {
+            Aggregation first = newAggregation(
+                    match(where("type").is("search").and("ts").gte(cutoff).and("resultShops").ne(null)),
+                    project().and(ArrayOperators.ArrayElemAt.arrayOf("resultShops").elementAt(0)).as("shop"),
+                    group("shop").count().as("n"),
+                    sort(Sort.Direction.DESC, "n"));
+            for (Document d : mongo.aggregate(first, EVENTS, Document.class)) {
+                String slug = strOr(d.get("_id"), "unknown");
+                long n = num(d.get("n"));
+                byShop.computeIfAbsent(slug, k -> new long[2])[0] = n;
+                totalFirst += n;
+            }
+            Aggregation appears = newAggregation(
+                    match(where("type").is("search").and("ts").gte(cutoff).and("resultShops").ne(null)),
+                    unwind("resultShops"),
+                    group("resultShops").count().as("n"));
+            for (Document d : mongo.aggregate(appears, EVENTS, Document.class)) {
+                byShop.computeIfAbsent(strOr(d.get("_id"), "unknown"), k -> new long[2])[1] = num(d.get("n"));
+            }
+        } catch (Exception ignored) { /* degrade to empty */ }
+
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map.Entry<String, long[]> e : byShop.entrySet()) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("siteSlug", e.getKey());
+            row.put("shownFirst", e.getValue()[0]);
+            row.put("appears", e.getValue()[1]);
+            row.put("shownFirstPct", pct(e.getValue()[0], totalFirst));
+            out.add(row);
+        }
+        out.sort((a, b) -> Long.compare((Long) b.get("shownFirst"), (Long) a.get("shownFirst")));
+        return out.size() > lim ? new ArrayList<>(out.subList(0, lim)) : out;
+    }
+
+    /** Searches that returned nothing — unmet demand / catalog gaps to fill. */
+    public List<Map<String, Object>> zeroResultSearches(int days, int lim) {
+        Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
+        List<Map<String, Object>> out = new ArrayList<>();
+        try {
+            Aggregation agg = newAggregation(
+                    match(where("type").is("search").and("ts").gte(cutoff)
+                            .and("query").ne(null).and("resultCount").lte(0)),
+                    group("query").count().as("hits").max("ts").as("lastSeen"),
+                    sort(Sort.Direction.DESC, "hits"),
+                    limit(lim));
+            for (Document d : mongo.aggregate(agg, EVENTS, Document.class)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("query", d.getString("_id"));
+                row.put("hits", num(d.get("hits")));
+                row.put("lastSeen", d.get("lastSeen"));
+                out.add(row);
+            }
+        } catch (Exception ignored) { /* degrade to empty */ }
+        return out;
+    }
+
+    /**
+     * How often each shop holds the cheapest offer when it appears in a product's
+     * comparison — the shop "price-win rate". Computed live over the catalog:
+     * appearances = offers per shop; wins = times that shop is the cheapest on a
+     * product. ponytail: the wins pass sorts all unwound offers; fine for an
+     * on-demand admin call — add allowDiskUse if the catalog grows 10×.
+     */
+    public List<Map<String, Object>> shopPriceWins(int lim) {
+        Map<String, long[]> byShop = new LinkedHashMap<>();   // slug -> [wins, appearances]
+        try {
+            Aggregation appears = newAggregation(
+                    unwind("prices"),
+                    match(where("prices.price").gt(0).and("prices.siteSlug").ne(null)),
+                    group("prices.siteSlug").count().as("n"));
+            for (Document d : mongo.aggregate(appears, "products", Document.class)) {
+                byShop.computeIfAbsent(strOr(d.get("_id"), "unknown"), k -> new long[2])[1] = num(d.get("n"));
+            }
+            Aggregation wins = newAggregation(
+                    unwind("prices"),
+                    match(where("prices.price").gt(0).and("prices.siteSlug").ne(null)),
+                    sort(Sort.Direction.ASC, "prices.price"),
+                    group("_id").first("prices.siteSlug").as("winner"),
+                    group("winner").count().as("n"));
+            for (Document d : mongo.aggregate(wins, "products", Document.class)) {
+                byShop.computeIfAbsent(strOr(d.get("_id"), "unknown"), k -> new long[2])[0] = num(d.get("n"));
+            }
+        } catch (Exception ignored) { /* degrade to empty */ }
+
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map.Entry<String, long[]> e : byShop.entrySet()) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("siteSlug", e.getKey());
+            row.put("wins", e.getValue()[0]);
+            row.put("appearances", e.getValue()[1]);
+            row.put("winRate", pct(e.getValue()[0], e.getValue()[1]));
+            out.add(row);
+        }
+        out.sort((a, b) -> Long.compare((Long) b.get("appearances"), (Long) a.get("appearances")));
+        return out.size() > lim ? new ArrayList<>(out.subList(0, lim)) : out;
     }
 
     // ──────────────────────────────── helpers ──────────────────────────────────

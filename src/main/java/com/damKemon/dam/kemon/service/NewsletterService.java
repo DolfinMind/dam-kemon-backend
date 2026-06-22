@@ -65,63 +65,43 @@ public class NewsletterService {
     public void sendWeekly() {
         if (!enabled) { log.info("Newsletter: disabled, skipping weekly send"); return; }
         if (!appRole.isWeb()) return;   // hot-drops state lives on the web node
-
-        List<Map<String, Object>> picks = hotDrops.get(maxProducts);
-        if (picks == null || picks.isEmpty()) {
-            // ponytail: skip empty weeks rather than ship a hollow email. If thin
-            // weeks ever recur, fall back to top multi-seller products here.
-            log.info("Newsletter: no hot-drops to feature this week — skipping send");
-            return;
-        }
-        List<NewsletterSubscriber> recipients = subscribers.findAll();
-        if (recipients.isEmpty()) { log.info("Newsletter: no subscribers — nothing to send"); return; }
-
-        String subject = buildSubject(picks);
-        int sent = 0, failed = 0;
-        for (NewsletterSubscriber s : recipients) {
-            String email = s.getEmail();
-            if (email == null || email.isBlank()) continue;
-            try {
-                resend.sendEmail(email, subject, buildHtml(picks, email));
-                sent++;
-            } catch (Exception e) {
-                failed++;
-                log.warn("Newsletter: send to {} failed: {}", email, e.getMessage());
-            }
-            if (sendDelayMs > 0) {
-                try { Thread.sleep(sendDelayMs); }
-                catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
-            }
-        }
-        log.info("Newsletter sent — {} ok, {} failed, {} drops featured", sent, failed, picks.size());
+        Map<String, Object> result = send();
+        log.info("Newsletter weekly: {}", result.get("message"));
     }
 
+    /** Operator-triggered send. Returns the real outcome so the admin UI can show it. */
     public Map<String, Object> sendManual() {
+        return send();
+    }
+
+    /** Shared send path for both the weekly cron and the manual trigger. */
+    private Map<String, Object> send() {
+        if (!resend.isConfigured()) {
+            return Map.of("success", false, "message", "Email isn't configured — set RESEND_API_KEY on the server.");
+        }
         List<Map<String, Object>> picks = hotDrops.get(maxProducts);
-        if (picks == null || picks.isEmpty()) return Map.of("success", false, "message", "No hot-drops available to send.");
-        
+        if (picks == null || picks.isEmpty()) {
+            return Map.of("success", false, "message", "Nothing to feature yet — the price list is still empty.");
+        }
         List<NewsletterSubscriber> recipients = subscribers.findAll();
-        if (recipients.isEmpty()) return Map.of("success", false, "message", "No subscribers found.");
+        if (recipients.isEmpty()) return Map.of("success", false, "message", "No subscribers yet.");
 
         String subject = buildSubject(picks);
         int sent = 0, failed = 0;
         for (NewsletterSubscriber s : recipients) {
             String email = s.getEmail();
             if (email == null || email.isBlank()) continue;
-            try {
-                resend.sendEmail(email, subject, buildHtml(picks, email));
-                sent++;
-            } catch (Exception e) {
-                failed++;
-                log.warn("Newsletter: send to {} failed: {}", email, e.getMessage());
-            }
+            if (resend.sendEmail(email, subject, buildHtml(picks, email))) sent++;
+            else failed++;
             if (sendDelayMs > 0) {
                 try { Thread.sleep(sendDelayMs); }
                 catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
             }
         }
-        log.info("Manual newsletter sent — {} ok, {} failed", sent, failed);
-        return Map.of("success", true, "sent", sent, "failed", failed);
+        log.info("Newsletter sent — {} ok, {} failed, {} products featured", sent, failed, picks.size());
+        String msg = "Sent to " + sent + " subscriber" + (sent == 1 ? "" : "s")
+                + (failed > 0 ? " (" + failed + " failed)" : "") + ".";
+        return Map.of("success", sent > 0, "sent", sent, "failed", failed, "message", msg);
     }
 
     /** Send the current digest to one address — used to preview before going live. */

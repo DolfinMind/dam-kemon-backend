@@ -216,6 +216,18 @@ newsletter:
   max-products: ${NEWSLETTER_MAX_PRODUCTS:10}
   send-delay-ms: ${NEWSLETTER_SEND_DELAY_MS:120}
 
+# ───── Outbound affiliate tracking ─────
+# Params appended to "Visit shop" outbound links, per partner program.
+# Star Tech uses a single ?tracking= id; Rokomari uses affId/affs/cma.
+# Override per-partner via env without a redeploy.
+affiliate:
+  startech:
+    tracking: ${AFFILIATE_STARTECH_TRACKING:6a32e1823fd8a}
+  rokomari:
+    aff-id: ${AFFILIATE_ROKOMARI_AFF_ID:3rM48i61o4MRi1O}
+    affs: ${AFFILIATE_ROKOMARI_AFFS:66715}
+    cma: ${AFFILIATE_ROKOMARI_CMA:604800}
+
 # ───── Spring Boot Actuator (health, info) ─────
 management:
   endpoints:

@@ -29,10 +29,16 @@ public class ResendService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public void sendEmail(String to, String subject, String htmlContent) {
-        if (apiKey == null || apiKey.isEmpty()) {
+    /** True when an API key is present — lets callers report "email not configured" up front. */
+    public boolean isConfigured() {
+        return apiKey != null && !apiKey.isEmpty();
+    }
+
+    /** @return true if the email was accepted by Resend; false on missing key or send error. */
+    public boolean sendEmail(String to, String subject, String htmlContent) {
+        if (!isConfigured()) {
             logger.warn("Resend API key is not configured. Email to {} was not sent.", to);
-            return;
+            return false;
         }
 
         try {
@@ -49,8 +55,10 @@ public class ResendService {
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
             restTemplate.postForObject(RESEND_API_URL, request, String.class);
             logger.info("Successfully sent email via Resend to {}", to);
+            return true;
         } catch (Exception e) {
             logger.error("Failed to send email via Resend to {}: {}", to, e.getMessage());
+            return false;
         }
     }
 }

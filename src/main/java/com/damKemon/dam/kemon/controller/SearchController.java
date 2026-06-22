@@ -1,12 +1,15 @@
 package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.dto.SearchResponse;
+import com.damKemon.dam.kemon.model.Product;
+import com.damKemon.dam.kemon.model.SitePrice;
 import com.damKemon.dam.kemon.service.AnalyticsService;
 import com.damKemon.dam.kemon.service.CatalogSearchService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -42,8 +45,31 @@ public class SearchController {
         String userId = (String) req.getAttribute("authUserId");
         analytics.recordSearch(query,
                 resp.getTotalResults() == null ? 0 : resp.getTotalResults(),
-                anonId, clientIp(req), userId, latencyMs);
+                anonId, clientIp(req), userId, latencyMs, resultShops(resp));
         return ResponseEntity.ok(resp);
+    }
+
+    /** Distinct cheapest-offer shop slug per result product, in ranked order (top ~10). */
+    private static List<String> resultShops(SearchResponse resp) {
+        List<String> shops = new ArrayList<>();
+        if (resp == null || resp.getProducts() == null) return shops;
+        for (Product p : resp.getProducts()) {
+            String slug = cheapestSlug(p);
+            if (slug != null && !shops.contains(slug)) shops.add(slug);
+            if (shops.size() >= 10) break;
+        }
+        return shops;
+    }
+
+    private static String cheapestSlug(Product p) {
+        if (p == null || p.getPrices() == null) return null;
+        String slug = null;
+        double best = Double.MAX_VALUE;
+        for (SitePrice sp : p.getPrices()) {
+            if (sp.getPrice() == null || sp.getSiteSlug() == null) continue;
+            if (sp.getPrice() < best) { best = sp.getPrice(); slug = sp.getSiteSlug(); }
+        }
+        return slug;
     }
 
     @GetMapping("/suggest")

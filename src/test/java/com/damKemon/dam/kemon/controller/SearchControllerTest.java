@@ -35,7 +35,7 @@ class SearchControllerTest {
         ArgumentCaptor<String> ipCap = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Long> latencyCap = ArgumentCaptor.forClass(Long.class);
         verify(analytics).recordSearch(eq("iphone"), eq(12), eq("anon-id-123"),
-                ipCap.capture(), eq("user-7"), latencyCap.capture());
+                ipCap.capture(), eq("user-7"), latencyCap.capture(), anyList());
         assertEquals("203.0.113.5", ipCap.getValue());
         // latency should be a small non-negative number for a mocked call
         assertNotNull(latencyCap.getValue());
@@ -54,6 +54,6 @@ class SearchControllerTest {
         ctrl.search("x", 0, null, false, null, null, null, null, req);
 
         verify(analytics).recordSearch(eq("x"), eq(0), eq(null), eq("1.2.3.4"),
-                eq(null), org.mockito.ArgumentMatchers.anyLong());
+                eq(null), org.mockito.ArgumentMatchers.anyLong(), anyList());
     }
 }

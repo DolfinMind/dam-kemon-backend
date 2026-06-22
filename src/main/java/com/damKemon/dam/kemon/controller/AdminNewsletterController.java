@@ -13,7 +13,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/admin/newsletter")
@@ -58,16 +57,10 @@ public class AdminNewsletterController {
 
     @PostMapping("/send")
     public ResponseEntity<Map<String, Object>> sendManual() {
-        CompletableFuture.runAsync(() -> {
-            try {
-                newsletterService.sendManual();
-            } catch (Exception e) {
-                // Logged in service
-            }
-        });
-        return ResponseEntity.accepted().body(Map.of(
-                "started", true,
-                "message", "Manual newsletter send triggered in background."
-        ));
+        // Synchronous so the admin sees the real outcome (sent / failed / why-skipped)
+        // instead of a fire-and-forget "triggered" that hid every failure.
+        // ponytail: blocks for ~send-delay × subscribers; fine at this list size.
+        // Move to a job-status poll if the list grows into the thousands.
+        return ResponseEntity.ok(newsletterService.sendManual());
     }
 }
