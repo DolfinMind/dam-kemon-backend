@@ -13,6 +13,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -104,47 +105,63 @@ public class HotDropsService {
                 log.warn("HotDrops: peak aggregation failed ({}) — building from current catalog only", e.getMessage());
             }
 
-            // Page the catalog (heap-safe). Real drops go to `drops`; multi-seller
-            // products with no measured drop become `fallback` filler so the rail is
-            // never empty in a flat-price week (kept bounded as we go).
+            // Real drops first — only worth scanning the whole catalog if we actually
+            // have price history to compare against (skip the scan entirely when not).
             List<Map<String, Object>> drops = new ArrayList<>();
-            List<Map<String, Object>> fallback = new ArrayList<>();
-            int page = 0;
-            final int pageSize = 1000;
-            while (true) {
-                List<Product> rows;
-                try {
-                    rows = productRepository.findAll(PageRequest.of(page, pageSize)).getContent();
-                } catch (DataAccessException e) {
-                    log.warn("HotDrops: product scan failed ({}) — keeping previous rail", e.getMessage());
-                    return;   // genuine read failure: keep the previous rail rather than blank it
-                }
-                if (rows.isEmpty()) break;
-                for (Product p : rows) {
-                    if (p.getId() == null || p.getLowestPrice() == null || p.getLowestPrice() <= 0) continue;
-                    double current = p.getLowestPrice();
-                    int sellers = p.getPrices() == null ? 0 : p.getPrices().size();
-                    Double peak = peakByProduct.get(p.getId());
-                    if (peak != null && peak > current && peak >= current * MIN_DROP_RATIO) {
-                        double dropPct = (peak - current) / peak * 100.0;
-                        drops.add(row(p, current, peak, Math.round(dropPct * 10.0) / 10.0, sellers));
-                    } else if (sellers >= 2) {
-                        fallback.add(row(p, current, current, 0.0, sellers));
+            if (!peakByProduct.isEmpty()) {
+                int page = 0;
+                final int pageSize = 1000;
+                while (true) {
+                    List<Product> rows;
+                    try {
+                        rows = productRepository.findAll(PageRequest.of(page, pageSize)).getContent();
+                    } catch (DataAccessException e) {
+                        log.warn("HotDrops: product scan failed ({}) — keeping previous rail", e.getMessage());
+                        return;   // genuine read failure: keep the previous rail rather than blank it
                     }
+                    if (rows.isEmpty()) break;
+                    for (Product p : rows) {
+                        if (p.getId() == null || p.getLowestPrice() == null || p.getLowestPrice() <= 0) continue;
+                        Double peak = peakByProduct.get(p.getId());
+                        if (peak == null) continue;
+                        double current = p.getLowestPrice();
+                        if (peak > current && peak >= current * MIN_DROP_RATIO) {
+                            double dropPct = (peak - current) / peak * 100.0;
+                            drops.add(row(p, current, peak, Math.round(dropPct * 10.0) / 10.0, sellers(p)));
+                        }
+                    }
+                    drops = trimTop(drops, BY_DROP_PCT, RAIL_SIZE);
+                    page++;
+                    if (page > 1000) break;   // safety bound
                 }
-                fallback = trimTop(fallback, BY_SELLERS, 50);   // bound filler memory across pages
-                page++;
-                if (page > 1000) break;   // safety bound
+                drops.sort(BY_DROP_PCT);
             }
-            drops.sort(BY_DROP_PCT);
-            fallback.sort(BY_SELLERS);
 
-            List<Map<String, Object>> out = new ArrayList<>(drops);
-            for (Map<String, Object> f : fallback) {
-                if (out.size() >= RAIL_SIZE) break;
-                out.add(f);
+            List<Map<String, Object>> out =
+                    new ArrayList<>(drops.size() > RAIL_SIZE ? drops.subList(0, RAIL_SIZE) : drops);
+
+            // Fill the remainder with the newest priced products so the rail is NEVER
+            // empty (this catalog averages ~1 seller/product, so a "2+ sellers" filler
+            // gate left it blank) and refreshes as the catalog grows.
+            // ponytail: _id desc ≈ newest-added, uses the default index; switch to
+            // updatedAt if "recently re-priced" beats "recently added".
+            if (out.size() < RAIL_SIZE) {
+                java.util.Set<String> have = new java.util.HashSet<>();
+                for (Map<String, Object> m : out) have.add((String) m.get("id"));
+                try {
+                    List<Product> fresh = productRepository.findAll(
+                            PageRequest.of(0, RAIL_SIZE * 4, Sort.by(Sort.Direction.DESC, "_id"))).getContent();
+                    for (Product p : fresh) {
+                        if (out.size() >= RAIL_SIZE) break;
+                        if (p.getId() == null || p.getLowestPrice() == null || p.getLowestPrice() <= 0) continue;
+                        if (have.contains(p.getId())) continue;
+                        out.add(row(p, p.getLowestPrice(), p.getLowestPrice(), 0.0, sellers(p)));
+                    }
+                } catch (DataAccessException e) {
+                    log.warn("HotDrops: fallback fill failed ({})", e.getMessage());
+                }
             }
-            if (out.size() > RAIL_SIZE) out = new ArrayList<>(out.subList(0, RAIL_SIZE));
+
             this.latest = out;
             evictCache();
             log.info("HotDrops: rebuilt — {} real drops, {} total shown", drops.size(), out.size());
@@ -155,8 +172,10 @@ public class HotDropsService {
 
     private static final Comparator<Map<String, Object>> BY_DROP_PCT =
             Comparator.comparingDouble((Map<String, Object> m) -> (double) m.get("dropPct")).reversed();
-    private static final Comparator<Map<String, Object>> BY_SELLERS =
-            Comparator.comparingInt((Map<String, Object> m) -> (int) m.get("sellerCount")).reversed();
+
+    private static int sellers(Product p) {
+        return p.getPrices() == null ? 0 : p.getPrices().size();
+    }
 
     private static Map<String, Object> row(Product p, double current, double peak, double dropPct, int sellers) {
         Map<String, Object> row = new LinkedHashMap<>();
