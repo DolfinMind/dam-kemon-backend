@@ -102,6 +102,15 @@ public class AdminAnalyticsService {
             out.put("requestsLastHour", mongo.count(query(where("ts").gte(hourAgo)), REQUESTS));
             out.put("activeNow", distinctVisitors(REQUESTS, where("ts").gte(fiveMin)));
             out.put("totalRequestsRetained", mongo.count(query(new Criteria()), REQUESTS));
+            
+            // New Dashboard Metrics
+            out.put("totalShops", mongo.count(query(new Criteria()), "shops"));
+            out.put("failingShops", mongo.count(query(where("lastError").ne(null).not().regex("^\\s*$")), "shops"));
+            out.put("totalCommunityReviews", mongo.count(query(where("source").is("community")), "reviews"));
+            out.put("flaggedReviews", mongo.count(query(where("status").is("flagged")), "reviews"));
+            long searchesToday = (long) out.getOrDefault("searchesToday", 0L);
+            long clicksToday = (long) out.getOrDefault("clicksToday", 0L);
+            out.put("searchConversionRate", searchesToday == 0 ? 0.0 : Math.round(((double) clicksToday / searchesToday) * 1000.0) / 10.0);
         } catch (Exception e) {
             out.putIfAbsent("requestsToday", 0L);
         }

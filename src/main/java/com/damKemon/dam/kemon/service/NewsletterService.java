@@ -96,6 +96,34 @@ public class NewsletterService {
         log.info("Newsletter sent — {} ok, {} failed, {} drops featured", sent, failed, picks.size());
     }
 
+    public Map<String, Object> sendManual() {
+        List<Map<String, Object>> picks = hotDrops.get(maxProducts);
+        if (picks == null || picks.isEmpty()) return Map.of("success", false, "message", "No hot-drops available to send.");
+        
+        List<NewsletterSubscriber> recipients = subscribers.findAll();
+        if (recipients.isEmpty()) return Map.of("success", false, "message", "No subscribers found.");
+
+        String subject = buildSubject(picks);
+        int sent = 0, failed = 0;
+        for (NewsletterSubscriber s : recipients) {
+            String email = s.getEmail();
+            if (email == null || email.isBlank()) continue;
+            try {
+                resend.sendEmail(email, subject, buildHtml(picks, email));
+                sent++;
+            } catch (Exception e) {
+                failed++;
+                log.warn("Newsletter: send to {} failed: {}", email, e.getMessage());
+            }
+            if (sendDelayMs > 0) {
+                try { Thread.sleep(sendDelayMs); }
+                catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
+            }
+        }
+        log.info("Manual newsletter sent — {} ok, {} failed", sent, failed);
+        return Map.of("success", true, "sent", sent, "failed", failed);
+    }
+
     /** Send the current digest to one address — used to preview before going live. */
     public void sendTo(String email) {
         if (email == null || email.isBlank()) return;
