@@ -25,6 +25,26 @@ class BulkIndexerMergeSafetyTest {
     }
 
     @Test
+    void neverMergesPrebuiltPcIntoBareComponent() {
+        // #2 corruption pattern: a Gaming/Budget PC built around a CPU must never
+        // merge onto the bare processor (a ৳60k pre-built becoming the CPU's price).
+        assertFalse(BulkIndexer.sameProduct(
+                "AMD Ryzen 5 7500F Processor",
+                "AMD Ryzen 5 7500F Gaming PC"));
+        assertFalse(BulkIndexer.sameProduct(
+                "AMD Ryzen 7 7700X Processor",
+                "Budget PC with AMD Ryzen 7 7700X"));
+        // distinct matchKey too (the exact-key merge path)
+        org.junit.jupiter.api.Assertions.assertNotEquals(
+                BulkIndexer.productMatchKey("AMD Ryzen 5 7500F Processor"),
+                BulkIndexer.productMatchKey("AMD Ryzen 5 7500F Gaming PC"));
+        // "Desktop Processor" is a form-factor, NOT a pre-built → must still merge
+        assertTrue(BulkIndexer.sameProduct(
+                "AMD Ryzen 5 7500F Processor",
+                "AMD Ryzen 5 7500F Desktop Processor"));
+    }
+
+    @Test
     void neverMergesOfficialWithGreyLane() {
         // ~2× price apart in the BD market — not the same purchasable item
         assertFalse(BulkIndexer.sameProduct(

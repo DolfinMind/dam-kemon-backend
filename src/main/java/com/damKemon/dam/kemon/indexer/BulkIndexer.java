@@ -847,6 +847,8 @@ public class BulkIndexer {
         // Over-splitting here is harmless (a duplicate listing); over-merging an
         // accessory onto a device wrecks the headline price.
         if (rawNameHasAccessory(a) != rawNameHasAccessory(b)) return false;
+        // A pre-built PC is never the same product as the bare component it contains.
+        if (rawNameHasPcBuild(a) != rawNameHasPcBuild(b)) return false;
         // BD market lanes: an OFFICIAL (local-warranty) unit and an UNOFFICIAL /
         // international/grey-market unit of the same model sell ~2× apart. They are
         // NOT the same purchasable product, so they must never merge into one price
@@ -879,6 +881,20 @@ public class BulkIndexer {
             if (!w.isBlank() && ACCESSORY_WORDS.contains(w)) return true;
         }
         return false;
+    }
+
+    /** A pre-built computer ("Gaming PC / Budget PC built with [CPU]") is NOT the
+     *  bare component, even though the names share the model — so a ৳60k pre-built
+     *  must never merge onto the ৳14k processor (the #2 price-corruption pattern
+     *  after accessories). Phrase-based on purpose: "Desktop Processor" / "Desktop
+     *  RAM" describe component form-factor and must NOT trip this. */
+    private static final java.util.regex.Pattern PCBUILD = java.util.regex.Pattern.compile(
+            "\\b(gaming|budget|office|home|custom|entry|pro|value|starter)\\s*pc\\b"
+            + "|\\bpc\\s*build\\b|\\bbuilt\\s+with\\b|\\bgaming\\s+desktop\\b"
+            + "|\\bpre[- ]?built\\b|\\bbarebone\\b|\\bfull\\s+pc\\b");
+
+    static boolean rawNameHasPcBuild(String name) {
+        return name != null && PCBUILD.matcher(name.toLowerCase()).find();
     }
 
     private static final java.util.regex.Pattern OFFICIAL_TAG =
@@ -991,6 +1007,11 @@ public class BulkIndexer {
         // word, mark the key so it can never collide with the bare device.
         if (rawNameHasAccessory(name) && words(s).stream().noneMatch(ACCESSORY_WORDS::contains)) {
             s = s + " acc";
+        }
+        // Same guard for pre-built PCs: a "Gaming PC with Ryzen 5 7500F" must get a
+        // distinct key from the bare "Ryzen 5 7500F Processor" so they never merge.
+        if (rawNameHasPcBuild(name)) {
+            s = s + " pcbuild";
         }
         return s;
     }
