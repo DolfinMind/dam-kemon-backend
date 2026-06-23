@@ -12,11 +12,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.damKemon.dam.kemon.config.ProxyPool;
+
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * API harvester for Daraz — Bangladesh's dominant marketplace and the single
@@ -159,6 +166,11 @@ public class DarazHarvester implements ShopHarvester {
     );
 
     private final ObjectMapper mapper = new ObjectMapper();
+    private final ProxyPool proxyPool;
+
+    public DarazHarvester(ProxyPool proxyPool) {
+        this.proxyPool = proxyPool;
+    }
 
     @Override
     public boolean supports(Shop shop) {
@@ -167,31 +179,51 @@ public class DarazHarvester implements ShopHarvester {
 
     @Override
     public List<ScrapedProduct> harvest(Shop shop) {
-        LinkedHashMap<String, ScrapedProduct> byId = new LinkedHashMap<>();
-        for (String q : QUERIES) {
-            if (byId.size() >= maxProducts) break;
-            int fromThisQuery = 0;
-            for (int page = 1; page <= maxPagesPerQuery && fromThisQuery < maxPerQuery; page++) {
-                if (byId.size() >= maxProducts) break;
-                JsonNode items = call(q, page);
-                if (items == null || !items.isArray() || items.isEmpty()) break;
-                for (JsonNode it : items) {
-                    if (fromThisQuery >= maxPerQuery) break;
-                    String itemId = text(it, "itemId");
-                    if (itemId == null || byId.containsKey(itemId)) continue;
-                    ScrapedProduct sp = map(it, itemId);
-                    if (sp != null) { byId.put(itemId, sp); fromThisQuery++; }
-                }
+        Map<String, ScrapedProduct> byId = new ConcurrentHashMap<>();
+        // With a proxy pool, fan the queries across threads so each request rides a
+        // different IP (call() rotates). Daraz rate-limits a single IP hard, so
+        // one-IP sequential harvesting silently fails most queries. No pool → stay
+        // single-threaded to avoid tripping the throttle.
+        int threads = proxyPool != null && proxyPool.enabled()
+                ? Math.max(1, Math.min(proxyPool.size() * 2, 24)) : 1;
+        ExecutorService exec = Executors.newFixedThreadPool(threads);
+        try {
+            List<Future<?>> futures = new ArrayList<>();
+            for (String q : QUERIES) futures.add(exec.submit(() -> harvestQuery(q, byId)));
+            for (Future<?> f : futures) {
+                try { f.get(); } catch (Exception ignored) { /* one query failing is fine */ }
+            }
+        } finally {
+            exec.shutdown();
+            try { if (!exec.awaitTermination(15, TimeUnit.MINUTES)) exec.shutdownNow(); }
+            catch (InterruptedException e) { exec.shutdownNow(); Thread.currentThread().interrupt(); }
+        }
+        log.info("Daraz harvest: {} distinct products from {} seed queries ({} threads, proxy pool {})",
+                byId.size(), QUERIES.size(), threads, proxyPool != null ? proxyPool.size() : 0);
+        return new ArrayList<>(byId.values());
+    }
+
+    /** Page through one seed query, adding distinct items to the shared map. */
+    private void harvestQuery(String q, Map<String, ScrapedProduct> byId) {
+        int fromThisQuery = 0;
+        for (int page = 1; page <= maxPagesPerQuery && fromThisQuery < maxPerQuery; page++) {
+            if (byId.size() >= maxProducts) return;
+            JsonNode items = call(q, page);
+            if (items == null || !items.isArray() || items.isEmpty()) break;
+            for (JsonNode it : items) {
+                if (fromThisQuery >= maxPerQuery) break;
+                String itemId = text(it, "itemId");
+                if (itemId == null || byId.containsKey(itemId)) continue;
+                ScrapedProduct sp = map(it, itemId);
+                if (sp != null && byId.putIfAbsent(itemId, sp) == null) fromThisQuery++;
             }
         }
-        log.info("Daraz harvest: {} distinct products from {} seed queries", byId.size(), QUERIES.size());
-        return new ArrayList<>(byId.values());
     }
 
     private JsonNode call(String query, int page) {
         try {
             String url = String.format(SEARCH, URLEncoder.encode(query, StandardCharsets.UTF_8), page);
-            Connection.Response res = Jsoup.connect(url)
+            Connection c = Jsoup.connect(url)
                     .userAgent(UA)
                     .header("Accept", "application/json, text/plain, */*")
                     .header("X-Requested-With", "XMLHttpRequest")
@@ -200,8 +232,12 @@ public class DarazHarvester implements ShopHarvester {
                     .ignoreHttpErrors(true)
                     .timeout(timeoutMs)
                     .maxBodySize(0)
-                    .method(Connection.Method.GET)
-                    .execute();
+                    .method(Connection.Method.GET);
+            if (proxyPool != null && proxyPool.enabled()) {
+                String[] p = proxyPool.next();   // rotate exit IP per request; auth via ProxyBootstrap
+                if (p != null) c.proxy(p[0], Integer.parseInt(p[1]));
+            }
+            Connection.Response res = c.execute();
             if (res.statusCode() != 200) {
                 log.debug("Daraz API {} for q='{}' p={}", res.statusCode(), query, page);
                 return null;
