@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.indexer;
 
+import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.model.PendingShop;
 import com.damKemon.dam.kemon.model.Shop;
 import com.damKemon.dam.kemon.repository.PendingShopRepository;
@@ -49,6 +50,7 @@ public class ShopLifecycleScheduler {
     private final ShopRepository shopRepository;
     private final SitemapCrawler sitemapCrawler;
     private final HomepageCrawler homepageCrawler;
+    private final AppRole appRole;
 
     @Value("${discovery.enabled:true}")
     private boolean enabled;
@@ -65,12 +67,14 @@ public class ShopLifecycleScheduler {
                                   PendingShopRepository pendingRepo,
                                   ShopRepository shopRepository,
                                   SitemapCrawler sitemapCrawler,
-                                  HomepageCrawler homepageCrawler) {
+                                  HomepageCrawler homepageCrawler,
+                                  AppRole appRole) {
         this.discovery = discovery;
         this.pendingRepo = pendingRepo;
         this.shopRepository = shopRepository;
         this.sitemapCrawler = sitemapCrawler;
         this.homepageCrawler = homepageCrawler;
+        this.appRole = appRole;
     }
 
     /**
@@ -79,6 +83,7 @@ public class ShopLifecycleScheduler {
      */
     @Scheduled(cron = "${discovery.cron:0 0 1 * * SUN}")
     public void weekly() {
+        if (appRole.isWeb()) return;
         if (!enabled) {
             log.info("ShopLifecycle: skipped — DISCOVERY_ENABLED is false");
             return;

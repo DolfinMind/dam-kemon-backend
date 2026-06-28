@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.indexer;
 
+import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.service.ShopApprovalService;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ public class IndexingScheduler {
     private final ProductRepository products;
     private final ShopDiscoveryService discovery;
     private final ShopApprovalService approval;
+    private final AppRole appRole;
 
     @Value("${indexer.scheduled:true}")
     private boolean enabled;
@@ -36,15 +38,18 @@ public class IndexingScheduler {
     public IndexingScheduler(BulkIndexer indexer,
                              ProductRepository products,
                              ShopDiscoveryService discovery,
-                             ShopApprovalService approval) {
+                             ShopApprovalService approval,
+                             AppRole appRole) {
         this.indexer = indexer;
         this.products = products;
         this.discovery = discovery;
         this.approval = approval;
+        this.appRole = appRole;
     }
 
     @Scheduled(cron = "${indexer.cron:0 0 3 * * *}")
     public void nightlyRun() {
+        if (appRole.isWeb()) { log.debug("Indexer scheduler skipped — web node never crawls (worker owns it)"); return; }
         if (!enabled) {
             log.info("Indexer scheduler skipped — INDEXER_SCHEDULED is false");
             return;
@@ -66,6 +71,7 @@ public class IndexingScheduler {
      */
     @Scheduled(cron = "${indexer.retry-cron:0 0 4 * * *}")
     public void retryPass() {
+        if (appRole.isWeb()) return;
         if (!enabled) return;
         log.info("Indexer retry pass firing");
         try {
@@ -115,6 +121,7 @@ public class IndexingScheduler {
     @Scheduled(fixedDelayString = "${indexer.catchup-interval-ms:7200000}",
                initialDelayString = "${indexer.catchup-initial-delay-ms:60000}")
     public void catchUp() {
+        if (appRole.isWeb()) return;
         if (!enabled || !catchupEnabled) return;
         invocations++;
 

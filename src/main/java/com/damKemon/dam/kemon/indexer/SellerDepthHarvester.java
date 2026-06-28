@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.indexer;
 
+import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.model.Shop;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
@@ -103,17 +104,20 @@ public class SellerDepthHarvester {
 
     /** Rotates the model window and the shop slice across passes so everything gets covered. */
     private final AtomicInteger pass = new AtomicInteger(0);
+    private final AppRole appRole;
 
     public SellerDepthHarvester(ShopRepository shopRepository,
                                 ProductRepository productRepository,
                                 SearchSeedCrawler searchSeedCrawler,
                                 ExtractorRegistry extractors,
-                                BulkIndexer bulkIndexer) {
+                                BulkIndexer bulkIndexer,
+                                AppRole appRole) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.searchSeedCrawler = searchSeedCrawler;
         this.extractors = extractors;
         this.bulkIndexer = bulkIndexer;
+        this.appRole = appRole;
     }
 
     /** Result of one fanout pass, surfaced by the admin job panel. */
@@ -136,6 +140,7 @@ public class SellerDepthHarvester {
      */
     @Scheduled(cron = "${seller-depth.cron:0 0 2 * * *}")
     public void scheduled() {
+        if (appRole.isWeb()) return;
         if (!enabled) return;
         log.info("SellerDepth: scheduled pass firing");
         try { run(); }

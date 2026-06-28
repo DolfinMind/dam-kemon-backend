@@ -66,8 +66,11 @@ public class TrigramSearchIndex {
         });
     }
 
-    /** Hourly refresh. Aligned to :05 so it never collides with the 03:00 cron. */
-    @Scheduled(cron = "0 5 * * * *")
+    /** Index refresh. Every 6h by default: the catalog only changes on the nightly
+     *  crawl, so the old hourly cadence was wasted CPU + a Mongo full-read + a 2×
+     *  memory blip (new index built while the old is held) on the web JVM each hour.
+     *  Aligned to :05 so it never collides with the crawl window. */
+    @Scheduled(cron = "${search.trigram.cron:0 5 */6 * * *}")
     public void hourlyRefresh() {
         if (!enabled) return;
         try { rebuild(); }

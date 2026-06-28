@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.indexer;
 
+import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.SitePrice;
 import org.slf4j.Logger;
@@ -50,12 +51,14 @@ public class CatalogRemergeService {
     private static final Logger log = LoggerFactory.getLogger(CatalogRemergeService.class);
 
     private final MongoTemplate mongo;
+    private final AppRole appRole;
 
     @Value("${remerge.enabled:true}")
     private boolean scheduledEnabled;
 
-    public CatalogRemergeService(MongoTemplate mongo) {
+    public CatalogRemergeService(MongoTemplate mongo, AppRole appRole) {
         this.mongo = mongo;
+        this.appRole = appRole;
     }
 
     /**
@@ -66,6 +69,7 @@ public class CatalogRemergeService {
      */
     @Scheduled(cron = "${remerge.cron:0 30 4 * * *}")
     public void scheduled() {
+        if (appRole.isWeb()) return;
         if (!scheduledEnabled) return;
         log.info("Remerge: scheduled nightly consolidation firing");
         try { remerge(false); }
