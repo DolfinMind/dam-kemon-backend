@@ -23,11 +23,14 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.jsoup:jsoup:1.18.3'
 
 	// Jackson — JSON-LD parsing in GenericProductExtractor
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
+	// jsr310 — serialize LocalDateTime fields when caching DTOs to Redis (CacheConfig)
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
 	// Caffeine — in-process cache used for /api/search response caching
 	implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'

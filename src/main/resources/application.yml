@@ -13,8 +13,18 @@ spring:
       # from atlas.mongodb.com (Database → Connect → "Connect your application").
       uri: ${MONGODB_URI:mongodb://localhost:27017/damkemon?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000&socketTimeoutMS=4000}
       auto-index-creation: true
+    # Redis = the cache store (Upstash). rediss:// is TLS. Fail-fast like Mongo so
+    # a Redis blip can't hang the web JVM; cache errors are swallowed (CacheConfig)
+    # so the site stays up if Redis is down. Secret stays in .env / prod env.
+    redis:
+      url: ${REDIS_URL:}
+      timeout: 2s
+      connect-timeout: 2s
   cache:
-    type: caffeine
+    # redis in prod (off-heap, survives the restart-based deploys, shared with the
+    # worker unit). CACHE_TYPE=caffeine for local dev with no Redis. TTL + JSON
+    # value serialization live in CacheConfig.
+    type: ${CACHE_TYPE:redis}
     cache-names:
       - search
       - dashboard-stats
@@ -94,15 +104,19 @@ remerge:
 seller-depth:
   enabled: ${SELLER_DEPTH_ENABLED:true}
   cron: ${SELLER_DEPTH_CRON:0 0 2 * * *}
-  queries-per-shop: ${SELLER_DEPTH_QUERIES_PER_SHOP:14}
+  # Defaults raised to lift sellers-per-product (the catalog runs ~1.56/product):
+  # try more candidate URLs per model (3→6), sweep more models per shop (14→22),
+  # scan deeper (80→120), and treat products with <6 sellers as "shallow" (3→6) so
+  # the fanout keeps deepening them. request-delay (politeness) is unchanged.
+  queries-per-shop: ${SELLER_DEPTH_QUERIES_PER_SHOP:22}
   shops-per-run: ${SELLER_DEPTH_SHOPS_PER_RUN:50}
-  candidates-per-search: ${SELLER_DEPTH_CANDIDATES_PER_SEARCH:3}
-  url-scan-limit: ${SELLER_DEPTH_URL_SCAN_LIMIT:80}
+  candidates-per-search: ${SELLER_DEPTH_CANDIDATES_PER_SEARCH:6}
+  url-scan-limit: ${SELLER_DEPTH_URL_SCAN_LIMIT:120}
   request-delay-ms: ${SELLER_DEPTH_REQUEST_DELAY_MS:500}
-  run-budget-minutes: ${SELLER_DEPTH_RUN_BUDGET_MINUTES:15}
+  run-budget-minutes: ${SELLER_DEPTH_RUN_BUDGET_MINUTES:20}
   use-browser: ${SELLER_DEPTH_USE_BROWSER:false}
-  shallow-seller-threshold: ${SELLER_DEPTH_SHALLOW_THRESHOLD:3}
-  max-dynamic-queries: ${SELLER_DEPTH_MAX_DYNAMIC_QUERIES:40}
+  shallow-seller-threshold: ${SELLER_DEPTH_SHALLOW_THRESHOLD:6}
+  max-dynamic-queries: ${SELLER_DEPTH_MAX_DYNAMIC_QUERIES:70}
 
 # ───── Autonomous shop discovery + lifecycle ─────
 # Weekly job: discover new BD shops (e-CAB/BASIS directories), auto-activate the
