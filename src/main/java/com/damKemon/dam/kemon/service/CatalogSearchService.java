@@ -91,6 +91,14 @@ public class CatalogSearchService {
     private static final Pattern PRICE_CHEAP = Pattern.compile(
             "\\b(cheap|cheapest|budget|affordable|low[\\s-]?price|low[\\s-]?cost)\\b", Pattern.CASE_INSENSITIVE);
 
+    /** Colour/finish words that often appear in a pasted product name ("...Natural
+     *  Titanium") but say nothing about product identity. Excluded from the
+     *  distinctive-token recall keep so "iphone 17 pro max natural titanium" broadens
+     *  on "iphone", never on the colour — keeping the keep precise. */
+    private static final Set<String> COLOUR_WORDS = Set.of(
+            "titanium","black","white","silver","gold","blue","green","graphite","onyx",
+            "natural","desert","midnight","grey","gray","purple","pink","yellow","orange");
+
     /** Below this many regex/text hits, we ask the trigram index for help. */
     private static final int MIN_RECALL = 8;
     /**
@@ -551,7 +559,7 @@ public class CatalogSearchService {
      *  tokens are mostly covered as WHOLE WORDS (synonym/typo aware). This stops
      *  a single loose substring hit qualifying — "air"→"Airy" earphone,
      *  "pants"→baby "Pants" diaper. */
-    private boolean isRelevant(Product p, List<String> queryTokens, Set<String> brandsLower, String browseCat) {
+    boolean isRelevant(Product p, List<String> queryTokens, Set<String> brandsLower, String browseCat) {
         if (p == null || p.getName() == null) return false;
         if (queryTokens.isEmpty()) return true;
         // category-browse: any product in the detected category qualifies — real
@@ -562,6 +570,15 @@ public class CatalogSearchService {
         String name = " " + p.getName().toLowerCase() + " ";
         // a detected brand appearing as a whole word is the strongest single signal
         for (String b : brandsLower) if (b.length() >= 2 && wordMatch(name, b)) return true;
+        // RECALL KEEP: never drop a product that carries the query's most distinctive
+        // (brand/family) word. "iphone 17 pro max natural titanium" must still match the
+        // catalog's shorter "Apple iPhone 17 Pro Max" even though the colour/spec tokens
+        // miss — that 4/7 coverage was falling under the 60% gate and the real, in-stock
+        // product vanished. Colours are excluded from "distinctive" so this can't broaden
+        // to noise (a baby "Pants" diaper still fails "formal pants"); exact matches still
+        // outrank this via the hybrid score. Generalises to samsung/macbook/pixel/redmi…
+        String distinctive = distinctiveToken(queryTokens);
+        if (distinctive != null && tokenHits(name, distinctive)) return true;
         int covered = 0;
         for (String t : queryTokens) if (tokenHits(name, t)) covered++;
         double cov = (double) covered / queryTokens.size();
@@ -736,10 +753,11 @@ public class CatalogSearchService {
      *  length &ge; 4. We skip anything with a digit ("17", "s24") so a missing
      *  model number never becomes the broadening key, and skip short/generic
      *  stubs. Drives the graceful-recall relaxation ("iphone 17" → "iphone"). */
-    private static String distinctiveToken(List<String> tokens) {
+    static String distinctiveToken(List<String> tokens) {
         String best = null;
         for (String t : tokens) {
             if (t == null || t.length() < 4) continue;
+            if (COLOUR_WORDS.contains(t)) continue;     // a colour/finish is not the product's identity
             boolean hasDigit = false;
             for (int i = 0; i < t.length(); i++) {
                 if (Character.isDigit(t.charAt(i))) { hasDigit = true; break; }
