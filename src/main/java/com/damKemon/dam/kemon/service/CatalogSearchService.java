@@ -75,7 +75,8 @@ public class CatalogSearchService {
      *  the query itself isn't for an accessory, so "laptop" surfaces laptops, not
      *  laptop keyboard covers, and "iphone" surfaces phones, not phone cases. */
     private static final Pattern ACCESSORY = Pattern.compile(
-            "\\b(case|cover|protector|tempered|glass|skin|pouch|sleeve|holder|stand|mount|film|guard|bumper|casing)\\b");
+            "\\b(case|cover|protector|tempered|glass|skin|pouch|sleeve|holder|stand|mount|film|guard|bumper|casing"
+          + "|bundle|pack|sticker|lens|charger|cable|adapter|strap|lanyard|grip|stylus|defender|screenguard)\\b");
 
     /** Upper-bound price phrases — deliberately NO bare "max" (collides with "Pro Max"). */
     private static final Pattern PRICE_MAX = Pattern.compile(
@@ -301,6 +302,18 @@ public class CatalogSearchService {
                 }
                 raw = new ArrayList<>(have.values());
             }
+        }
+
+        // MODEL-NUMBER CONSTRAINT. When the query pins a model ("iphone 17", "galaxy
+        // s24"), a product MUST carry one of those model tokens to be relevant. Without
+        // it, bag-of-words recall floods "iphone 17" with iPhone 13/15/16, "for iPhone
+        // 17" accessories, and anything merely tagged brand "apple" (even an Apple
+        // pickle). Applied AFTER every recall path (gate, graceful, trigram) so nothing
+        // re-introduces the wrong model. Storage/network/year tokens are excluded from
+        // the constraint. Empty is the honest answer when the exact model isn't stocked.
+        Set<String> modelTokens = queryModelTokens(queryTokens);
+        if (!modelTokens.isEmpty()) {
+            raw.removeIf(p -> !nameHasAnyModel(p.getName(), modelTokens));
         }
 
         // HARD accessory exclusion (item 2). When the shopper is clearly after a
@@ -616,7 +629,7 @@ public class CatalogSearchService {
 
     /** A product that is itself an accessory — by an accessory noun in its name
      *  (case/cover/protector/glass…) or an accessory category. */
-    private static boolean isAccessoryProduct(Product p) {
+    static boolean isAccessoryProduct(Product p) {
         if (p == null || p.getName() == null) return false;
         if (ACCESSORY.matcher(p.getName().toLowerCase()).find()) return true;
         String c = p.getCategory();
@@ -766,6 +779,35 @@ public class CatalogSearchService {
             if (best == null || t.length() > best.length()) best = t;
         }
         return best;
+    }
+
+    /** Model-identifier tokens in the query: digit-bearing tokens that pin a specific
+     *  model ("17", "16e", "s24", "m3", "a54"), EXCLUDING storage ("256gb"), network
+     *  ("5g"/"4g") and years ("2024") — those don't identify a model. When non-empty,
+     *  these become a hard relevance constraint so "iphone 17" can't match iPhone 13. */
+    static Set<String> queryModelTokens(List<String> tokens) {
+        Set<String> out = new java.util.LinkedHashSet<>();
+        if (tokens == null) return out;
+        for (String t : tokens) {
+            if (t == null || t.length() < 2) continue;
+            boolean hasDigit = false;
+            for (int i = 0; i < t.length(); i++) if (Character.isDigit(t.charAt(i))) { hasDigit = true; break; }
+            if (!hasDigit) continue;
+            if (t.matches("\\d+(gb|tb|mb)")) continue;   // storage, not a model
+            if (t.matches("\\d+g")) continue;            // network band: 5g / 4g
+            if (t.matches("20[12]\\d")) continue;        // year
+            out.add(t);
+        }
+        return out;
+    }
+
+    /** True if the product name contains ANY of the query's model tokens as a whole word
+     *  — "iphone 17" keeps "...iPhone 17..." but not "...iPhone 13..." or "...Apple Pickle". */
+    static boolean nameHasAnyModel(String name, Set<String> modelTokens) {
+        if (name == null || modelTokens.isEmpty()) return false;
+        String padded = " " + name.toLowerCase() + " ";
+        for (String m : modelTokens) if (wordMatch(padded, m)) return true;
+        return false;
     }
 
     // ── spec facets (item 3) ────────────────────────────────────────────────────
