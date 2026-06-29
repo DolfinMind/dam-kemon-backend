@@ -451,6 +451,21 @@ public class CatalogSearchService {
         Pageable page = PageRequest.of(0, maxCandidates);
         Map<String, Product> merged = new LinkedHashMap<>();
 
+        // Pass A: PRECISE AND-token match — every query word present in the name, any
+        // order. Gathered FIRST and always, because $text below is UNORDERED and capped
+        // at maxCandidates: a broad query ("iphone 17 pro" expands to apple/pro/...) matches
+        // far more than the cap, so Mongo returns the first N by _id and the newest exact
+        // products (high _id) are evicted before ranking ever sees them. This is exactly
+        // why /suggest found "iPhone 17 Pro" while /search returned a Razer laptop. Cheap
+        // (few matches) and self-correcting: if it finds nothing, the passes below run.
+        String andRegex = andTokenRegex(query);
+        if (andRegex != null) {
+            try {
+                for (Product p : productRepository.findByNamePrefix(andRegex, page))
+                    if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
+            } catch (Exception e) { log.debug("AND-token pass failed: {}", e.getMessage()); }
+        }
+
         // Pass 1: Mongo $text — try expanded query first, then raw if expansion was a no-op
         String expandedQuery = expandedTokens.isEmpty() ? query : String.join(" ", expandedTokens);
         try {
@@ -712,6 +727,22 @@ public class CatalogSearchService {
         }
         sb.append(")");
         return sb.toString();
+    }
+
+    /** AND regex (Mongo PCRE lookaheads): requires EVERY query token to appear in the
+     *  name, any order — the precise "all words match" pass that guarantees the exact
+     *  product is gathered before the broad, capped $text flood. Tokens are already
+     *  alphanumeric (normalised upstream), so they need no regex escaping. */
+    static String andTokenRegex(String query) {
+        if (query == null) return null;
+        StringBuilder sb = new StringBuilder();
+        int n = 0;
+        for (String t : query.toLowerCase().split("\\s+")) {
+            if (t.length() < 2 || !t.matches("[a-z0-9]+")) continue;
+            sb.append("(?=.*").append(t).append(")");
+            n++;
+        }
+        return n == 0 ? null : sb.toString();
     }
 
     private static String normalise(String s) {
