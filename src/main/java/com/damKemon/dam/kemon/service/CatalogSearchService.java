@@ -304,18 +304,6 @@ public class CatalogSearchService {
             }
         }
 
-        // MODEL-NUMBER CONSTRAINT. When the query pins a model ("iphone 17", "galaxy
-        // s24"), a product MUST carry one of those model tokens to be relevant. Without
-        // it, bag-of-words recall floods "iphone 17" with iPhone 13/15/16, "for iPhone
-        // 17" accessories, and anything merely tagged brand "apple" (even an Apple
-        // pickle). Applied AFTER every recall path (gate, graceful, trigram) so nothing
-        // re-introduces the wrong model. Storage/network/year tokens are excluded from
-        // the constraint. Empty is the honest answer when the exact model isn't stocked.
-        Set<String> modelTokens = queryModelTokens(queryTokens);
-        if (!modelTokens.isEmpty()) {
-            raw.removeIf(p -> !nameHasAnyModel(p.getName(), modelTokens));
-        }
-
         // HARD accessory exclusion (item 2). When the shopper is clearly after a
         // DEVICE (a device category or a brand/model query, not an accessory
         // query), DROP accessory products instead of merely demoting them — so
@@ -451,22 +439,20 @@ public class CatalogSearchService {
         Pageable page = PageRequest.of(0, maxCandidates);
         Map<String, Product> merged = new LinkedHashMap<>();
 
-        // Pass A: PRECISE AND-token match — every query word present in the name, any
-        // order. Gathered FIRST and always, because $text below is UNORDERED and capped
-        // at maxCandidates: a broad query ("iphone 17 pro" expands to apple/pro/...) matches
-        // far more than the cap, so Mongo returns the first N by _id and the newest exact
-        // products (high _id) are evicted before ranking ever sees them. This is exactly
-        // why /suggest found "iPhone 17 Pro" while /search returned a Razer laptop. Cheap
-        // (few matches) and self-correcting: if it finds nothing, the passes below run.
-        String andRegex = andTokenRegex(query);
-        if (andRegex != null) {
-            try {
-                for (Product p : productRepository.findByNamePrefix(andRegex, page))
-                    if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
-            } catch (Exception e) { log.debug("AND-token pass failed: {}", e.getMessage()); }
-        }
+        // Recall = the same fast engine /suggest uses: the in-memory trigram index
+        // (fuzzy + typo-tolerant, "oramio" -> "Oraimo") plus Mongo's indexed $text. We
+        // DROPPED the unanchored-regex collection scans (OR-regex, contains, and the
+        // AND-lookahead pass) that scanned the whole catalog on EVERY query and were
+        // spiking CPU and crashing the web JVM. Both remaining sources are cheap.
+        try {
+            if (trigram.isEnabled()) {
+                for (TrigramIndex.Hit h : trigram.topK(query, maxCandidates, TRIGRAM_MIN)) {
+                    if (h.payload() instanceof Product p && p.getId() != null) merged.putIfAbsent(p.getId(), p);
+                }
+            }
+        } catch (Exception e) { log.debug("trigram recall failed: {}", e.getMessage()); }
 
-        // Pass 1: Mongo $text — try expanded query first, then raw if expansion was a no-op
+        // Mongo $text (uses the name/description text index — NOT a collection scan).
         String expandedQuery = expandedTokens.isEmpty() ? query : String.join(" ", expandedTokens);
         try {
             for (Product p : productRepository.textSearch(expandedQuery, page)) {
@@ -476,29 +462,14 @@ public class CatalogSearchService {
             log.debug("Mongo $text search failed ({}), continuing", e.getMessage());
         }
 
-        // Pass 2: OR-regex over expanded tokens. Earlier behaviour was AND;
-        // we relax to OR so any token can match, then rely on rankInPlace
-        // to surface the products that match the most tokens first.
-        if (!expandedTokens.isEmpty() && merged.size() < maxCandidates) {
-            try {
-                for (Product p : productRepository.findByNamePrefix(buildOrRegex(expandedTokens), page)) {
-                    if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
-                }
-            } catch (Exception e) {
-                log.debug("OR-regex pass failed: {}", e.getMessage());
-            }
-        }
-
-        // Pass 3: raw substring — last-ditch contiguous-phrase match
-        if (merged.size() < maxCandidates) {
-            try {
-                for (Product p : productRepository.findByNameContainingIgnoreCase(query)) {
-                    if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
-                }
-            } catch (DataAccessException e) {
-                log.warn("Catalog search: Mongo unreachable ({})", e.getMessage());
-            }
-        }
+        // REMOVED: the OR-regex-over-expanded-tokens pass and the raw
+        // findByNameContainingIgnoreCase pass. Both are unanchored regex/contains
+        // scans — Mongo cannot use the name index for either, so each one walked
+        // the FULL catalog on every request (the contains-scan had no page limit
+        // at all). Stacked together (plus the AND-lookahead pass added and removed
+        // in the same incident) they were the CPU spikes that crashed the web JVM.
+        // Recall is trigram + $text only now, matching what /suggest already proved
+        // fast and accurate in prod.
         return new ArrayList<>(merged.values());
     }
 
@@ -714,37 +685,6 @@ public class CatalogSearchService {
         }
     }
 
-    /** Build an OR regex: any of the tokens may appear, anywhere. */
-    private static String buildOrRegex(Set<String> tokens) {
-        if (tokens.isEmpty()) return ".+";
-        StringBuilder sb = new StringBuilder("(");
-        boolean first = true;
-        for (String t : tokens) {
-            if (t == null || t.isBlank()) continue;
-            if (!first) sb.append("|");
-            sb.append(Pattern.quote(t));
-            first = false;
-        }
-        sb.append(")");
-        return sb.toString();
-    }
-
-    /** AND regex (Mongo PCRE lookaheads): requires EVERY query token to appear in the
-     *  name, any order — the precise "all words match" pass that guarantees the exact
-     *  product is gathered before the broad, capped $text flood. Tokens are already
-     *  alphanumeric (normalised upstream), so they need no regex escaping. */
-    static String andTokenRegex(String query) {
-        if (query == null) return null;
-        StringBuilder sb = new StringBuilder();
-        int n = 0;
-        for (String t : query.toLowerCase().split("\\s+")) {
-            if (t.length() < 2 || !t.matches("[a-z0-9]+")) continue;
-            sb.append("(?=.*").append(t).append(")");
-            n++;
-        }
-        return n == 0 ? null : sb.toString();
-    }
-
     private static String normalise(String s) {
         if (s == null) return "";
         return NON_ALPHA.matcher(s.toLowerCase()).replaceAll(" ").replaceAll("\\s+", " ").trim();
@@ -810,35 +750,6 @@ public class CatalogSearchService {
             if (best == null || t.length() > best.length()) best = t;
         }
         return best;
-    }
-
-    /** Model-identifier tokens in the query: digit-bearing tokens that pin a specific
-     *  model ("17", "16e", "s24", "m3", "a54"), EXCLUDING storage ("256gb"), network
-     *  ("5g"/"4g") and years ("2024") — those don't identify a model. When non-empty,
-     *  these become a hard relevance constraint so "iphone 17" can't match iPhone 13. */
-    static Set<String> queryModelTokens(List<String> tokens) {
-        Set<String> out = new java.util.LinkedHashSet<>();
-        if (tokens == null) return out;
-        for (String t : tokens) {
-            if (t == null || t.length() < 2) continue;
-            boolean hasDigit = false;
-            for (int i = 0; i < t.length(); i++) if (Character.isDigit(t.charAt(i))) { hasDigit = true; break; }
-            if (!hasDigit) continue;
-            if (t.matches("\\d+(gb|tb|mb)")) continue;   // storage, not a model
-            if (t.matches("\\d+g")) continue;            // network band: 5g / 4g
-            if (t.matches("20[12]\\d")) continue;        // year
-            out.add(t);
-        }
-        return out;
-    }
-
-    /** True if the product name contains ANY of the query's model tokens as a whole word
-     *  — "iphone 17" keeps "...iPhone 17..." but not "...iPhone 13..." or "...Apple Pickle". */
-    static boolean nameHasAnyModel(String name, Set<String> modelTokens) {
-        if (name == null || modelTokens.isEmpty()) return false;
-        String padded = " " + name.toLowerCase() + " ";
-        for (String m : modelTokens) if (wordMatch(padded, m)) return true;
-        return false;
     }
 
     // ── spec facets (item 3) ────────────────────────────────────────────────────
