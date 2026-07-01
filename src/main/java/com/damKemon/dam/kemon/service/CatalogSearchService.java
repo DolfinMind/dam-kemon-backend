@@ -293,12 +293,20 @@ public class CatalogSearchService {
                         have.put(p.getId(), p);
                     }
                 }
-                // "did you mean" when nothing matched but the top fuzzy hit is
-                // visibly close (real typo) — not for "saaaamssung" with no match.
-                if (have.isEmpty()
-                        && fuzzy.get(0).score() >= DID_YOU_MEAN_MIN
-                        && fuzzy.get(0).payload() instanceof Product top) {
-                    didYouMean = top.getName();
+                // ZERO-RESULTS FALLBACK. The token gate rejected every fuzzy hit
+                // (brand typo "oramio"→"Oraimo", or "cord" failing to whole-word-match
+                // "CordForce"), yet the top hit is visibly close — a real typo. Rather
+                // than the zero-results cliff, admit the fuzzy best: trigram similarity
+                // IS the relevance signal here, and these are the exact hits /suggest
+                // already shows (the divergence users hit: dropdown finds it, results
+                // page says "0"). The hybrid re-rank floats the closest product to the
+                // top; genuine gibberish ("asdfgh") returns no fuzzy hits and still 0.
+                // ponytail: only fires when raw would otherwise be empty.
+                if (have.isEmpty() && fuzzy.get(0).score() >= DID_YOU_MEAN_MIN) {
+                    if (fuzzy.get(0).payload() instanceof Product top) didYouMean = top.getName();
+                    for (TrigramIndex.Hit h : fuzzy) {
+                        if (h.payload() instanceof Product p && p.getId() != null) have.put(p.getId(), p);
+                    }
                 }
                 raw = new ArrayList<>(have.values());
             }
