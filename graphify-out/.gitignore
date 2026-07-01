@@ -1,0 +1,9 @@
+# machine-specific interpreter/scan paths — never portable
+.graphify_python
+.graphify_root
+.graphify_*.json
+.needs_update
+
+# regenerable, bulky: `graphify export html`, AST re-extract is free
+graph.html
+cache/ast/
