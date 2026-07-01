@@ -44,14 +44,18 @@ import java.util.stream.Collectors;
  *       set drives every downstream pass.</li>
  *   <li><b>Atlas Search</b> when the env var enables it — Mongo's own fuzzy
  *       text + autocomplete with {@code maxEdits=1}. Fast path.</li>
- *   <li><b>Mongo $text</b> over the {@code name+description} text index, using
- *       the <i>expanded</i> query so apple finds iPhones.</li>
- *   <li><b>OR-regex over expanded tokens</b> — any token may match. Earlier
- *       versions required <i>every</i> token (AND), which is why "Apple 15
- *       Pro" returned nothing. We now collect anything that hits a token
- *       and let the re-ranker sort it out.</li>
- *   <li><b>Trigram fuzzy fallback</b> when we still have fewer than
- *       {@code MIN_RECALL} results. Catches "ipone 15" → "iPhone 15 Pro".</li>
+ *   <li><b>Recall</b> = the in-memory trigram index (a hit qualifies on Jaccard
+ *       {@code >= TRIGRAM_MIN} <i>or</i> query-coverage {@code >= COVER_MIN}) plus
+ *       Mongo {@code $text} over {@code name+description} using the <i>expanded</i>
+ *       query. Coverage is length-independent, so a short typo ("labtop") whose
+ *       Jaccard is tiny against a long name still enters the pool.</li>
+ *   <li><b>Relevance gate</b> — keep a candidate that genuinely matches
+ *       ({@link #isRelevant}: category / whole-word brand / &ge;60% token coverage)
+ *       OR whose name contains a token within a small edit distance of the query's
+ *       distinctive word ({@link #nameHasFuzzyToken}). That fuzzy path is what
+ *       rescues un-dictionaried typos — "oramio"→"oraimo", "samsoong"→"samsung" —
+ *       that recall found but the whole-word gate used to discard, silently
+ *       returning zero while /suggest showed the product.</li>
  * </ol>
  *
  * <h3>Ranking</h3>
@@ -108,8 +112,18 @@ public class CatalogSearchService {
      * scores ~0.16 (5/(14+22-5)). Anything visibly junky scores below 0.10.
      */
     private static final double TRIGRAM_MIN = 0.12;
-    /** Threshold for surfacing a "did you mean" — needs to be visibly close. */
-    private static final double DID_YOU_MEAN_MIN = 0.25;
+    /**
+     * Query-coverage floor: the fraction of the QUERY's trigrams that must appear in
+     * a product name for a fuzzy (typo) match to enter the candidate pool. This is
+     * length-independent, unlike the Jaccard {@link #TRIGRAM_MIN} which collapses on
+     * long BD product names — a correct "oramio cord flex" → "Oraimo CordForce …
+     * Vacuum" match is only ~0.14 Jaccard but ~0.56 coverage. Calibrated at 0.45:
+     * real typos score 0.50–0.90, noise ≤0.25. Recall admits on coverage; the gate
+     * then keeps only those whose distinctive word actually fuzzy-matches the name
+     * ({@link #nameHasFuzzyToken}), so high coverage from shared generic tokens
+     * ("…15 pro") can't drag in the wrong brand.
+     */
+    private static final double COVER_MIN = 0.45;
 
     private final ProductRepository productRepository;
     private final QueryClassifier classifier;
@@ -216,6 +230,12 @@ public class CatalogSearchService {
         boolean categoryBrowse = isCategoryBrowse(catLabel, queryTokens, brandsLower);
         String browseCat = categoryBrowse ? catLabel.toLowerCase() : null;
 
+        // One fuzzy pass over the trigram index, reused for recall and the relevance
+        // gate below. topK retains matches by max(Jaccard, coverage), so a correct typo
+        // match on a long name is present here even though its Jaccard is tiny.
+        List<TrigramIndex.Hit> fuzzy = trigram.isEnabled()
+                ? trigram.topK(bengaliFixed, maxCandidates, 0.0) : List.of();
+
         List<Product> atlasHits = null;
         if (atlasSearch.isEnabled()) {
             atlasHits = atlasSearch.search(bengaliFixed, maxCandidates);
@@ -226,7 +246,7 @@ public class CatalogSearchService {
         if (atlasSucceeded) {
             for (Product p : atlasHits) if (p.getId() != null) bag.put(p.getId(), p);
         } else {
-            for (Product p : textOrRegexSearch(bengaliFixed, expandedTokens))
+            for (Product p : textOrRegexSearch(bengaliFixed, expandedTokens, fuzzy))
                 if (p.getId() != null) bag.put(p.getId(), p);
         }
         
@@ -242,15 +262,30 @@ public class CatalogSearchService {
         List<Product> candidates = new ArrayList<>(bag.values());
         List<Product> raw = new ArrayList<>(candidates);
 
-        // RELEVANCE GATE. textOrRegexSearch is recall-first: OR-regex matches any
-        // token as a SUBSTRING, so it drags in products that merely share a
-        // letter-run with the query — "air conditiiners" hitting "Airy" earphones,
-        // "formal pants" hitting baby "Pants" diapers. Keep a product only if it
-        // genuinely matches: in the browsed category, a whole-word/synonym hit on a
-        // detected brand, or >=60% of the query tokens covered as whole words.
-        // RELEVANCE GATE.
+        // RELEVANCE GATE. Recall is fuzzy (trigram) but this gate used to be
+        // whole-word-EXACT, so it discarded the very typo matches recall found:
+        // "oramio"≠"oraimo", "labtop"≠"laptop". Keep a product when it genuinely
+        // matches (isRelevant: browsed category, whole-word brand hit, or >=60% of
+        // the query tokens covered as whole words) OR when its name contains a token
+        // within a small edit distance of the query's distinctive word — the fuzzy
+        // path that rescues un-dictionaried brand/model typos. keptByFuzzyOnly records
+        // the pure typo corrections so a Google-style "did you mean" can point at the
+        // top one. Precision holds: isRelevant is unchanged, and the fuzzy path keys
+        // on the DISTINCTIVE word (so "formal pants" still can't match a baby "Pants"
+        // diaper — "formal" fuzzy-matches nothing there).
+        String distinctiveTok = distinctiveToken(queryTokens);
+        java.util.Set<String> keptByFuzzyOnly = new java.util.HashSet<>();
         if (!queryTokens.isEmpty()) {
-            raw.removeIf(p -> !isRelevant(p, queryTokens, brandsLower, browseCat));
+            List<Product> kept = new ArrayList<>(raw.size());
+            for (Product p : raw) {
+                if (isRelevant(p, queryTokens, brandsLower, browseCat)) {
+                    kept.add(p);
+                } else if (distinctiveTok != null && nameHasFuzzyToken(p, distinctiveTok)) {
+                    kept.add(p);
+                    if (p.getId() != null) keptByFuzzyOnly.add(p.getId());
+                }
+            }
+            raw = kept;
         }
 
         // GRACEFUL RECALL. A brand/model query whose exact model isn't stocked
@@ -278,39 +313,12 @@ public class CatalogSearchService {
             }
         }
 
-        // Trigram fallback
+        // Did-you-mean is set AFTER ranking (below). The old trigram-fallback block
+        // that stood here — re-running topK and rescuing hits only above a 0.25
+        // Jaccard cliff — is gone: the relevance gate above now keeps typo matches
+        // directly (query-coverage recall + distinctive-word fuzzing), so a correct
+        // match on a long BD name no longer has to clear a threshold it never could.
         String didYouMean = null;
-        if (raw.size() < MIN_RECALL && trigram.isEnabled()) {
-            List<TrigramIndex.Hit> fuzzy = trigram.topK(bengaliFixed, maxCandidates, TRIGRAM_MIN);
-            if (!fuzzy.isEmpty()) {
-                Map<String, Product> have = new LinkedHashMap<>();
-                for (Product p : raw) if (p.getId() != null) have.put(p.getId(), p);
-                for (TrigramIndex.Hit h : fuzzy) {
-                    if (have.containsKey(h.id())) continue;
-                    // a fuzzy hit still has to be about the query (synonym/typo aware),
-                    // so a no-match query returns nothing instead of trigram noise.
-                    if (h.payload() instanceof Product p && isRelevant(p, queryTokens, brandsLower, browseCat)) {
-                        have.put(p.getId(), p);
-                    }
-                }
-                // ZERO-RESULTS FALLBACK. The token gate rejected every fuzzy hit
-                // (brand typo "oramio"→"Oraimo", or "cord" failing to whole-word-match
-                // "CordForce"), yet the top hit is visibly close — a real typo. Rather
-                // than the zero-results cliff, admit the fuzzy best: trigram similarity
-                // IS the relevance signal here, and these are the exact hits /suggest
-                // already shows (the divergence users hit: dropdown finds it, results
-                // page says "0"). The hybrid re-rank floats the closest product to the
-                // top; genuine gibberish ("asdfgh") returns no fuzzy hits and still 0.
-                // ponytail: only fires when raw would otherwise be empty.
-                if (have.isEmpty() && fuzzy.get(0).score() >= DID_YOU_MEAN_MIN) {
-                    if (fuzzy.get(0).payload() instanceof Product top) didYouMean = top.getName();
-                    for (TrigramIndex.Hit h : fuzzy) {
-                        if (h.payload() instanceof Product p && p.getId() != null) have.put(p.getId(), p);
-                    }
-                }
-                raw = new ArrayList<>(have.values());
-            }
-        }
 
         // HARD accessory exclusion (item 2). When the shopper is clearly after a
         // DEVICE (a device category or a brand/model query, not an accessory
@@ -342,6 +350,15 @@ public class CatalogSearchService {
 
         // Hybrid re-rank
         rankInPlace(raw, queryTokens, expandedTokens, intent, browseCat);
+
+        // Did-you-mean: if the top result is a fuzzy typo correction (kept only
+        // because its name fuzzy-matches the distinctive query word, not an exact
+        // match), surface it like Google's "showing results for". Only when it's the
+        // TOP result — if exact matches outrank it, no correction is needed.
+        if (!raw.isEmpty() && raw.get(0).getId() != null
+                && keptByFuzzyOnly.contains(raw.get(0).getId())) {
+            didYouMean = raw.get(0).getName();
+        }
 
         // Sponsored injection — put one paid product into the top slot when
         // it isn't already in the list, is plausibly relevant, and (if a price
@@ -440,7 +457,8 @@ public class CatalogSearchService {
         });
     }
 
-    private List<Product> textOrRegexSearch(String query, Set<String> expandedTokens) {
+    private List<Product> textOrRegexSearch(String query, Set<String> expandedTokens,
+                                            List<TrigramIndex.Hit> fuzzy) {
         if (query == null || query.isBlank()) return List.of();
         // Gather a deep candidate pool (not just one page) so ranking + pagination
         // have something to work with — this is what lets "Load more" go past 30.
@@ -452,13 +470,17 @@ public class CatalogSearchService {
         // DROPPED the unanchored-regex collection scans (OR-regex, contains, and the
         // AND-lookahead pass) that scanned the whole catalog on EVERY query and were
         // spiking CPU and crashing the web JVM. Both remaining sources are cheap.
-        try {
-            if (trigram.isEnabled()) {
-                for (TrigramIndex.Hit h : trigram.topK(query, maxCandidates, TRIGRAM_MIN)) {
-                    if (h.payload() instanceof Product p && p.getId() != null) merged.putIfAbsent(p.getId(), p);
-                }
+        // A trigram hit qualifies on EITHER a Jaccard score >= TRIGRAM_MIN (the
+        // original signal) OR query-coverage >= COVER_MIN — the length-independent
+        // signal that lets a short typo like "labtop" pull in "…VivoBook…Laptop",
+        // whose Jaccard is far below TRIGRAM_MIN. The gate downstream then keeps only
+        // the ones whose distinctive word truly fuzzy-matches, so this stays precise.
+        for (TrigramIndex.Hit h : fuzzy) {
+            if ((h.score() >= TRIGRAM_MIN || h.coverage() >= COVER_MIN)
+                    && h.payload() instanceof Product p && p.getId() != null) {
+                merged.putIfAbsent(p.getId(), p);
             }
-        } catch (Exception e) { log.debug("trigram recall failed: {}", e.getMessage()); }
+        }
 
         // Mongo $text (uses the name/description text index — NOT a collection scan).
         String expandedQuery = expandedTokens.isEmpty() ? query : String.join(" ", expandedTokens);
@@ -758,6 +780,55 @@ public class CatalogSearchService {
             if (best == null || t.length() > best.length()) best = t;
         }
         return best;
+    }
+
+    /** True when the product name contains a token within a small edit distance of
+     *  {@code distinctive} — the fuzzy equivalent of the whole-word match, so an
+     *  un-dictionaried brand/model typo ("oramio"→"oraimo", "labtop"→"laptop",
+     *  "samsoong"→"samsung") still counts. The edit budget scales with length: 1 for
+     *  most words, 2 for long ones (&ge;8) where more letters can slip. Keying on the
+     *  DISTINCTIVE word (not every token) is what keeps this precise — a generic
+     *  shared token like "pro" or "15" can never trigger it. */
+    static boolean nameHasFuzzyToken(Product p, String distinctive) {
+        if (p == null || p.getName() == null || distinctive == null || distinctive.length() < 4) return false;
+        int budget = distinctive.length() >= 8 ? 2 : 1;
+        for (String tok : p.getName().toLowerCase().split("[^a-z0-9]+")) {
+            if (tok.length() < 3) continue;
+            if (Math.abs(tok.length() - distinctive.length()) > budget) continue;
+            if (tok.equals(distinctive) || osaWithin(tok, distinctive, budget)) return true;
+        }
+        return false;
+    }
+
+    /** Optimal string alignment (Damerau-Levenshtein restricted to ADJACENT
+     *  transpositions), bounded: returns true iff the edit distance is &le; {@code max}.
+     *  Transpositions cost 1, so "oramio"↔"oraimo" is distance 1, not 2. O(a·b) with a
+     *  rolling three-row buffer and a per-row early-out once the whole row exceeds max. */
+    static boolean osaWithin(String a, String b, int max) {
+        int la = a.length(), lb = b.length();
+        if (Math.abs(la - lb) > max) return false;
+        int[] prev2 = new int[lb + 1];
+        int[] prev = new int[lb + 1];
+        int[] cur = new int[lb + 1];
+        for (int j = 0; j <= lb; j++) prev[j] = j;
+        for (int i = 1; i <= la; i++) {
+            cur[0] = i;
+            int rowMin = cur[0];
+            char ca = a.charAt(i - 1);
+            for (int j = 1; j <= lb; j++) {
+                char cb = b.charAt(j - 1);
+                int cost = (ca == cb) ? 0 : 1;
+                int v = Math.min(Math.min(prev[j] + 1, cur[j - 1] + 1), prev[j - 1] + cost);
+                if (i > 1 && j > 1 && ca == b.charAt(j - 2) && a.charAt(i - 2) == cb) {
+                    v = Math.min(v, prev2[j - 2] + 1);   // adjacent transposition
+                }
+                cur[j] = v;
+                if (v < rowMin) rowMin = v;
+            }
+            if (rowMin > max) return false;   // whole row already over budget — can only grow
+            int[] t = prev2; prev2 = prev; prev = cur; cur = t;
+        }
+        return prev[lb] <= max;
     }
 
     // ── spec facets (item 3) ────────────────────────────────────────────────────

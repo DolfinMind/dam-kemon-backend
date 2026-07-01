@@ -58,8 +58,14 @@ public final class TrigramIndex {
             for (String id : ids) overlap.merge(id, 1, Integer::sum);
         }
         if (overlap.isEmpty()) return Collections.emptyList();
-        // Min-heap of size K
-        PriorityQueue<Hit> heap = new PriorityQueue<>(k + 1, Comparator.comparingDouble(h -> h.score));
+        // Min-heap of size K, ranked by max(Jaccard, query-coverage). Coverage is the
+        // fraction of the QUERY's trigrams present in a name and — unlike Jaccard —
+        // does NOT decay with name length. Ranking on the max keeps a correct match on
+        // a long BD product name ("Oraimo CordForce … Vacuum" for "oramio cord flex",
+        // Jaccard ~0.14 but coverage ~0.56) from being crowded out of the top-K by
+        // short names that merely share one common trigram.
+        PriorityQueue<Hit> heap = new PriorityQueue<>(k + 1,
+                Comparator.comparingDouble(h -> Math.max(h.score, h.coverage)));
         int qSize = qTri.size();
         for (Map.Entry<String, Integer> e : overlap.entrySet()) {
             int inter = e.getValue();
@@ -67,14 +73,17 @@ public final class TrigramIndex {
             // Jaccard-ish: intersection / (qSize + docSize - intersection)
             double union = qSize + docSize - inter;
             double score = union == 0 ? 0 : inter / union;
-            if (heap.size() < k) heap.offer(new Hit(e.getKey(), score, payload.get(e.getKey())));
-            else if (heap.peek() != null && score > heap.peek().score) {
+            double coverage = qSize == 0 ? 0 : (double) inter / qSize;
+            Hit hit = new Hit(e.getKey(), score, coverage, payload.get(e.getKey()));
+            double key = Math.max(score, coverage);
+            if (heap.size() < k) heap.offer(hit);
+            else if (heap.peek() != null && key > Math.max(heap.peek().score, heap.peek().coverage)) {
                 heap.poll();
-                heap.offer(new Hit(e.getKey(), score, payload.get(e.getKey())));
+                heap.offer(hit);
             }
         }
         List<Hit> out = new ArrayList<>(heap);
-        out.sort((a, b) -> Double.compare(b.score, a.score));
+        out.sort((a, b) -> Double.compare(Math.max(b.score, b.coverage), Math.max(a.score, a.coverage)));
         return out;
     }
 
@@ -97,5 +106,12 @@ public final class TrigramIndex {
         return out;
     }
 
-    public record Hit(String id, double score, Object payload) {}
+    /**
+     * @param score    Jaccard similarity — good for ranking similar-length names,
+     *                 but decays as the indexed name grows longer.
+     * @param coverage fraction of the QUERY's trigrams found in the name (0..1) —
+     *                 length-independent, the reliable "is this name about the typed
+     *                 query" signal for typo recall.
+     */
+    public record Hit(String id, double score, double coverage, Object payload) {}
 }
