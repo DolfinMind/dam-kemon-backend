@@ -520,9 +520,9 @@
     "semantic_hash": "03fc5c23a08e752a5f57126ca00b0fda"
   },
   "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramIndex.java": {
-    "mtime": 1779085406.1067092,
-    "ast_hash": "1e66f034b4346ba48b304c2b17b60fcb",
-    "semantic_hash": "1e66f034b4346ba48b304c2b17b60fcb"
+    "mtime": 1782900463.9099815,
+    "ast_hash": "011abee6bd4e3c6e556e5ae6d253adb1",
+    "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndex.java": {
     "mtime": 1782632651.385934,
@@ -890,9 +890,9 @@
     "semantic_hash": "573bfb7738777c428e385dc8a3e0cff3"
   },
   "src/main/java/com/damKemon/dam/kemon/service/CatalogSearchService.java": {
-    "mtime": 1782886440.3220737,
-    "ast_hash": "a6ac99d0b14d55b3fdbc65d11ec04cac",
-    "semantic_hash": "a6ac99d0b14d55b3fdbc65d11ec04cac"
+    "mtime": 1782900553.7108886,
+    "ast_hash": "55b303af08b7c5be483caf21dd565685",
+    "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/CategoryFocusService.java": {
     "mtime": 1781153860.761687,
@@ -1120,9 +1120,9 @@
     "semantic_hash": "95225c79053da6f1d73b17604570c59b"
   },
   "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchTypoRecallTest.java": {
-    "mtime": 1782886372.5708587,
-    "ast_hash": "b6e64380b9c49e88b9ef83be61e406a0",
-    "semantic_hash": "b6e64380b9c49e88b9ef83be61e406a0"
+    "mtime": 1782900374.087385,
+    "ast_hash": "7f3f8d736f4b5ebd38940b696254fec7",
+    "semantic_hash": ""
   },
   "src/test/java/com/damKemon/dam/kemon/service/FeedSyncServiceTest.java": {
     "mtime": 1782624586.2200606,
@@ -1215,9 +1215,9 @@
     "semantic_hash": "75aa83f7048cc1a1a0bd03a9cfc1841f"
   },
   "CLAUDE.md": {
-    "mtime": 1782886941.6202447,
-    "ast_hash": "c2e6f25b88eb9bf920ada80436ef478d",
-    "semantic_hash": "c2e6f25b88eb9bf920ada80436ef478d"
+    "mtime": 1782900380.7545352,
+    "ast_hash": "3a51694e2684ce040a9325a8a8eb01f9",
+    "semantic_hash": ""
   },
   "README.md": {
     "mtime": 1779525891.457122,
