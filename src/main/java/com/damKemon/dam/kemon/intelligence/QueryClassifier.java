@@ -35,6 +35,15 @@ public class QueryClassifier {
     private static final Pattern MODEL_PATTERN = Pattern.compile("^[a-z0-9]*\\d+[a-z0-9]*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern PUNCT = Pattern.compile("[^a-z0-9\\s]");
 
+    /** Unambiguous out-of-scope objects that IN-scope brands also make (Oraimo/
+     *  Xiaomi/Anker sell vacuums, grooming gear, kitchen appliances). A bare object
+     *  word otherwise only TIES the brand-name keyword ("oraimo" scores HEADPHONE
+     *  too) and leaks in as "Headphones & Audio". A hit here forces the out-of-scope
+     *  category so the focus gate drops it. Words with a computing sense (fan, iron,
+     *  mouse) are deliberately excluded — those can be PC parts. */
+    private static final Set<String> HARD_OUT_OF_SCOPE = Set.of(
+            "vacuum","blender","kettle","toaster","microwave","trimmer","shaver","hairdryer");
+
     /** Dedup-safe set builder (Set.of throws on duplicates; this doesn't). */
     private static Set<String> kw(String... s) { return new HashSet<>(Arrays.asList(s)); }
 
@@ -517,6 +526,19 @@ public class QueryClassifier {
         if (accessoryHit) {
             finalCategories.remove(ProductCategory.ACCESSORY);
             finalCategories.add(0, ProductCategory.ACCESSORY);
+        }
+
+        // Out-of-scope object override: if the name plainly names a vacuum/blender/
+        // etc., that wins the primary slot outright — even over a same-brand audio
+        // keyword — so the category-focus gate drops it instead of shelving a vacuum
+        // under "Headphones & Audio". Whole-word (token) match, so "vacuum" can't hit
+        // a substring. ponytail: a targeted override, not a general reweighting.
+        for (String tok : tokens) {
+            if (HARD_OUT_OF_SCOPE.contains(tok)) {
+                finalCategories.remove(ProductCategory.APPLIANCE);
+                finalCategories.add(0, ProductCategory.APPLIANCE);
+                break;
+            }
         }
 
         QueryIntent intent = QueryIntent.builder()
