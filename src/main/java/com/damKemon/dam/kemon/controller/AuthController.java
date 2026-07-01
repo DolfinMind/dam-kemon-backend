@@ -41,8 +41,17 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "username and password required"));
         }
         try {
-            User u = users.findByUsername(username).orElse(null);
-            if (u == null || u.getPasswordHash() == null || !hasher.matches(password, u.getPasswordHash())) {
+            // Duplicate-tolerant: a re-import can leave >1 row with this username, which
+            // makes the single-result findByUsername throw and 500 the login. Match the
+            // password against whichever row carries the right hash instead.
+            User u = null;
+            for (User cand : users.findAllByUsername(username)) {
+                if (cand.getPasswordHash() != null && hasher.matches(password, cand.getPasswordHash())) {
+                    u = cand;
+                    break;
+                }
+            }
+            if (u == null) {
                 // Opaque error — no user enumeration.
                 return ResponseEntity.status(401).body(Map.of("error", "invalid credentials"));
             }

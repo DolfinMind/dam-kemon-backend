@@ -12,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Ensures the fixed-credential owner user exists at boot. Idempotent —
@@ -55,11 +56,15 @@ public class OwnerBootstrap {
             return;
         }
         try {
-            User existing = users.findByUsername(ownerUsername).orElse(null);
+            // findAllByUsername (not findByUsername): a re-import can leave duplicate
+            // rows; the single-result query would throw here and silently skip seeding,
+            // leaving login broken. Heal any dupes down to one so the unique index can
+            // rebuild and findByUsername works again.
+            List<User> existing = users.findAllByUsername(ownerUsername);
             String hash = encoder.encode(ownerPassword);
             String email = (ownerEmail == null || ownerEmail.isBlank())
                     ? ownerUsername + "@owner.local" : ownerEmail.toLowerCase();
-            if (existing == null) {
+            if (existing.isEmpty()) {
                 User owner = User.builder()
                         .username(ownerUsername)
                         .email(email)
@@ -72,15 +77,24 @@ public class OwnerBootstrap {
                 users.save(owner);
                 log.info("OwnerBootstrap: created owner user '{}'", ownerUsername);
             } else {
-                // Refresh hash + ensure admin role
-                existing.setPasswordHash(hash);
-                existing.setRole("admin");
-                if (existing.getEmail() == null || existing.getEmail().isBlank()) {
-                    existing.setEmail(email);
+                // Keep the oldest, delete the rest (heal a bad-import duplicate).
+                for (int i = 1; i < existing.size(); i++) {
+                    try { users.delete(existing.get(i)); } catch (DataAccessException ignored) {}
                 }
-                existing.setUpdatedAt(LocalDateTime.now());
-                users.save(existing);
-                log.info("OwnerBootstrap: refreshed owner '{}'", ownerUsername);
+                User keep = existing.get(0);
+                keep.setPasswordHash(hash);       // refresh hash + ensure admin role
+                keep.setRole("admin");
+                if (keep.getEmail() == null || keep.getEmail().isBlank()) {
+                    keep.setEmail(email);
+                }
+                keep.setUpdatedAt(LocalDateTime.now());
+                users.save(keep);
+                if (existing.size() > 1) {
+                    log.warn("OwnerBootstrap: healed {} duplicate '{}' row(s) from a re-import",
+                            existing.size() - 1, ownerUsername);
+                } else {
+                    log.info("OwnerBootstrap: refreshed owner '{}'", ownerUsername);
+                }
             }
         } catch (DataAccessException e) {
             log.warn("OwnerBootstrap: could not reach Mongo ({}). "
