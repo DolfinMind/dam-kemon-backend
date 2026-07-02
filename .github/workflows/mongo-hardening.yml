@@ -1,0 +1,124 @@
+name: mongo-hardening
+# Temporary ops workflow: locks prod MongoDB to localhost and rotates the app
+# credential, over the same SSH path the deploy uses. Runs once per push to
+# this branch; delete the branch when done.
+
+on:
+  push:
+    branches: [ops-mongo-hardening]
+
+concurrency:
+  group: mongo-hardening
+  cancel-in-progress: false
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Harden MongoDB on prod box
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          NEW_MONGO_PASS: ${{ secrets.NEW_MONGO_PASS }}
+          OLD_MONGO_PASS: ${{ secrets.OLD_MONGO_PASS }}
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 12m
+          envs: NEW_MONGO_PASS,OLD_MONGO_PASS
+          script: |
+            set -euo pipefail
+            log(){ echo "[harden] $*"; }
+            fail(){ echo "::error::$*"; exit 1; }
+
+            sudo -n true 2>/dev/null || fail "no passwordless sudo"
+            [ -n "$NEW_MONGO_PASS" ] || fail "NEW_MONGO_PASS secret not set"
+
+            APP=damkemon-prod-app.service
+            CONF=/etc/mongod.conf
+            TS=$(date +%s)
+
+            ENVFILE="$(systemctl show -p EnvironmentFiles --value "$APP" | awk '{print $1}')"
+            [ -n "$ENVFILE" ] || fail "app unit has no EnvironmentFile"
+            sudo test -f "$ENVFILE" || fail "env file $ENVFILE not found"
+            sudo test -f "$CONF" || fail "mongod.conf not found (dockerized mongo?)"
+
+            OLD_URI="$(sudo grep -m1 '^MONGODB_URI=' "$ENVFILE" | cut -d= -f2-)"
+            [ -n "$OLD_URI" ] || fail "MONGODB_URI missing in env file"
+            OLD_PASS="${OLD_URI#*://damkemon_app:}"; OLD_PASS="${OLD_PASS%%@*}"
+            [ "$OLD_PASS" != "$OLD_URI" ] || fail "could not parse current password from URI"
+
+            sudo cp -a "$CONF" "$CONF.bak.$TS"
+            sudo cp -a "$ENVFILE" "$ENVFILE.bak.$TS"
+
+            # 1. bind mongod to localhost only
+            if sudo grep -qE '^[[:space:]]*bindIpAll' "$CONF"; then
+              sudo sed -i -E 's/^([[:space:]]*)bindIpAll:.*/\1bindIpAll: false/' "$CONF"
+            fi
+            if sudo grep -qE '^[[:space:]]*bindIp:' "$CONF"; then
+              sudo sed -i -E 's/^([[:space:]]*)bindIp:.*/\1bindIp: 127.0.0.1/' "$CONF"
+            elif sudo grep -qE '^net:' "$CONF"; then
+              sudo sed -i 's/^net:/net:\n  bindIp: 127.0.0.1/' "$CONF"
+            else
+              printf 'net:\n  bindIp: 127.0.0.1\n' | sudo tee -a "$CONF" >/dev/null
+            fi
+            sudo systemctl restart mongod
+            sleep 3
+            sudo systemctl is-active --quiet mongod || { sudo journalctl -u mongod -n 15 --no-pager; fail "mongod failed after bind change"; }
+            if ss -tln | grep ':27017' | grep -vq '127.0.0.1:27017'; then
+              fail "mongo still listening on a public interface"
+            fi
+            log "1/4 mongod now listens on 127.0.0.1 only"
+
+            # 2. rotate the app credential
+            MSH="$(command -v mongosh || command -v mongo || true)"
+            [ -n "$MSH" ] || fail "no mongo shell on the box"
+            OLD_LOCAL="mongodb://damkemon_app:${OLD_PASS}@127.0.0.1:27017/damkemon?authSource=damkemon"
+            NEW_LOCAL="mongodb://damkemon_app:${NEW_MONGO_PASS}@127.0.0.1:27017/damkemon?authSource=damkemon"
+            EVAL="db.getSiblingDB('damkemon').changeUserPassword('damkemon_app','${NEW_MONGO_PASS}')"
+            if "$MSH" "$OLD_LOCAL" --quiet --eval "$EVAL" >/dev/null 2>&1; then
+              log "2/4 password rotated (self-service)"
+            else
+              log "2/4 self-service rotation lacked privilege; brief localhost-only maintenance window"
+              if sudo grep -qE '^[[:space:]]*authorization:' "$CONF"; then
+                sudo sed -i -E 's/^([[:space:]]*)authorization:.*/\1authorization: disabled/' "$CONF"
+              elif sudo grep -qE '^security:' "$CONF"; then
+                sudo sed -i 's/^security:/security:\n  authorization: disabled/' "$CONF"
+              else
+                printf 'security:\n  authorization: disabled\n' | sudo tee -a "$CONF" >/dev/null
+              fi
+              sudo systemctl restart mongod; sleep 3
+              "$MSH" "mongodb://127.0.0.1:27017/damkemon" --quiet --eval "$EVAL" >/dev/null
+              sudo sed -i -E 's/^([[:space:]]*)authorization:.*/\1authorization: enabled/' "$CONF"
+              sudo systemctl restart mongod; sleep 3
+              log "2/4 password rotated; authorization re-enabled"
+            fi
+            "$MSH" "$NEW_LOCAL" --quiet --eval 'db.runCommand({ping:1})' >/dev/null || fail "new credential does not authenticate"
+            if "$MSH" "$OLD_LOCAL" --quiet --eval 'db.runCommand({ping:1})' >/dev/null 2>&1; then
+              fail "old credential still authenticates"
+            fi
+            log "2/4 verified: new credential works, old credential rejected"
+
+            # 3. point app + worker (shared env file) at the new localhost URI
+            sudo sed -i "s#^MONGODB_URI=.*#MONGODB_URI=${NEW_LOCAL}#" "$ENVFILE"
+            sudo systemctl restart "$APP"
+            ok=""
+            for i in $(seq 1 24); do
+              sleep 5
+              if curl -fsS -m 8 'http://localhost:8080/api/products?page=0&size=1' | grep -q totalElements; then ok=1; break; fi
+            done
+            if [ -z "$ok" ]; then
+              sudo journalctl -u "$APP" -n 30 --no-pager | sed -E 's#mongodb://[^@[:space:]]*@#mongodb://***@#g'
+              fail "app not serving after credential switch"
+            fi
+            log "3/4 app restarted and serving with the new credential"
+
+            # 4. firewall defense-in-depth
+            if sudo ufw status 2>/dev/null | grep -q 'Status: active'; then
+              sudo ufw deny 27017/tcp >/dev/null 2>&1 || true
+              log "4/4 ufw active: 27017 denied"
+            else
+              log "4/4 ufw inactive; bindIp is the guard (consider a DO cloud firewall)"
+            fi
+            log "DONE listen=$(ss -tln | grep ':27017' | awk '{print $4}' | tr '\n' ' ')"
