@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CatalogSearchRelevanceTest {
 
     private final CatalogSearchService svc =
-            new CatalogSearchService(null, null, new QueryExpander(), null, null);
+            new CatalogSearchService(null, null, new QueryExpander(), null, null, null);
 
     private static Product named(String n) {
         Product p = new Product();

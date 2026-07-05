@@ -80,6 +80,15 @@ public class Shop {
     @Builder.Default
     private String status = "active";
 
+    /**
+     * Who blocked this shop: "operator" (admin console) or "auto" (health rule).
+     * The lifecycle reviver only ever reactivates "auto" blocks — an operator's
+     * explicit hide must never be silently undone by a passing health probe.
+     * Also the public-visibility switch: any non-active shop's offers are
+     * stripped from search/browse/product responses.
+     */
+    private String blockedBy;
+
     /** Last successful indexer run, null if never indexed. */
     private LocalDateTime lastIndexedAt;
 

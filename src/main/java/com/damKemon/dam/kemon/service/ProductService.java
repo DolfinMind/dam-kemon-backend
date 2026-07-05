@@ -44,6 +44,7 @@ public class ProductService {
     private final AffiliateClickRepository affiliateClicks;
     private final QueryClassifier classifier;
     private final CategoryFocusService categoryFocus;
+    private final ShopVisibilityService shopVisibility;
 
     public ProductService(ProductRepository productRepository,
                           ReviewRepository reviewRepository,
@@ -52,7 +53,8 @@ public class ProductService {
                           MongoTemplate mongoTemplate,
                           AffiliateClickRepository affiliateClicks,
                           QueryClassifier classifier,
-                          CategoryFocusService categoryFocus) {
+                          CategoryFocusService categoryFocus,
+                          ShopVisibilityService shopVisibility) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.priceHistoryRepository = priceHistoryRepository;
@@ -61,6 +63,7 @@ public class ProductService {
         this.affiliateClicks = affiliateClicks;
         this.classifier = classifier;
         this.categoryFocus = categoryFocus;
+        this.shopVisibility = shopVisibility;
     }
 
     /**
@@ -197,10 +200,15 @@ public class ProductService {
     /** All products, or just one category when {@code category} is provided. */
     public Page<Product> getAllProducts(String category, Pageable pageable) {
         try {
-            if (category != null && !category.isBlank()) {
-                return productRepository.findByCategoryIgnoreCase(category.trim(), pageable);
-            }
-            return productRepository.findAll(pageable);
+            Page<Product> page = (category != null && !category.isBlank())
+                    ? productRepository.findByCategoryIgnoreCase(category.trim(), pageable)
+                    : productRepository.findAll(pageable);
+            // Hidden-shop offers stripped per served page (fresh repo instances,
+            // never saved back). ponytail: fully-hidden rows still occupy page
+            // slots with an empty price list — acceptable until shops are
+            // hidden in bulk, then move the filter into the Mongo query.
+            page.forEach(shopVisibility::stripInPlace);
+            return page;
         } catch (DataAccessException e) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
@@ -243,6 +251,7 @@ public class ProductService {
             }
         }
         found.ifPresent(ProductService::dedupeOffers);
+        found.ifPresent(shopVisibility::stripInPlace);
         return found;
     }
 

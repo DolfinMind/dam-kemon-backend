@@ -71,6 +71,21 @@ public class AdminAnalyticsController {
         return ResponseEntity.ok(analytics.topPaths(clampDays(days), clamp(limit, 1, 200)));
     }
 
+    /** Device split of page views (mobile / desktop / tablet / bot). */
+    @GetMapping("/devices")
+    public ResponseEntity<Map<String, Object>> devices(
+            @RequestParam(value = "days", defaultValue = "7") int days) {
+        return ResponseEntity.ok(analytics.deviceBreakdown(clampDays(days)));
+    }
+
+    /** Traffic sources: pageview referrers bucketed by host ("(direct)" = none). */
+    @GetMapping("/referrers")
+    public ResponseEntity<List<Map<String, Object>>> referrers(
+            @RequestParam(value = "days", defaultValue = "7") int days,
+            @RequestParam(value = "limit", defaultValue = "15") int limit) {
+        return ResponseEntity.ok(analytics.topReferrers(clampDays(days), clamp(limit, 1, 100)));
+    }
+
     /** Tail of the raw "every step" request log. */
     @GetMapping("/requests")
     public ResponseEntity<List<RequestLog>> requests(

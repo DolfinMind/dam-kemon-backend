@@ -73,7 +73,8 @@ class CatalogSearchTypoRecallTest {
         ReflectionTestUtils.setField(trigram, "enabled", true);
         trigram.rebuild();
 
-        CatalogSearchService svc = new CatalogSearchService(repo, classifier, expander, trigram, atlas);
+        CatalogSearchService svc = new CatalogSearchService(repo, classifier, expander, trigram, atlas,
+                new ShopVisibilityService(mock(com.damKemon.dam.kemon.repository.ShopRepository.class)));
         ReflectionTestUtils.setField(svc, "pageSize", 30);
         ReflectionTestUtils.setField(svc, "maxPageSize", 60);
         ReflectionTestUtils.setField(svc, "maxCandidates", 300);

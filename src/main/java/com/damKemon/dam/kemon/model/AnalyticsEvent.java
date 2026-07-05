@@ -33,7 +33,7 @@ public class AnalyticsEvent {
     @Id
     private String id;
 
-    /** "search" | "view" | "click" | "pageview" */
+    /** "search" | "view" | "click" | "pageview" | "suggest_click" */
     @Indexed
     private String type;
 
@@ -51,9 +51,13 @@ public class AnalyticsEvent {
      */
     private java.util.List<String> resultShops;
 
-    /** Product id (set for type=view and type=click). */
+    /** Product id (set for type=view, type=click and type=suggest_click). */
     @Indexed
     private String productId;
+
+    /** Product name denormalised at event time (type=suggest_click) — so the
+     *  admin log can show WHAT was clicked even after the product is deleted. */
+    private String productName;
 
     /** Shop slug the user clicked through to (set for type=click). */
     @Indexed

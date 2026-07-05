@@ -102,6 +102,7 @@ public class ShopHealthService {
                 log.warn("ShopHealth: auto-disabling shop {} — 0 products across last {} runs and none in catalog",
                         shop.getSlug(), runs.size());
                 shop.setStatus("blocked");
+                shop.setBlockedBy("auto");   // revivable — unlike an operator block
             }
         }
     }

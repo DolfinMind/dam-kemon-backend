@@ -25,9 +25,10 @@ up()    { curl -s -o /dev/null -m 8 -w '%{http_code}' "http://localhost:$PORT/ap
 
 echo "booting app (heap=$HEAP per-shop=$PER_SHOP budget=${MAX_MINUTES}m)…"
 nohup env MONGODB_URI="$MONGODB_URI" SERVER_PORT="$PORT" \
+  APP_ROLE=worker \
   BROWSER_ENABLED="${BROWSER_ENABLED:-false}" INDEXER_SCHEDULED=false DISCOVERY_ENABLED=false \
   INDEXER_MAX_PRODUCTS_PER_SHOP="$PER_SHOP" INDEXER_RUN_BUDGET_MINUTES="$MAX_MINUTES" \
-  CATEGORY_FOCUS_ENABLED="${CATEGORY_FOCUS_ENABLED:-false}" \
+  CATEGORY_FOCUS_ENABLED="${CATEGORY_FOCUS_ENABLED:-true}" \
   INDEXER_GLOBAL_PARALLELISM="${PARALLELISM:-40}" \
   java -Xmx"$HEAP" -jar "$JAR" > "$LOG" 2>&1 &
 APP=$!
@@ -38,7 +39,9 @@ for i in $(seq 1 120); do [ "$(up)" = "200" ] && break; sleep 5; done
 
 before=$(count); before=${before:-0}
 echo "products before: $before — firing indexer-nightly…"
-curl -s -m 15 -X POST "http://localhost:$PORT/api/admin/jobs/indexer-nightly/run" >/dev/null 2>&1
+resp=$(curl -s -m 15 -X POST "http://localhost:$PORT/api/admin/jobs/indexer-nightly/run")
+# crawl jobs 409 unless app.role=worker (hence APP_ROLE above) — fail loud, never silently no-op
+echo "$resp" | grep -q '"started":true' || { echo "::error::trigger refused: $resp"; exit 1; }
 
 deadline=$(( $(date +%s) + MAX_MINUTES*60 ))
 flat=0; last=$before

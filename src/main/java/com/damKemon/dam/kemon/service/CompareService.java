@@ -13,15 +13,20 @@ import java.util.*;
 public class CompareService {
 
     private final ProductRepository productRepository;
+    private final ShopVisibilityService shopVisibility;
 
-    public CompareService(ProductRepository productRepository) {
+    public CompareService(ProductRepository productRepository, ShopVisibilityService shopVisibility) {
         this.productRepository = productRepository;
+        this.shopVisibility = shopVisibility;
     }
 
     public CompareResponse compare(List<String> ids) {
         List<Product> products = new ArrayList<>();
         for (String id : ids) {
-            productRepository.findById(id).ifPresent(products::add);
+            productRepository.findById(id).ifPresent(p -> {
+                shopVisibility.stripInPlace(p);   // fresh repo instance, never saved back
+                products.add(p);
+            });
         }
         return build(products);
     }

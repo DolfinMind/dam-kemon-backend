@@ -252,6 +252,64 @@ public class AdminCatalogController {
         }
     }
 
+    public record CreateReq(String name, String category, String description, String imageUrl,
+                            List<String> brands, OfferReq offer) {}
+
+    /**
+     * Manually add a product the crawler hasn't (or won't) pick up. Name is
+     * required; an optional first offer (shop + price) makes it immediately
+     * comparable. Gets a slug + matchKey like any indexed product, so the
+     * nightly re-merge can still consolidate a crawled duplicate onto it.
+     */
+    @PostMapping
+    public ResponseEntity<?> createProduct(@RequestBody CreateReq req) {
+        if (req == null || req.name() == null || req.name().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "name is required"));
+        }
+        if (req.offer() != null && (req.offer().siteSlug() == null || req.offer().siteSlug().isBlank()
+                || req.offer().price() == null || req.offer().price() <= 0)) {
+            return ResponseEntity.badRequest().body(Map.of("error",
+                    "offer needs a siteSlug and a positive price (or omit it)"));
+        }
+        try {
+            String name = req.name().trim();
+            String slug = name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", "");
+            List<SitePrice> prices = new ArrayList<>();
+            if (req.offer() != null) {
+                OfferReq o = req.offer();
+                prices.add(SitePrice.builder()
+                        .siteName(o.siteName() != null && !o.siteName().isBlank() ? o.siteName() : o.siteSlug())
+                        .siteSlug(o.siteSlug())
+                        .productUrl(o.productUrl())
+                        .price(o.price())
+                        .originalPrice(o.originalPrice())
+                        .currency("BDT")
+                        .inStock(true)
+                        .sellerName(o.sellerName())
+                        .lastUpdated(LocalDateTime.now())
+                        .build());
+            }
+            Product p = Product.builder()
+                    .name(name)
+                    .slug(slug)
+                    .matchKey(BulkIndexer.productMatchKey(name))
+                    .category(req.category() == null || req.category().isBlank() ? null : req.category().trim())
+                    .description(req.description())
+                    .imageUrl(req.imageUrl())
+                    .brands(req.brands() == null ? List.of() : req.brands())
+                    .prices(prices)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            BulkIndexer.recomputeAggregates(p);
+            Product saved = products.save(p);
+            log.info("AdminCatalog: manually created product {} ('{}')", saved.getId(), name);
+            return ResponseEntity.ok(saved);
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PatchMapping("/{id}")
     public ResponseEntity<?> editProduct(@PathVariable String id, @RequestBody Map<String, Object> body) {
         try {

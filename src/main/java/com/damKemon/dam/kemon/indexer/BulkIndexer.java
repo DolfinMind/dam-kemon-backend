@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -76,6 +77,7 @@ public class BulkIndexer {
     private final ApiSniffer apiSniffer;
     private final DomCardHarvester domCardHarvester;
     private final CategoryFocusService categoryFocus;
+    private final MongoTemplate mongoTemplate;
 
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
@@ -133,7 +135,8 @@ public class BulkIndexer {
                        List<ShopHarvester> harvesters,
                        ApiSniffer apiSniffer,
                        DomCardHarvester domCardHarvester,
-                       CategoryFocusService categoryFocus) {
+                       CategoryFocusService categoryFocus,
+                       MongoTemplate mongoTemplate) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
@@ -148,6 +151,37 @@ public class BulkIndexer {
         this.apiSniffer = apiSniffer;
         this.domCardHarvester = domCardHarvester;
         this.categoryFocus = categoryFocus;
+        this.mongoTemplate = mongoTemplate;
+    }
+
+    /**
+     * Cross-process live status. The crawl runs in the WORKER JVM, but the admin
+     * console talks to the WEB JVM — whose in-memory {@link #lastRun} never sees
+     * a worker run (that's why the Indexer page showed "No runs yet" mid-crawl).
+     * The worker upserts this singleton doc at run start, after every shop, and
+     * at the end; the web's /index/status falls back to reading it.
+     */
+    private void heartbeat(String kind, RunSummary s, String currentShop) {
+        try {
+            org.bson.Document d = new org.bson.Document("_id", "live")
+                    .append("kind", kind)
+                    .append("currentShop", currentShop)
+                    .append("startedAtEpochMs", s.startedAtEpochMs)
+                    .append("finishedAtEpochMs", s.finishedAtEpochMs)
+                    .append("shopsAttempted", s.shopsAttempted)
+                    .append("shopsSucceeded", s.shopsSucceeded)
+                    .append("shopsFailed", s.shopsFailed)
+                    .append("productsInserted", s.productsInserted)
+                    .append("productsMerged", s.productsMerged)
+                    .append("urlsScraped", s.urlsScraped)
+                    .append("inProgress", s.inProgress)
+                    .append("heartbeatMs", System.currentTimeMillis());
+            mongoTemplate.getCollection("indexer_live").replaceOne(
+                    new org.bson.Document("_id", "live"), d,
+                    new com.mongodb.client.model.ReplaceOptions().upsert(true));
+        } catch (Exception e) {
+            log.debug("indexer heartbeat skipped: {}", e.getMessage());
+        }
     }
 
     private void persistRunRecord(String kind, RunSummary s) {
@@ -246,12 +280,19 @@ public class BulkIndexer {
         AtomicInteger failed = new AtomicInteger();
 
         long deadline = System.currentTimeMillis() + runBudgetMinutes * 60_000L;
+        heartbeat("full", summary, null);
         for (Shop shop : shops) {
             if (System.currentTimeMillis() > deadline) {
                 log.warn("Indexer: {}-min budget hit — deferring {} remaining shops to next run",
                         runBudgetMinutes, shops.size() - (succeeded.get() + failed.get()));
                 break;
             }
+            summary.shopsSucceeded = succeeded.get();
+            summary.shopsFailed = failed.get();
+            summary.productsInserted = inserted.get();
+            summary.productsMerged = merged.get();
+            summary.urlsScraped = urlsTotal.get();
+            heartbeat("full", summary, shop.getName());
             try {
                 int got = indexShop(shop, urlPool, hostLocks, lsh, inserted, merged);
                 urlsTotal.addAndGet(got);
@@ -287,6 +328,7 @@ public class BulkIndexer {
                 summary.shopsSucceeded, summary.shopsAttempted, summary.shopsFailed,
                 summary.urlsScraped, summary.productsInserted, summary.productsMerged,
                 (summary.finishedAtEpochMs - summary.startedAtEpochMs) / 1000);
+        heartbeat("full", summary, null);
         persistRunRecord("full", summary);
         return summary;
     }
@@ -357,11 +399,20 @@ public class BulkIndexer {
         AtomicInteger failed = new AtomicInteger();
 
         long deadline = System.currentTimeMillis() + (long) (runBudgetMinutes * 0.8) * 60_000L;
+        String kind = shops.size() == 1 ? "single" : "retry";
+        lastRun = summary;   // subset runs count as "the latest run" too
+        heartbeat(kind, summary, null);
         for (Shop shop : shops) {
             if (System.currentTimeMillis() > deadline) {
                 log.warn("Indexer: subset budget hit — deferring remaining shops");
                 break;
             }
+            summary.shopsSucceeded = succeeded.get();
+            summary.shopsFailed = failed.get();
+            summary.productsInserted = inserted.get();
+            summary.productsMerged = merged.get();
+            summary.urlsScraped = urlsTotal.get();
+            heartbeat(kind, summary, shop.getName());
             try {
                 int got = indexShop(shop, urlPool, hostLocks, lsh, inserted, merged);
                 urlsTotal.addAndGet(got);
@@ -390,7 +441,8 @@ public class BulkIndexer {
         summary.urlsScraped = urlsTotal.get();
         summary.finishedAtEpochMs = System.currentTimeMillis();
         summary.inProgress = false;
-        persistRunRecord(shops.size() == 1 ? "single" : "retry", summary);
+        heartbeat(kind, summary, null);
+        persistRunRecord(kind, summary);
         return summary;
     }
 

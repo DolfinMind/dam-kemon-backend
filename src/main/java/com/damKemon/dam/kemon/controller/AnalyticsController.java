@@ -44,6 +44,19 @@ public class AnalyticsController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Autosuggest dropdown click — records "typed X, picked product Y". */
+    @PostMapping("/suggest-click")
+    public ResponseEntity<Void> suggestClick(@RequestBody Map<String, Object> body,
+                                             HttpServletRequest req) {
+        analytics.recordSuggestClick(
+                asString(body.get("query")),
+                asString(body.get("productId")),
+                asString(body.get("productName")),
+                asString(body.get("anonId")),
+                ClientIp.of(req));
+        return ResponseEntity.noContent().build();
+    }
+
     /**
      * A single-page-app route change. The client fires this on every navigation
      * so the server sees the full page-by-page journey, not just API calls.

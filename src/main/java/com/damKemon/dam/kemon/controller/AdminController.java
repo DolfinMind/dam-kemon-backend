@@ -55,6 +55,7 @@ public class AdminController {
     private final ShopDiagnosticRepository diagnosticRepo;
     private final MarketplaceSellerService sellerService;
     private final AppRole appRole;
+    private final org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
 
     public AdminController(BulkIndexer indexer,
                            ShopRepository shopRepository,
@@ -67,7 +68,8 @@ public class AdminController {
                            ScraperLearningService learner,
                            ShopDiagnosticRepository diagnosticRepo,
                            MarketplaceSellerService sellerService,
-                           AppRole appRole) {
+                           AppRole appRole,
+                           org.springframework.data.mongodb.core.MongoTemplate mongoTemplate) {
         this.indexer = indexer;
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
@@ -80,6 +82,7 @@ public class AdminController {
         this.diagnosticRepo = diagnosticRepo;
         this.sellerService = sellerService;
         this.appRole = appRole;
+        this.mongoTemplate = mongoTemplate;
     }
 
     /** Heavy crawl triggers are refused on the API ("web") node — they run on the
@@ -288,9 +291,50 @@ public class AdminController {
         ));
     }
 
+    /**
+     * Live indexer status, cross-process. The crawl runs in the WORKER JVM;
+     * this (web) JVM's in-memory RunSummary is empty unless the run happened
+     * here. So: serve in-memory when it has data, else the worker's heartbeat
+     * doc from Mongo. A heartbeat stuck "inProgress" for >10 min is reported
+     * stalled (worker crashed mid-run). Always includes the live catalog size.
+     */
     @GetMapping("/index/status")
-    public ResponseEntity<RunSummary> status() {
-        return ResponseEntity.ok(indexer.getLastRun());
+    public ResponseEntity<Map<String, Object>> status() {
+        Map<String, Object> out = new LinkedHashMap<>();
+        RunSummary mem = indexer.getLastRun();
+        if (mem.startedAtEpochMs > 0) {
+            out.put("startedAtEpochMs", mem.startedAtEpochMs);
+            out.put("finishedAtEpochMs", mem.finishedAtEpochMs);
+            out.put("shopsAttempted", mem.shopsAttempted);
+            out.put("shopsSucceeded", mem.shopsSucceeded);
+            out.put("shopsFailed", mem.shopsFailed);
+            out.put("productsInserted", mem.productsInserted);
+            out.put("productsMerged", mem.productsMerged);
+            out.put("urlsScraped", mem.urlsScraped);
+            out.put("inProgress", mem.inProgress);
+            out.put("source", "this-jvm");
+        } else {
+            try {
+                org.bson.Document live = mongoTemplate.getCollection("indexer_live")
+                        .find(new org.bson.Document("_id", "live")).first();
+                if (live != null) {
+                    for (String k : List.of("kind", "currentShop", "startedAtEpochMs", "finishedAtEpochMs",
+                            "shopsAttempted", "shopsSucceeded", "shopsFailed", "productsInserted",
+                            "productsMerged", "urlsScraped", "inProgress", "heartbeatMs")) {
+                        if (live.get(k) != null) out.put(k, live.get(k));
+                    }
+                    long beat = live.get("heartbeatMs") instanceof Number n ? n.longValue() : 0;
+                    boolean running = Boolean.TRUE.equals(live.getBoolean("inProgress"));
+                    if (running && System.currentTimeMillis() - beat > 10 * 60_000L) {
+                        out.put("inProgress", false);
+                        out.put("stalled", true);
+                    }
+                    out.put("source", "worker");
+                }
+            } catch (DataAccessException ignored) { /* no live doc — fine */ }
+        }
+        try { out.put("catalogSize", productRepository.count()); } catch (DataAccessException ignored) {}
+        return ResponseEntity.ok(out);
     }
 
     @GetMapping("/shops")
@@ -306,6 +350,7 @@ public class AdminController {
                 m.put("feedUrl", s.getFeedUrl());
                 m.put("categories", s.getCategories());
                 m.put("status", s.getStatus());
+                m.put("blockedBy", s.getBlockedBy());
                 m.put("health", s.getHealth());
                 m.put("consecutiveFailures", s.getConsecutiveFailures());
                 m.put("needsRetry", s.getNeedsRetry());
@@ -335,6 +380,8 @@ public class AdminController {
             Shop s = shopRepository.findBySlug(slug).orElse(null);
             if (s == null) return ResponseEntity.notFound().build();
             s.setStatus(newStatus);
+            // Operator intent is sticky: the lifecycle reviver only undoes "auto" blocks.
+            s.setBlockedBy("active".equals(newStatus) ? null : "operator");
             if ("active".equals(newStatus)) s.setConsecutiveFailures(0);
             shopRepository.save(s);
             return ResponseEntity.ok(Map.of("slug", slug, "status", newStatus));
@@ -392,6 +439,7 @@ public class AdminController {
                 Shop s = shopRepository.findBySlug(String.valueOf(o)).orElse(null);
                 if (s == null) continue;
                 s.setStatus(status);
+                s.setBlockedBy("active".equals(status) ? null : "operator");
                 if ("active".equals(status)) s.setConsecutiveFailures(0);
                 shopRepository.save(s);
                 updated++;

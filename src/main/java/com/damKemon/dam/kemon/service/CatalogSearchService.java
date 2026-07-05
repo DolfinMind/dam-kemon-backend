@@ -130,6 +130,7 @@ public class CatalogSearchService {
     private final QueryExpander expander;
     private final TrigramSearchIndex trigram;
     private final AtlasSearchService atlasSearch;
+    private final ShopVisibilityService shopVisibility;
 
     /** Default page size when the caller doesn't specify one. */
     @Value("${search.page-size:30}")
@@ -152,12 +153,14 @@ public class CatalogSearchService {
                                 QueryClassifier classifier,
                                 QueryExpander expander,
                                 TrigramSearchIndex trigram,
-                                AtlasSearchService atlasSearch) {
+                                AtlasSearchService atlasSearch,
+                                ShopVisibilityService shopVisibility) {
         this.productRepository = productRepository;
         this.classifier = classifier;
         this.expander = expander;
         this.trigram = trigram;
         this.atlasSearch = atlasSearch;
+        this.shopVisibility = shopVisibility;
     }
 
     /** Back-compat entry point: first page at the default size. */
@@ -259,7 +262,10 @@ public class CatalogSearchService {
                 log.debug("Category-browse fetch failed: {}", e.getMessage());
             }
         }
-        List<Product> candidates = new ArrayList<>(bag.values());
+        // Blocked/hidden shops: drop their offers (and fully-hidden products)
+        // BEFORE gating/faceting/ranking, so counts, facets and sitesSearched
+        // all reflect what the shopper can actually see.
+        List<Product> candidates = shopVisibility.filterForPublic(new ArrayList<>(bag.values()));
         List<Product> raw = new ArrayList<>(candidates);
 
         // RELEVANCE GATE. Recall is fuzzy (trigram) but this gate used to be
@@ -423,6 +429,7 @@ public class CatalogSearchService {
         try {
             Pageable page = PageRequest.of(0, Math.max(1, Math.min(limit, 20)));
             for (Product p : productRepository.findByNamePrefix(escaped, page)) {
+                if (shopVisibility.fullyHidden(p)) continue;
                 addSuggestion(dedup, p);
                 if (dedup.size() >= limit) break;
             }
@@ -434,6 +441,7 @@ public class CatalogSearchService {
             List<TrigramIndex.Hit> fuzzy = trigram.topK(prefix, limit * 2, TRIGRAM_MIN);
             for (TrigramIndex.Hit h : fuzzy) {
                 if (h.payload() instanceof Product p) {
+                    if (shopVisibility.fullyHidden(p)) continue;
                     addSuggestion(dedup, p);
                     if (dedup.size() >= limit) break;
                 }

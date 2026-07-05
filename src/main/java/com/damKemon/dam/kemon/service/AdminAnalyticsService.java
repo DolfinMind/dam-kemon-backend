@@ -334,6 +334,97 @@ public class AdminAnalyticsService {
         return out;
     }
 
+    // ─────────────────────── Devices & referrers (pageviews) ───────────────────
+
+    /**
+     * Device split of page views: mobile / desktop / tablet / bot, plus visitor
+     * uniques per bucket. Classified from the User-Agent recorded on each
+     * pageview event — coarse buckets on purpose, this answers "are my shoppers
+     * on phones?", not "which Chrome build".
+     */
+    public Map<String, Object> deviceBreakdown(int days) {
+        Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
+        Map<String, long[]> buckets = new LinkedHashMap<>();   // bucket -> [views, uniques]
+        for (String b : List.of("mobile", "tablet", "desktop", "bot", "unknown"))
+            buckets.put(b, new long[2]);
+        try {
+            Aggregation agg = newAggregation(
+                    match(where("type").is("pageview").and("ts").gte(cutoff)),
+                    group("userAgent").count().as("views").addToSet("anonId").as("anonIds"));
+            for (Document d : mongo.aggregate(agg, EVENTS, Document.class)) {
+                String bucket = classifyUa(d.getString("_id"));
+                long[] acc = buckets.get(bucket);
+                acc[0] += num(d.get("views"));
+                acc[1] += nonNullCount(d.get("anonIds"));
+            }
+        } catch (Exception ignored) { /* degrade to zeros */ }
+        List<Map<String, Object>> rows = new ArrayList<>();
+        long total = 0;
+        for (long[] v : buckets.values()) total += v[0];
+        for (Map.Entry<String, long[]> e : buckets.entrySet()) {
+            if (e.getValue()[0] == 0) continue;
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("device", e.getKey());
+            row.put("views", e.getValue()[0]);
+            row.put("visitors", e.getValue()[1]);
+            row.put("pct", total == 0 ? 0.0 : Math.round(e.getValue()[0] * 1000.0 / total) / 10.0);
+            rows.add(row);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("totalViews", total);
+        out.put("devices", rows);
+        return out;
+    }
+
+    /** Where visitors come from: pageview referrers bucketed by host, direct = no referrer. */
+    public List<Map<String, Object>> topReferrers(int days, int lim) {
+        Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
+        Map<String, long[]> hosts = new HashMap<>();           // host -> [views, uniques]
+        try {
+            Aggregation agg = newAggregation(
+                    match(where("type").is("pageview").and("ts").gte(cutoff)),
+                    group("referer").count().as("views").addToSet("anonId").as("anonIds"));
+            for (Document d : mongo.aggregate(agg, EVENTS, Document.class)) {
+                String host = refererHost(d.getString("_id"));
+                long[] acc = hosts.computeIfAbsent(host, k -> new long[2]);
+                acc[0] += num(d.get("views"));
+                acc[1] += nonNullCount(d.get("anonIds"));
+            }
+        } catch (Exception ignored) { /* degrade to empty */ }
+        return hosts.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue()[0], a.getValue()[0]))
+                .limit(lim)
+                .map(e -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("referrer", e.getKey());
+                    row.put("views", e.getValue()[0]);
+                    row.put("visitors", e.getValue()[1]);
+                    return row;
+                })
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    private static String classifyUa(String ua) {
+        if (ua == null || ua.isBlank()) return "unknown";
+        String s = ua.toLowerCase();
+        if (s.contains("bot") || s.contains("spider") || s.contains("crawl")
+                || s.contains("curl") || s.contains("python") || s.contains("wget")) return "bot";
+        if (s.contains("ipad") || (s.contains("tablet") && !s.contains("mobile"))) return "tablet";
+        if (s.contains("mobi") || s.contains("android") || s.contains("iphone")) return "mobile";
+        return "desktop";
+    }
+
+    private static String refererHost(String referer) {
+        if (referer == null || referer.isBlank()) return "(direct)";
+        try {
+            String host = java.net.URI.create(referer.trim()).getHost();
+            if (host == null) return "(other)";
+            return host.startsWith("www.") ? host.substring(4) : host;
+        } catch (Exception e) {
+            return "(other)";
+        }
+    }
+
     // ─────────────────────────── Raw request feed ──────────────────────────────
 
     public List<RequestLog> recentRequests(int lim) {

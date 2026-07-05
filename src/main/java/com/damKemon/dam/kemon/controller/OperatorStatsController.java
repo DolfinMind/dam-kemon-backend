@@ -61,4 +61,11 @@ public class OperatorStatsController {
             @RequestParam(value = "limit", defaultValue = "200") int limit) {
         return ResponseEntity.ok(stats.recentSearches(Math.max(1, Math.min(limit, 1000))));
     }
+
+    /** Autosuggest picks: what the user typed vs which suggestion they clicked. */
+    @GetMapping("/suggest-clicks")
+    public ResponseEntity<List<Map<String, Object>>> suggestClicks(
+            @RequestParam(value = "limit", defaultValue = "100") int limit) {
+        return ResponseEntity.ok(stats.recentSuggestClicks(Math.max(1, Math.min(limit, 500))));
+    }
 }

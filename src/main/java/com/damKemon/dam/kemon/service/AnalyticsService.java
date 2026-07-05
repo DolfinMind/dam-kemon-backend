@@ -90,6 +90,26 @@ public class AnalyticsService {
                 .build());
     }
 
+    /** Autosuggest dropdown click: the user typed {@code query} and picked
+     *  {@code productName} — the "searched X, chose Y" pair the search log shows. */
+    @Async
+    public void recordSuggestClick(String query, String productId, String productName,
+                                   String anonId, String ip) {
+        if (productId == null && productName == null) return;
+        String q = query == null ? null : query.trim().toLowerCase();
+        if (q != null && q.length() > MAX_QUERY_LEN) q = q.substring(0, MAX_QUERY_LEN);
+        save(AnalyticsEvent.builder()
+                .type("suggest_click")
+                .query(q == null || q.isEmpty() ? null : q)
+                .productId(safe(productId))
+                .productName(safe256(productName))
+                .anonId(safe(anonId))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
+                .ts(Instant.now())
+                .build());
+    }
+
     /** A single SPA page navigation. Captures the route, referrer and device. */
     @Async
     public void recordPageView(String path, String anonId, String ip,

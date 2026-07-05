@@ -197,11 +197,15 @@ public class ShopLifecycleScheduler {
         }
         int revived = 0, probed = 0;
         for (Shop s : blocked) {
+            // An operator's explicit block (the admin "hide this shop" switch) is
+            // never auto-revived — only health-rule blocks get re-probed.
+            if ("operator".equals(s.getBlockedBy())) continue;
             if (probed >= maxPerRun) break;
             probed++;
             int found = probe(s.getBaseUrl(), s.getSitemapUrl(), Boolean.TRUE.equals(s.getRequiresJs()));
             if (found >= minProductUrls) {
                 s.setStatus("active");
+                s.setBlockedBy(null);
                 s.setHealth("degraded");
                 s.setConsecutiveFailures(0);
                 s.setNeedsRetry(true);
