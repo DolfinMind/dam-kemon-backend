@@ -214,6 +214,53 @@ public class ProductService {
         }
     }
 
+    /**
+     * Homepage category showcase: the biggest categories, each with a page of
+     * fresh, image-bearing, visibly-priced products — ONE cached call instead
+     * of the landing page firing a request per category into the data rate
+     * limiter. Cached 60s (see cache-names in application.yml).
+     */
+    @org.springframework.cache.annotation.Cacheable("showcase")
+    public List<java.util.Map<String, Object>> showcase(int perCategory) {
+        List<java.util.Map<String, Object>> out = new java.util.ArrayList<>();
+        try {
+            List<org.bson.Document> pipeline = List.of(
+                    new org.bson.Document("$match", new org.bson.Document("category",
+                            new org.bson.Document("$nin", java.util.Arrays.asList(null, "", "general")))),
+                    new org.bson.Document("$group", new org.bson.Document("_id", "$category")
+                            .append("total", new org.bson.Document("$sum", 1))),
+                    new org.bson.Document("$sort", new org.bson.Document("total", -1)),
+                    new org.bson.Document("$limit", 6));
+            for (org.bson.Document d : mongoTemplate.getCollection("products").aggregate(pipeline)) {
+                String cat = d.getString("_id");
+                if (cat == null || cat.isBlank()) continue;
+                // Over-fetch, then keep the presentable ones: visible offers + an image.
+                List<Product> rows = productRepository.findByCategoryIgnoreCase(cat,
+                        PageRequest.of(0, perCategory * 3,
+                                org.springframework.data.domain.Sort.by(
+                                        org.springframework.data.domain.Sort.Direction.DESC, "updatedAt")))
+                        .getContent();
+                List<Product> keep = new java.util.ArrayList<>(perCategory);
+                for (Product p : rows) {
+                    shopVisibility.stripInPlace(p);
+                    if (p.getPrices() == null || p.getPrices().isEmpty()) continue;
+                    if (p.getLowestPrice() == null || p.getImageUrl() == null) continue;
+                    keep.add(p);
+                    if (keep.size() >= perCategory) break;
+                }
+                if (keep.isEmpty()) continue;
+                java.util.Map<String, Object> section = new java.util.LinkedHashMap<>();
+                section.put("category", cat);
+                section.put("total", ((Number) d.get("total")).longValue());
+                section.put("products", keep);
+                out.add(section);
+            }
+        } catch (Exception e) {
+            // Landing page must render without this rail rather than 500.
+        }
+        return out;
+    }
+
     /** Bulk lookup preserving the caller's order. Missing ids are skipped. */
     public List<Product> findByIds(List<String> ids) {
         if (ids == null || ids.isEmpty()) return Collections.emptyList();

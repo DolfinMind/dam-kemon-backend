@@ -39,6 +39,14 @@ public class ProductController {
         return ResponseEntity.ok(productService.getCategories());
     }
 
+    /** Homepage rails: top categories, each with a handful of fresh products.
+     *  One cached call — the landing page must not fan out per category. */
+    @GetMapping("/showcase")
+    public ResponseEntity<List<Map<String, Object>>> showcase(
+            @RequestParam(value = "perCategory", defaultValue = "6") int perCategory) {
+        return ResponseEntity.ok(productService.showcase(Math.max(1, Math.min(perCategory, 12))));
+    }
+
     /**
      * Bulk hydration for the "recently viewed" rail. Client passes the
      * IDs it remembers in localStorage, we return only those that still
