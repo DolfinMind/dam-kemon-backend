@@ -230,8 +230,20 @@ public class ProductService {
                     new org.bson.Document("$group", new org.bson.Document("_id", "$category")
                             .append("total", new org.bson.Document("$sum", 1))),
                     new org.bson.Document("$sort", new org.bson.Document("total", -1)),
-                    new org.bson.Document("$limit", 6));
-            for (org.bson.Document d : mongoTemplate.getCollection("products").aggregate(pipeline)) {
+                    new org.bson.Document("$limit", 8));
+            // Flagship categories lead the homepage; raw size order would put
+            // "accessories" (the biggest bucket) first. Unlisted categories keep
+            // their size order after the preferred ones.
+            List<String> preferred = List.of("smartphones", "laptops", "desktops & pc",
+                    "monitors", "components", "headphones & audio", "accessories");
+            List<org.bson.Document> cats = new java.util.ArrayList<>();
+            mongoTemplate.getCollection("products").aggregate(pipeline).into(cats);
+            cats.sort(java.util.Comparator.comparingInt(d -> {
+                int i = preferred.indexOf(String.valueOf(d.getString("_id")).toLowerCase());
+                return i < 0 ? preferred.size() : i;
+            }));
+            if (cats.size() > 6) cats = cats.subList(0, 6);
+            for (org.bson.Document d : cats) {
                 String cat = d.getString("_id");
                 if (cat == null || cat.isBlank()) continue;
                 // Over-fetch, then keep the presentable ones: visible offers + an image.
