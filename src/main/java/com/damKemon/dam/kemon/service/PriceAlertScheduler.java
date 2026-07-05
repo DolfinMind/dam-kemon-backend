@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.service;
 
+import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.model.PriceAlertNotification;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.User;
@@ -50,6 +51,7 @@ public class PriceAlertScheduler {
     private final UserRepository users;
     private final PriceAlertNotificationRepository notifications;
     private final EmailNotifier emailNotifier;
+    private final AppRole appRole;
 
     @Value("${price-alerts.enabled:true}")
     private boolean enabled;
@@ -58,17 +60,21 @@ public class PriceAlertScheduler {
                                ProductRepository products,
                                UserRepository users,
                                PriceAlertNotificationRepository notifications,
-                               EmailNotifier emailNotifier) {
+                               EmailNotifier emailNotifier,
+                               AppRole appRole) {
         this.wishlist = wishlist;
         this.products = products;
         this.users = users;
         this.notifications = notifications;
         this.emailNotifier = emailNotifier;
+        this.appRole = appRole;
     }
 
     @Scheduled(cron = "${price-alerts.cron:0 30 * * * *}")
     public void runAlertScan() {
-        if (!enabled) return;
+        // Web role only: this cron used to fire on BOTH JVMs (web + worker),
+        // double-scanning every hour — the 24h debounce hid most of it.
+        if (!enabled || !appRole.isWeb()) return;
         long t0 = System.nanoTime();
         int scanned = 0, fired = 0;
         try {
@@ -136,7 +142,11 @@ public class PriceAlertScheduler {
 
         Optional<User> user = users.findById(w.getUserId());
         String channel = w.getNotifyChannel() == null ? "email" : w.getNotifyChannel();
-        if ("email".equals(channel) && user.isPresent() && user.get().getEmail() != null) {
+        // Email only to proven inboxes: explicit false = fresh signup that never
+        // clicked the verify link. Null (owner/legacy rows) counts as verified.
+        boolean emailable = user.isPresent() && user.get().getEmail() != null
+                && !Boolean.FALSE.equals(user.get().getEmailVerified());
+        if ("email".equals(channel) && emailable) {
             emailNotifier.sendPriceDropAlert(user.get().getEmail(), p, w, current);
             note.setSentVia("email");
         } else {

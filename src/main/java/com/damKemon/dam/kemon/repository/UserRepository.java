@@ -15,4 +15,11 @@ public interface UserRepository extends MongoRepository<User, String> {
      *  same username (the unique index can't build over pre-existing dupes) — which
      *  500s login. This never enforces cardinality, so callers dedupe/pick themselves. */
     List<User> findAllByUsername(String username);
+
+    /** Duplicate-tolerant email lookup, same reason as {@link #findAllByUsername}. */
+    List<User> findAllByEmail(String email);
+
+    Optional<User> findByVerifyToken(String token);
+
+    Optional<User> findByResetToken(String token);
 }

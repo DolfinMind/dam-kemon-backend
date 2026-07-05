@@ -257,6 +257,10 @@ public class AccountController {
                     .userId(userId)
                     .productId(productId)
                     .priceAtAdd(p == null ? null : p.getLowestPrice())
+                    // Alerts ON by default — a null flag made the scheduler skip
+                    // every wishlisted product, so alerts never fired for anyone.
+                    .alertsEnabled(true)
+                    .notifyChannel("email")
                     .addedAt(LocalDateTime.now())
                     .build();
             return ResponseEntity.ok(wishlist.save(w));

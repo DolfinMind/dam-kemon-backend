@@ -205,6 +205,11 @@ auth:
 
 # ───── Resend API Integration ─────
 # Used for sending Newsletter welcomes and Feedback emails
+# Public site origin — used to build links inside transactional emails
+# (verify-email, password-reset, price-drop alerts).
+app:
+  site-url: ${APP_SITE_URL:https://damkemon.com}
+
 resend:
   api-key: ${RESEND_API_KEY:}
   from-email: ${RESEND_FROM_EMAIL:support@damkemon.com}

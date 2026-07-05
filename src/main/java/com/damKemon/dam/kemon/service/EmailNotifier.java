@@ -2,87 +2,79 @@ package com.damKemon.dam.kemon.service;
 
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.WishlistItem;
-import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.Locale;
 
 /**
- * Outbound transactional email. Today this is a queue-only stub: every
- * call appends one row to the {@code outbound_email_queue} Mongo
- * collection and logs a structured INFO line. A separate worker (lambda /
- * crob / SES/SendGrid integration) drains the queue; that piece is out of
- * scope here but the contract is already stable so it can be wired up
- * without revisiting the scheduler.
+ * Outbound price-drop email, sent directly through {@link ResendService} —
+ * the same rail the newsletter already uses. This replaces the old
+ * queue-only stub that wrote rows to {@code outbound_email_queue} which
+ * nothing ever drained (the reason "mail alerts" never arrived).
  *
- * <p>Why a queue rather than direct SMTP? Two reasons:
- * <ul>
- *   <li>Hourly batch scans can produce hundreds of alerts at once; SMTP
- *       hosts rate-limit and the scheduler should never block on that.</li>
- *   <li>Atlas free tier has no outbound SMTP. The queue lets us keep
- *       development environments faithful without configuring a mailer.</li>
- * </ul>
+ * <p>ponytail: direct send, no queue. The hourly scan fires a handful of
+ * mails at current scale; add a queue + drainer only if alert volume ever
+ * outgrows Resend's rate limits.
  */
 @Service
 public class EmailNotifier {
 
     private static final Logger log = LoggerFactory.getLogger(EmailNotifier.class);
-    private static final String QUEUE = "outbound_email_queue";
 
-    private final MongoTemplate mongo;
+    private final ResendService resend;
 
     @Value("${notifications.brand-name:Damkemon}")
     private String brand;
 
-    @Value("${notifications.from-address:hello@damkemon.com}")
-    private String fromAddress;
+    @Value("${app.site-url:https://damkemon.com}")
+    private String siteUrl;
 
-    public EmailNotifier(MongoTemplate mongo) {
-        this.mongo = mongo;
+    public EmailNotifier(ResendService resend) {
+        this.resend = resend;
     }
 
     public void sendPriceDropAlert(String to, Product product, WishlistItem item, double currentPrice) {
         if (to == null || to.isBlank()) return;
 
-        String subject = "Price dropped: " + product.getName() + " — now ৳" +
-                String.format(Locale.US, "%,.0f", currentPrice);
+        String price = "৳" + String.format(Locale.US, "%,.0f", currentPrice);
+        String subject = "Price dropped: " + product.getName() + " — now " + price;
+        String link = siteUrl + "/product/" + (product.getId() == null ? product.getSlug() : product.getId());
 
-        StringBuilder body = new StringBuilder();
-        body.append("Good news — a price you're watching just dropped.\n\n");
-        body.append("Product: ").append(product.getName()).append("\n");
-        body.append("Lowest right now: ৳").append(String.format(Locale.US, "%,.0f", currentPrice)).append("\n");
-        if (item.getPriceAtAdd() != null) {
-            double diff = item.getPriceAtAdd() - currentPrice;
-            body.append("When you added it: ৳").append(String.format(Locale.US, "%,.0f", item.getPriceAtAdd()));
-            if (diff > 0) {
-                body.append("  (you'd save ৳").append(String.format(Locale.US, "%,.0f", diff)).append(")");
-            }
-            body.append("\n");
-        }
-        body.append("\nSee live prices: https://damkemon.com/product/")
-                .append(product.getId() == null ? product.getSlug() : product.getId())
-                .append("\n\n— ").append(brand);
-
-        try {
-            mongo.getCollection(QUEUE).insertOne(new Document()
-                    .append("to", to)
-                    .append("from", fromAddress)
-                    .append("subject", subject)
-                    .append("body", body.toString())
-                    .append("template", "price_drop")
-                    .append("productId", product.getId())
-                    .append("queuedAt", Instant.now())
-                    .append("status", "pending"));
-        } catch (Exception e) {
-            log.warn("Could not enqueue price-drop email to {}: {}", to, e.getMessage());
+        StringBuilder saveLine = new StringBuilder();
+        if (item.getPriceAtAdd() != null && item.getPriceAtAdd() > currentPrice) {
+            saveLine.append("<p style=\"color:#4a4a4a;font-size:14px;\">When you added it: <b>৳")
+                    .append(String.format(Locale.US, "%,.0f", item.getPriceAtAdd()))
+                    .append("</b> — you'd save <b style=\"color:#3d7a00;\">৳")
+                    .append(String.format(Locale.US, "%,.0f", item.getPriceAtAdd() - currentPrice))
+                    .append("</b></p>");
         }
 
-        log.info("Price drop alert queued — to={} product={} new=৳{}",
-                to, product.getId(), String.format(Locale.US, "%,.0f", currentPrice));
+        String html = "<div style=\"font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;"
+                + "margin:0 auto;background:#ffffff;border:1px solid #ecebe6;border-radius:16px;padding:28px;\">"
+                + "<div style=\"font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#3d7a00;\">Price drop</div>"
+                + "<div style=\"font-size:19px;font-weight:800;color:#15131a;margin-top:6px;\">" + escape(product.getName()) + "</div>"
+                + (product.getImageUrl() != null
+                    ? "<img src=\"" + product.getImageUrl() + "\" alt=\"\" style=\"max-width:160px;max-height:160px;"
+                      + "object-fit:contain;margin:16px 0;border-radius:12px;\">"
+                    : "")
+                + "<p style=\"color:#15131a;font-size:16px;\">Lowest right now: <b>" + price + "</b></p>"
+                + saveLine
+                + "<p style=\"margin:24px 0;\"><a href=\"" + link + "\" style=\"background:#9FE231;color:#15131a;"
+                + "text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:999px;"
+                + "display:inline-block;\">Compare live prices</a></p>"
+                + "<p style=\"color:#8a8a8a;font-size:12px;\">You get this because price alerts are on for this "
+                + "product in your " + brand + " wishlist. Turn them off from your account page.</p>"
+                + "</div>";
+
+        boolean ok = resend.sendEmail(to, subject, html);
+        log.info("Price drop alert {} — to={} product={} new={}",
+                ok ? "sent" : "NOT sent (Resend unavailable/unconfigured)", to, product.getId(), price);
+    }
+
+    private static String escape(String s) {
+        return s == null ? "" : s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 }

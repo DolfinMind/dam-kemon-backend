@@ -98,10 +98,12 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
             .addFilterBefore(new RateLimitFilter(List.of(
-                    // login brute-force throttle — tight, password guessing only
-                    // (not /me or /sign-out). A human won't exceed 8/min.
+                    // auth abuse throttle — tight. Covers password guessing (login),
+                    // account/token spraying (signup, forgot, reset, verify) and
+                    // verification-mail spam. A human won't exceed 8/min on any.
                     new RateLimitFilter.Rule(authRateLimiter(), 30,
-                            List.of("/api/auth/login")),
+                            List.of("/api/auth/login", "/api/auth/signup", "/api/auth/forgot",
+                                    "/api/auth/reset", "/api/auth/verify", "/api/auth/resend-verification")),
                     // expensive / abuse-prone triggers — tight (scrape kicks off a
                     // crawl; assistant calls the LLM, so both cost real resources).
                     new RateLimitFilter.Rule(strictRateLimiter(), 15,
