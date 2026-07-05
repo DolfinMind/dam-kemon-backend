@@ -8,6 +8,9 @@ import java.util.Optional;
 
 public interface ShopRepository extends MongoRepository<Shop, String> {
     Optional<Shop> findBySlug(String slug);
+    /** Duplicate-safe variant: {@link #findBySlug} THROWS when a slug was ever
+     *  double-inserted (pre-unique-index race). Use this on operator paths. */
+    List<Shop> findAllBySlug(String slug);
     List<Shop> findByStatus(String status);
     List<Shop> findByCategoriesContaining(String category);
 }

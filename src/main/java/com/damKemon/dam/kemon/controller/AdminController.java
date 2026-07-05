@@ -377,17 +377,22 @@ public class AdminController {
                     "status must be one of active|blocked|dormant|draft"));
         }
         try {
-            Shop s = shopRepository.findBySlug(slug).orElse(null);
-            if (s == null) return ResponseEntity.notFound().build();
-            s.setStatus(newStatus);
-            // Operator intent is sticky: the lifecycle reviver only undoes "auto" blocks.
-            s.setBlockedBy("active".equals(newStatus) ? null : "operator");
-            if ("active".equals(newStatus)) s.setConsecutiveFailures(0);
-            shopRepository.save(s);
+            // findAllBySlug, not findBySlug: a boot-race could have duplicated this
+            // slug, and findBySlug THROWS on duplicates — the hide button would 500
+            // on exactly the shop the operator most wants gone. Update every match.
+            List<Shop> matches = shopRepository.findAllBySlug(slug);
+            if (matches.isEmpty()) return ResponseEntity.notFound().build();
+            for (Shop s : matches) {
+                s.setStatus(newStatus);
+                // Operator intent is sticky: the lifecycle reviver only undoes "auto" blocks.
+                s.setBlockedBy("active".equals(newStatus) ? null : "operator");
+                if ("active".equals(newStatus)) s.setConsecutiveFailures(0);
+                shopRepository.save(s);
+            }
             // Homepage rail prices come from a prebuilt set — recompute it now so
             // hiding a shop cleans the rail in seconds, not at the next 4h cron.
             CompletableFuture.runAsync(hotDrops::rebuild);
-            return ResponseEntity.ok(Map.of("slug", slug, "status", newStatus));
+            return ResponseEntity.ok(Map.of("slug", slug, "status", newStatus, "updated", matches.size()));
         } catch (DataAccessException e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
@@ -400,7 +405,7 @@ public class AdminController {
     @PatchMapping("/shops/{slug}")
     public ResponseEntity<?> editShop(@PathVariable String slug, @RequestBody Map<String, Object> body) {
         try {
-            Shop s = shopRepository.findBySlug(slug).orElse(null);
+            Shop s = shopRepository.findAllBySlug(slug).stream().findFirst().orElse(null);
             if (s == null) return ResponseEntity.notFound().build();
             if (body.containsKey("name")) s.setName(String.valueOf(body.get("name")));
             if (body.containsKey("baseUrl")) s.setBaseUrl(String.valueOf(body.get("baseUrl")));
@@ -439,13 +444,13 @@ public class AdminController {
         int updated = 0;
         for (Object o : slugs) {
             try {
-                Shop s = shopRepository.findBySlug(String.valueOf(o)).orElse(null);
-                if (s == null) continue;
-                s.setStatus(status);
-                s.setBlockedBy("active".equals(status) ? null : "operator");
-                if ("active".equals(status)) s.setConsecutiveFailures(0);
-                shopRepository.save(s);
-                updated++;
+                for (Shop s : shopRepository.findAllBySlug(String.valueOf(o))) {
+                    s.setStatus(status);
+                    s.setBlockedBy("active".equals(status) ? null : "operator");
+                    if ("active".equals(status)) s.setConsecutiveFailures(0);
+                    shopRepository.save(s);
+                    updated++;
+                }
             } catch (DataAccessException ignored) {}
         }
         if (updated > 0) CompletableFuture.runAsync(hotDrops::rebuild);
