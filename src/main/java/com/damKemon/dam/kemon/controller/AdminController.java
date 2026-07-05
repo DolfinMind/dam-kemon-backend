@@ -384,6 +384,9 @@ public class AdminController {
             s.setBlockedBy("active".equals(newStatus) ? null : "operator");
             if ("active".equals(newStatus)) s.setConsecutiveFailures(0);
             shopRepository.save(s);
+            // Homepage rail prices come from a prebuilt set — recompute it now so
+            // hiding a shop cleans the rail in seconds, not at the next 4h cron.
+            CompletableFuture.runAsync(hotDrops::rebuild);
             return ResponseEntity.ok(Map.of("slug", slug, "status", newStatus));
         } catch (DataAccessException e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
@@ -445,6 +448,7 @@ public class AdminController {
                 updated++;
             } catch (DataAccessException ignored) {}
         }
+        if (updated > 0) CompletableFuture.runAsync(hotDrops::rebuild);
         return ResponseEntity.ok(Map.of("updated", updated, "status", status));
     }
 

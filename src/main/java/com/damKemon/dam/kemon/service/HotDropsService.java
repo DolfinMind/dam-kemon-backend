@@ -3,10 +3,12 @@ package com.damKemon.dam.kemon.service;
 import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.model.PriceHistory;
 import com.damKemon.dam.kemon.model.Product;
+import com.damKemon.dam.kemon.model.SitePrice;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
@@ -49,17 +51,29 @@ public class HotDropsService {
     private final MongoTemplate mongo;
     private final AppRole appRole;
     private final CacheManager cacheManager;
+    private final ShopVisibilityService shopVisibility;
+
+    /** A "drop" past this % of peak is a scraper mis-parse, not a deal ("৳55,500"→55
+     *  reads as a 99.9% drop). Real BD tech discounts live well under this line. */
+    @Value("${hot-drops.max-drop-pct:70}")
+    private double maxDropPct;
+
+    /** No computing/mobile product sells under this many taka — cheaper = junk parse. */
+    @Value("${hot-drops.min-price:200}")
+    private double minPlausiblePrice;
 
     private volatile List<Map<String, Object>> latest = List.of();
 
     public HotDropsService(ProductRepository productRepository,
                            MongoTemplate mongo,
                            AppRole appRole,
-                           CacheManager cacheManager) {
+                           CacheManager cacheManager,
+                           ShopVisibilityService shopVisibility) {
         this.productRepository = productRepository;
         this.mongo = mongo;
         this.appRole = appRole;
         this.cacheManager = cacheManager;
+        this.shopVisibility = shopVisibility;
     }
 
     /**
@@ -107,6 +121,7 @@ public class HotDropsService {
 
             // Real drops first — only worth scanning the whole catalog if we actually
             // have price history to compare against (skip the scan entirely when not).
+            java.util.Set<String> hidden = shopVisibility.hiddenSlugs();
             List<Map<String, Object>> drops = new ArrayList<>();
             if (!peakByProduct.isEmpty()) {
                 int page = 0;
@@ -121,12 +136,17 @@ public class HotDropsService {
                     }
                     if (rows.isEmpty()) break;
                     for (Product p : rows) {
-                        if (p.getId() == null || p.getLowestPrice() == null || p.getLowestPrice() <= 0) continue;
+                        if (p.getId() == null) continue;
                         Double peak = peakByProduct.get(p.getId());
                         if (peak == null) continue;
-                        double current = p.getLowestPrice();
+                        // Cheapest offer from a VISIBLE shop only — a hidden shop's
+                        // (often junk) price must never headline the homepage rail.
+                        Double cur = visibleLowest(p, hidden);
+                        if (cur == null || cur < minPlausiblePrice) continue;
+                        double current = cur;
                         if (peak > current && peak >= current * MIN_DROP_RATIO) {
                             double dropPct = (peak - current) / peak * 100.0;
+                            if (dropPct > maxDropPct) continue;   // impossible drop = mis-parsed price
                             drops.add(row(p, current, peak, Math.round(dropPct * 10.0) / 10.0, sellers(p)));
                         }
                     }
@@ -153,9 +173,10 @@ public class HotDropsService {
                             PageRequest.of(0, RAIL_SIZE * 4, Sort.by(Sort.Direction.DESC, "_id"))).getContent();
                     for (Product p : fresh) {
                         if (out.size() >= RAIL_SIZE) break;
-                        if (p.getId() == null || p.getLowestPrice() == null || p.getLowestPrice() <= 0) continue;
-                        if (have.contains(p.getId())) continue;
-                        out.add(row(p, p.getLowestPrice(), p.getLowestPrice(), 0.0, sellers(p)));
+                        if (p.getId() == null || have.contains(p.getId())) continue;
+                        Double cur = visibleLowest(p, hidden);
+                        if (cur == null || cur < minPlausiblePrice) continue;
+                        out.add(row(p, cur, cur, 0.0, sellers(p)));
                     }
                 } catch (DataAccessException e) {
                     log.warn("HotDrops: fallback fill failed ({})", e.getMessage());
@@ -175,6 +196,23 @@ public class HotDropsService {
 
     private static int sellers(Product p) {
         return p.getPrices() == null ? 0 : p.getPrices().size();
+    }
+
+    /** Cheapest positive price among offers NOT from a hidden shop. Falls back to
+     *  the stored aggregate when the doc carries no offer rows. Null = nothing
+     *  visible to price this product with — the product sits the rail out. */
+    static Double visibleLowest(Product p, java.util.Set<String> hidden) {
+        if (p.getPrices() == null || p.getPrices().isEmpty()) {
+            return (p.getLowestPrice() != null && p.getLowestPrice() > 0) ? p.getLowestPrice() : null;
+        }
+        Double best = null;
+        for (SitePrice sp : p.getPrices()) {
+            if (sp == null || sp.getPrice() == null || sp.getPrice() <= 0) continue;
+            String slug = sp.getSiteSlug() != null ? sp.getSiteSlug() : sp.getSiteName();
+            if (slug != null && hidden.contains(slug.toLowerCase())) continue;
+            if (best == null || sp.getPrice() < best) best = sp.getPrice();
+        }
+        return best;
     }
 
     private static Map<String, Object> row(Product p, double current, double peak, double dropPct, int sellers) {
