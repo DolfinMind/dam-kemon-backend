@@ -13,15 +13,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A "Damkemon Protect" order — a buyer's declared intent to purchase, with a
- * risk assessment attached and a lifecycle (open → confirmed | disputed). It
- * works for any seller, including off-platform Facebook shops not in our
- * catalog, which is the point: it's the trust wrapper around a transaction we
- * don't (yet) process the money for.
+ * A "Damkemon Protect" row — either a logged purchase (lifecycle
+ * open → confirmed | disputed) or a standalone scam report (status
+ * "reported"). Works for any seller, including off-platform Facebook pages
+ * and bKash numbers not in our catalog — together these rows form the
+ * crowdsourced scam registry that {@code ProtectService.assessRisk} answers
+ * from.
  *
- * <p>No payment is moved at this stage — this is the trust + dispute layer that
- * makes escrow possible later. A dispute on a known shop feeds that shop's
- * {@code ShopTrust} score, giving the verdict real teeth.
+ * <p>No payment moves through us. The teeth: a confirm/dispute/report on a
+ * known shop feeds that shop's {@code ShopTrust} score via
+ * {@code TrustService.applyReview}.
  */
 @Data
 @NoArgsConstructor
@@ -68,7 +69,8 @@ public class ProtectedOrder {
     private List<String> riskFlags = new ArrayList<>();
 
     // ─── lifecycle ───
-    /** "open" | "confirmed" | "disputed" | "resolved" | "cancelled". */
+    /** "open" | "confirmed" | "disputed" | "reported" | "resolved" | "cancelled".
+     *  "reported" = a standalone scam report with no prior logged purchase. */
     @Builder.Default
     private String status = "open";
     private String buyerNote;

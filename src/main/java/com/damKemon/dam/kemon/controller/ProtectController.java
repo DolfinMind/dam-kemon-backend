@@ -9,14 +9,17 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * "Damkemon Protect" — public buyer-protection endpoints.
+ * "Damkemon Protect" — public seller-check + scam-registry endpoints.
  *
  * <ul>
- *   <li>{@code POST /api/protect/assess} — scam-risk verdict for a purchase
- *       (works even for off-platform sellers).</li>
- *   <li>{@code POST /api/protect/orders} — open a Protected Order, get a code.</li>
+ *   <li>{@code POST /api/protect/assess} — honest seller verdict: real trust
+ *       data for catalog shops, report counts for everyone else.</li>
+ *   <li>{@code POST /api/protect/reports} — file a scam report against any
+ *       seller identifier (link, page, phone).</li>
+ *   <li>{@code POST /api/protect/orders} — log a purchase, get a code.</li>
  *   <li>{@code GET /api/protect/orders/{code}} — track / claim by code.</li>
- *   <li>{@code POST /api/protect/orders/{code}/confirm|dispute} — resolve.</li>
+ *   <li>{@code POST /api/protect/orders/{code}/confirm|dispute} — resolve;
+ *       outcomes feed the shop's public trust score.</li>
  * </ul>
  */
 @RestController
@@ -38,6 +41,14 @@ public class ProtectController {
     public ResponseEntity<Object> create(@RequestBody(required = false) Map<String, Object> body,
                                          HttpServletRequest req) {
         Map<String, Object> result = protect.createOrder(body == null ? Map.of() : body, req.getHeader("X-Anon-Id"));
+        int status = result.get("status") instanceof Number n ? n.intValue() : 200;
+        return ResponseEntity.status(status).body(result);
+    }
+
+    @PostMapping("/reports")
+    public ResponseEntity<Object> report(@RequestBody(required = false) Map<String, Object> body,
+                                         HttpServletRequest req) {
+        Map<String, Object> result = protect.report(body == null ? Map.of() : body, req.getHeader("X-Anon-Id"));
         int status = result.get("status") instanceof Number n ? n.intValue() : 200;
         return ResponseEntity.status(status).body(result);
     }
