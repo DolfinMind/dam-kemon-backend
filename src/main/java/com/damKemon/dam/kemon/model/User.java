@@ -50,8 +50,12 @@ public class User {
     @Builder.Default
     private String role = "user";
 
-    /** Optional avatar URL — null for now; populated when we add OAuth. */
+    /** Optional avatar URL — filled from the Google profile picture on OAuth sign-in. */
     private String avatarUrl;
+
+    /** Google account id (the ID token's {@code sub} claim) once linked. */
+    @Indexed(sparse = true)
+    private String googleSub;
 
     /**
      * Email ownership proven via the token link. Null on legacy rows (the

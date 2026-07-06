@@ -148,4 +148,38 @@ class AuthControllerTest {
         when(users.findByVerifyToken("tok-old")).thenReturn(Optional.of(stale));
         assertEquals(410, controller.verify(Map.of("token", "tok-old")).getStatusCode().value());
     }
+
+    @Test
+    void googleLoginRejectsForeignAudienceAndCreatesVerifiedUser() {
+        UserRepository users = mock(UserRepository.class);
+        JwtService jwt = mock(JwtService.class);
+        AuthController controller = controller(users, jwt);
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "googleClientId", "our-client-id");
+        org.springframework.web.client.RestTemplate http = mock(org.springframework.web.client.RestTemplate.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "http", http);
+
+        // token minted for someone ELSE's app → 401, no account touched
+        when(http.getForObject(anyString(), org.mockito.ArgumentMatchers.eq(Map.class), anyString()))
+                .thenReturn(Map.of("aud", "attacker-client-id", "iss", "https://accounts.google.com",
+                        "email", "rima@gmail.com", "email_verified", "true", "sub", "g-123"));
+        assertEquals(401, controller.google(Map.of("credential", "tok")).getStatusCode().value());
+        org.mockito.Mockito.verify(users, org.mockito.Mockito.never()).save(any());
+
+        // our audience → user created, email pre-verified, google linked
+        when(http.getForObject(anyString(), org.mockito.ArgumentMatchers.eq(Map.class), anyString()))
+                .thenReturn(Map.of("aud", "our-client-id", "iss", "https://accounts.google.com",
+                        "email", "Rima@Gmail.com", "email_verified", "true", "sub", "g-123", "name", "Rima"));
+        when(users.findAllByEmail("rima@gmail.com")).thenReturn(List.of());
+        when(users.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+        when(jwt.issue(any(), any(), any())).thenReturn("tok-g");
+
+        ResponseEntity<Map<String, Object>> resp = controller.google(Map.of("credential", "tok"));
+        assertEquals(200, resp.getStatusCode().value());
+        ArgumentCaptor<User> cap = ArgumentCaptor.forClass(User.class);
+        org.mockito.Mockito.verify(users).save(cap.capture());
+        assertEquals("rima@gmail.com", cap.getValue().getEmail());
+        assertEquals(Boolean.TRUE, cap.getValue().getEmailVerified(), "Google email counts as verified");
+        assertEquals("g-123", cap.getValue().getGoogleSub());
+        assertNull(cap.getValue().getPasswordHash(), "no password on a Google-only account");
+    }
 }

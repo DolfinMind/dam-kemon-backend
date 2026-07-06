@@ -211,6 +211,13 @@ auth:
 app:
   site-url: ${APP_SITE_URL:https://damkemon.com}
 
+# ───── Google sign-in ─────
+# OAuth web client id from Google Cloud console. The SAME id must be built into
+# the frontend (VITE_GOOGLE_CLIENT_ID). Blank = the /api/auth/google endpoint
+# answers 503 and the frontend hides the button — safe to deploy unconfigured.
+auth:
+  google-client-id: ${GOOGLE_CLIENT_ID:}
+
 resend:
   api-key: ${RESEND_API_KEY:}
   from-email: ${RESEND_FROM_EMAIL:support@damkemon.com}

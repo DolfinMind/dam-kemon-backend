@@ -102,8 +102,9 @@ public class SecurityConfig {
                     // account/token spraying (signup, forgot, reset, verify) and
                     // verification-mail spam. A human won't exceed 8/min on any.
                     new RateLimitFilter.Rule(authRateLimiter(), 30,
-                            List.of("/api/auth/login", "/api/auth/signup", "/api/auth/forgot",
-                                    "/api/auth/reset", "/api/auth/verify", "/api/auth/resend-verification")),
+                            List.of("/api/auth/login", "/api/auth/signup", "/api/auth/google",
+                                    "/api/auth/forgot", "/api/auth/reset", "/api/auth/verify",
+                                    "/api/auth/resend-verification")),
                     // expensive / abuse-prone triggers — tight (scrape kicks off a
                     // crawl; assistant calls the LLM, so both cost real resources).
                     new RateLimitFilter.Rule(strictRateLimiter(), 15,
@@ -127,10 +128,19 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim).filter(s -> !s.isEmpty()).toList();
+        List<String> origins = new java.util.ArrayList<>(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim).filter(s -> !s.isEmpty()).toList());
+        // The site's own origins are always allowed — a server env var that
+        // lists only the apex must not 403 users browsing on www (or vice
+        // versa). Seen live: www.damkemon.com preflights failing.
+        for (String own : List.of("https://damkemon.com", "https://www.damkemon.com")) {
+            if (!origins.contains(own)) origins.add(own);
+        }
         configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // PATCH was missing — the profile editor and wishlist alert settings are
+        // PATCH endpoints, so any cross-origin call (www ↔ apex) preflighted and
+        // got a bare 403 "Invalid CORS request".
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("X-Admin-Key", "X-Anon-Id", "Authorization"));
         configuration.setAllowCredentials(true);

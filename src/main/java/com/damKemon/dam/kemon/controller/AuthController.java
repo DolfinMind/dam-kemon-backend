@@ -52,10 +52,17 @@ public class AuthController {
     private final NewsletterSubscriberRepository newsletter;
     private final ResendService resend;
     private final BCryptPasswordEncoder hasher = new BCryptPasswordEncoder();
+    // non-final so tests can swap in a stub instead of calling Google for real
+    private org.springframework.web.client.RestTemplate http =
+            new org.springframework.web.client.RestTemplate();
 
     /** Base URL used in verification / reset links inside emails. */
     @Value("${app.site-url:https://damkemon.com}")
     private String siteUrl;
+
+    /** Google OAuth web client id; blank = Google sign-in disabled. */
+    @Value("${auth.google-client-id:}")
+    private String googleClientId;
 
     public AuthController(JwtService jwt, UserRepository users,
                           NewsletterSubscriberRepository newsletter,
@@ -225,6 +232,88 @@ public class AuthController {
             return ResponseEntity.ok(Map.of("ok", true));
         } catch (DataAccessException e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "could not reset — try again"));
+        }
+    }
+
+    // ───────────────────────────── Google sign-in ──────────────────────────
+
+    /**
+     * Google Identity Services flow: the browser hands us a Google-signed ID
+     * token; we let Google's tokeninfo endpoint validate the signature/expiry,
+     * then check the token was minted for OUR client id. A verified Google
+     * email counts as a verified email (alerts activate immediately).
+     * Existing accounts with the same email get LINKED, not duplicated.
+     */
+    @PostMapping("/google")
+    public ResponseEntity<Map<String, Object>> google(@RequestBody Map<String, String> body) {
+        if (googleClientId == null || googleClientId.isBlank()) {
+            return ResponseEntity.status(503).body(Map.of("error", "Google sign-in isn't set up yet"));
+        }
+        String credential = body == null ? null : trim(body.get("credential"));
+        if (credential == null || credential.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "credential required"));
+        }
+        Map<?, ?> info;
+        try {
+            info = http.getForObject(
+                    "https://oauth2.googleapis.com/tokeninfo?id_token={t}", Map.class, credential);
+        } catch (Exception e) {
+            // tokeninfo 400s invalid/expired tokens — that lands here.
+            return ResponseEntity.status(401).body(Map.of("error", "Google didn't accept that sign-in — try again"));
+        }
+        if (info == null
+                || !googleClientId.equals(String.valueOf(info.get("aud")))
+                || !java.util.Set.of("accounts.google.com", "https://accounts.google.com")
+                        .contains(String.valueOf(info.get("iss")))) {
+            return ResponseEntity.status(401).body(Map.of("error", "Google didn't accept that sign-in — try again"));
+        }
+        String email = lower(str(info.get("email")));
+        if (email == null || !"true".equals(String.valueOf(info.get("email_verified")))) {
+            return ResponseEntity.status(401).body(Map.of("error", "this Google account has no verified email"));
+        }
+        String sub = str(info.get("sub"));
+        String name = str(info.get("name"));
+        String picture = str(info.get("picture"));
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            List<User> matches = users.findAllByEmail(email);
+            User u;
+            if (matches.isEmpty()) {
+                u = User.builder()
+                        .email(email)
+                        .displayName(name != null && !name.isBlank() ? name : email)
+                        .role("user")
+                        .emailVerified(true)
+                        .googleSub(sub)
+                        .avatarUrl(picture)
+                        // no consent checkbox in this flow — digest stays opt-in via profile
+                        .newsletterOptIn(false)
+                        .signupSource("google")
+                        .createdAt(now)
+                        .build();
+            } else {
+                u = matches.get(0);
+                if (u.getGoogleSub() == null) u.setGoogleSub(sub);
+                u.setEmailVerified(true);       // Google proved the inbox
+                if (u.getAvatarUrl() == null) u.setAvatarUrl(picture);
+                if (u.getDisplayName() == null || u.getDisplayName().isBlank()) u.setDisplayName(name);
+            }
+            u.setLastLoginAt(now);
+            u.setUpdatedAt(now);
+            try {
+                u = users.save(u);
+            } catch (org.springframework.dao.DuplicateKeyException race) {
+                // two first-time Google sign-ins raced — the other one won; use its row
+                List<User> again = users.findAllByEmail(email);
+                if (again.isEmpty()) throw race;
+                u = again.get(0);
+            }
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("token", jwt.issue(u.getId(), u.getEmail(), u.getRole()));
+            out.put("user", publicProfile(u));
+            return ResponseEntity.ok(out);
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "could not sign in"));
         }
     }
 
