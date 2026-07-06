@@ -4,6 +4,7 @@ import com.damKemon.dam.kemon.model.PriceHistory;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.Review;
 import com.damKemon.dam.kemon.service.ProductService;
+import com.damKemon.dam.kemon.service.ShowcaseService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,9 +20,11 @@ import java.util.Map;
 public class ProductController {
 
     private final ProductService productService;
+    private final ShowcaseService showcaseService;
 
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, ShowcaseService showcaseService) {
         this.productService = productService;
+        this.showcaseService = showcaseService;
     }
 
     @GetMapping
@@ -39,12 +42,12 @@ public class ProductController {
         return ResponseEntity.ok(productService.getCategories());
     }
 
-    /** Homepage rails: top categories, each with a handful of fresh products.
-     *  One cached call — the landing page must not fan out per category. */
+    /** Homepage rails, PRECOMPUTED in ShowcaseService — a volatile read, so
+     *  the landing page never waits on category queries. */
     @GetMapping("/showcase")
     public ResponseEntity<List<Map<String, Object>>> showcase(
             @RequestParam(value = "perCategory", defaultValue = "6") int perCategory) {
-        return ResponseEntity.ok(productService.showcase(Math.max(1, Math.min(perCategory, 12))));
+        return ResponseEntity.ok(showcaseService.get(Math.max(1, Math.min(perCategory, 6))));
     }
 
     /**

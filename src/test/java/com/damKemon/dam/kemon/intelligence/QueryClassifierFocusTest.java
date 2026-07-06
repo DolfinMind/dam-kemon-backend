@@ -40,4 +40,42 @@ class QueryClassifierFocusTest {
         assertEquals(ProductCategory.HEADPHONE, cat,
                 "the override must not over-block the brand's real audio products");
     }
+
+    // ── The three live-rail misfires of 2026-07-06 ──────────────────────────
+
+    @Test
+    void cctvCameraWithAudioInNameIsSecurityNotHeadphones() {
+        ProductCategory cat = classifier
+                .classify("Hikvision DS-2CE76D0T-EXLPF 2MP ColorVu Audio Fixed Turret Camera")
+                .primaryCategory();
+        assertEquals(ProductCategory.SECURITY, cat,
+                "a Hikvision cam with 'Audio' in the name was headlining the Headphones rail");
+    }
+
+    @Test
+    void droneToyIsNotASmartphone() {
+        ProductCategory cat = classifier
+                .classify("GALAXY Drone Toy for Kids")
+                .primaryCategory();
+        assertEquals(ProductCategory.TOYS, cat,
+                "'GALAXY' is a line word, not evidence of a phone");
+    }
+
+    @Test
+    void mobileRouterIsNetworkingNotASmartphone() {
+        assertEquals(ProductCategory.NETWORKING, classifier
+                        .classify("Teltonika RUT240 Mobile 4G LTE Router").primaryCategory(),
+                "'Mobile … Router' must file under networking");
+        assertEquals(ProductCategory.NETWORKING, classifier
+                        .classify("IEASUN MF825 4G LTE Advanced Mobile WiFi Pocket Router").primaryCategory());
+    }
+
+    @Test
+    void plainQueriesStillClassifyAsPhones() {
+        // The context-word demotion must not break the two most common searches.
+        assertEquals(ProductCategory.SMARTPHONE,
+                classifier.classify("mobile").primaryCategory());
+        assertEquals(ProductCategory.SMARTPHONE,
+                classifier.classify("samsung galaxy s24 ultra").primaryCategory());
+    }
 }

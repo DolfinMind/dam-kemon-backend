@@ -32,7 +32,6 @@ spring:
       - trending-searches
       - hot-drops
       - headline-stats
-      - showcase
     caffeine:
       spec: maximumSize=500,expireAfterWrite=60s,recordStats
 
@@ -227,6 +226,12 @@ resend:
 # from-address when unset.
 feedback:
   notify-email: ${USER_FEEDBACK_EMAIL:${resend.from-email:support@damkemon.com}}
+
+# ───── Homepage showcase rebuild ─────
+# The category rails are precomputed on the web node (startup + this interval)
+# and served from memory — the landing page never waits on category queries.
+showcase:
+  refresh-ms: ${SHOWCASE_REFRESH_MS:900000}
 
 # ───── Hot-drops rebuild ─────
 # Rebuilt every 4h (was once daily) so the "price drops" rail tracks fresh

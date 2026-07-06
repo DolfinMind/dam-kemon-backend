@@ -44,6 +44,15 @@ public class QueryClassifier {
     private static final Set<String> HARD_OUT_OF_SCOPE = Set.of(
             "vacuum","blender","kettle","toaster","microwave","trimmer","shaver","hairdryer");
 
+    /** Context words, not object words — they describe a LINE or a mode, and at
+     *  full weight they hijack other objects: "GALAXY Drone Toy" filed as a
+     *  smartphone, "Mobile 4G LTE Router" as a smartphone, a CCTV cam with
+     *  "…Audio…" in the name as Headphones & Audio (all seen on the live rails).
+     *  Weight 1: still enough to win when nothing else matches ("mobile" alone
+     *  → smartphones), never enough to beat a real object word. */
+    private static final Set<String> CONTEXT_WORDS = Set.of(
+            "galaxy","note","ultra","mobile","mobiles","mobail","audio");
+
     /** Dedup-safe set builder (Set.of throws on duplicates; this doesn't). */
     private static Set<String> kw(String... s) { return new HashSet<>(Arrays.asList(s)); }
 
@@ -80,7 +89,10 @@ public class QueryClassifier {
         ));
         KW.put(ProductCategory.NETWORKING, kw(
             "router","wifi router","wi-fi router","mesh wifi","access point","range extender","wifi extender",
-            "network switch","modem","ont","onu","lan card","wifi adapter","usb wifi","powerline","রাউটার"
+            "network switch","modem","ont","onu","lan card","wifi adapter","usb wifi","powerline","রাউটার",
+            // pocket/SIM routers name themselves "mobile …" — must not read as phones
+            "pocket router","mobile router","4g router","lte router","5g router","sim router",
+            "mobile wifi","mobile hotspot","mifi"
         ));
         KW.put(ProductCategory.PRINTER, kw(
             "printer","scanner","all in one printer","inkjet","laserjet","laser printer","photocopier","ink cartridge",
@@ -88,7 +100,10 @@ public class QueryClassifier {
         ));
         KW.put(ProductCategory.SECURITY, kw(
             "cctv","cctv camera","ip camera","security camera","dvr","nvr","dome camera","bullet camera","wifi camera",
-            "doorbell camera","smart lock","fingerprint lock","access control","সিসিটিভি"
+            "doorbell camera","smart lock","fingerprint lock","access control","সিসিটিভি",
+            // surveillance-cam vocabulary (Hikvision/Dahua line names + form factors)
+            "turret camera","ptz camera","poe camera","network camera","analog camera",
+            "colorvu","darkfighter","hilook","xvr","acusense"
         ));
         KW.put(ProductCategory.HEADPHONE, kw(
             "headphone","headphones","headset","earphone","earphones","earbud","earbuds","airpods","buds","tws",
@@ -206,7 +221,8 @@ public class QueryClassifier {
         ));
         KW.put(ProductCategory.TOYS, kw(
             "toy","toys","remote control car","rc car","lego","building blocks","doll","puzzle","board game","ludo",
-            "action figure","soft toy","teddy bear","kids cycle","খেলনা","পুতুল"
+            "action figure","soft toy","teddy bear","kids cycle","খেলনা","পুতুল",
+            "drone toy","toy drone","rc drone","kids toy"
         ));
         KW.put(ProductCategory.STATIONERY, kw(
             "pen","ball pen","gel pen","pencil","diary","a4 paper","printing paper","file","folder","marker",
@@ -439,6 +455,7 @@ public class QueryClassifier {
                 } else {
                     weight = multi ? 3 : 2;
                 }
+                if (CONTEXT_WORDS.contains(kw)) weight = 1;
                 keywordAutomaton.add(kw, new KwHit(cat, weight, multi));
             }
         }
@@ -466,10 +483,18 @@ public class QueryClassifier {
         // ===== single Aho-Corasick pass picks up every brand + keyword =====
         // O(|query| + matches) instead of O(brands + categories × keywords).
         List<String> detectedBrands = new ArrayList<>();
-        Set<ProductCategory> brandAffinity = new LinkedHashSet<>();
+        // Per-category brand bonus. A brand that makes exactly ONE kind of thing
+        // (hikvision→security, tp-link→networking, redmi→phones) is the strongest
+        // signal in the whole name and gets +3 — it must beat a stray generic
+        // keyword (the "…ColorVu **Audio**… Camera" filed under Headphones bug).
+        // Diversified brands (samsung, xiaomi) stay at +1: they say little.
+        Map<ProductCategory, Integer> brandBonus = new EnumMap<>(ProductCategory.class);
         for (AhoCorasick.Hit<BrandHit> hit : brandAutomaton.findAll(normalized)) {
             detectedBrands.add(hit.payload().brand());
-            brandAffinity.addAll(hit.payload().categories());
+            int w = hit.payload().categories().size() == 1 ? 3 : 1;
+            for (ProductCategory c : hit.payload().categories()) {
+                brandBonus.merge(c, w, Integer::max);
+            }
         }
 
         Map<ProductCategory, Integer> scores = new EnumMap<>(ProductCategory.class);
@@ -481,8 +506,7 @@ public class QueryClassifier {
             // product name repeats the parent keyword ("iPhone case for iPhone 15").
             if (hit.payload().category() == ProductCategory.ACCESSORY) accessoryHit = true;
         }
-        // brand affinity bonus
-        for (ProductCategory c : brandAffinity) scores.merge(c, 1, Integer::sum);
+        brandBonus.forEach((c, w) -> scores.merge(c, w, Integer::sum));
 
         String[] tokens = normalized.split("\\s+");
 
