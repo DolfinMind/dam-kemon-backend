@@ -15,7 +15,12 @@ import java.util.Optional;
 public interface ProductRepository extends MongoRepository<Product, String> {
     List<Product> findByNameContainingIgnoreCase(String name);
     List<Product> findByCategory(String category);
-    /** Paginated, case-insensitive category browse — backs the Browse page. */
+    /** Indexed exact-match page (categories are stored lower-case). Preferred on
+     *  hot paths — the IgnoreCase variant below is a case-insensitive $regex that
+     *  can't use the category index, so it scans the whole catalog. */
+    Page<Product> findByCategory(String category, Pageable pageable);
+    /** Paginated, case-insensitive category browse — kept for legacy mixed-case
+     *  data. Do NOT use on hot paths; unindexed regex scan. */
     Page<Product> findByCategoryIgnoreCase(String category, Pageable pageable);
     Optional<Product> findBySlug(String slug);
 

@@ -255,8 +255,11 @@ public class CatalogSearchService {
         
         if (categoryBrowse) {
             try {
+                // Indexed exact match on the lower-cased label (categories are
+                // stored lower-case). findByCategoryIgnoreCase was a full-catalog
+                // regex scan — the dominant cost of a cold "laptop"/"phone" browse.
                 for (Product p : productRepository
-                        .findByCategoryIgnoreCase(catLabel, PageRequest.of(0, maxCandidates)).getContent())
+                        .findByCategory(catLabel.toLowerCase(), PageRequest.of(0, maxCandidates)).getContent())
                     if (p.getId() != null) bag.putIfAbsent(p.getId(), p);
             } catch (DataAccessException e) {
                 log.debug("Category-browse fetch failed: {}", e.getMessage());

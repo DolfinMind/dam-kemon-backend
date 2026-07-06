@@ -200,8 +200,13 @@ public class ProductService {
     /** All products, or just one category when {@code category} is provided. */
     public Page<Product> getAllProducts(String category, Pageable pageable) {
         try {
+            // Exact match on the lower-cased category, NOT findByCategoryIgnoreCase:
+            // "IgnoreCase" compiles to a case-insensitive $regex that can't use the
+            // @Indexed on `category`, so it scanned the whole catalog (~1s+ per
+            // Browse page). Categories are always stored lower-case at index time,
+            // so a plain indexed equality is both correct and O(log n).
             Page<Product> page = (category != null && !category.isBlank())
-                    ? productRepository.findByCategoryIgnoreCase(category.trim(), pageable)
+                    ? productRepository.findByCategory(category.trim().toLowerCase(), pageable)
                     : productRepository.findAll(pageable);
             // Hidden-shop offers stripped per served page (fresh repo instances,
             // never saved back). ponytail: fully-hidden rows still occupy page

@@ -182,4 +182,57 @@ class AuthControllerTest {
         assertEquals("g-123", cap.getValue().getGoogleSub());
         assertNull(cap.getValue().getPasswordHash(), "no password on a Google-only account");
     }
+
+    @Test
+    void googleLinkToUnverifiedAccountWipesAttackerPassword() {
+        UserRepository users = mock(UserRepository.class);
+        JwtService jwt = mock(JwtService.class);
+        AuthController controller = controller(users, jwt);
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "googleClientId", "our-client-id");
+        org.springframework.web.client.RestTemplate http = mock(org.springframework.web.client.RestTemplate.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "http", http);
+        when(http.getForObject(anyString(), org.mockito.ArgumentMatchers.eq(Map.class), anyString()))
+                .thenReturn(Map.of("aud", "our-client-id", "iss", "https://accounts.google.com",
+                        "email", "victim@gmail.com", "email_verified", "true", "sub", "g-1", "name", "Victim"));
+        // Attacker pre-registered victim's email, never verified it.
+        User prereg = User.builder().id("v").email("victim@gmail.com").emailVerified(false)
+                .passwordHash(enc.encode("attacker-password")).build();
+        when(users.findAllByEmail("victim@gmail.com")).thenReturn(List.of(prereg));
+        when(users.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+        when(jwt.issue(any(), any(), any())).thenReturn("tok");
+
+        controller.google(Map.of("credential", "tok"));
+
+        ArgumentCaptor<User> cap = ArgumentCaptor.forClass(User.class);
+        org.mockito.Mockito.verify(users).save(cap.capture());
+        assertNull(cap.getValue().getPasswordHash(),
+                "the attacker's pre-set password must be wiped when Google proves ownership");
+        assertEquals(Boolean.TRUE, cap.getValue().getEmailVerified());
+        assertEquals("g-1", cap.getValue().getGoogleSub());
+    }
+
+    @Test
+    void googleLinkToVerifiedAccountKeepsPassword() {
+        UserRepository users = mock(UserRepository.class);
+        JwtService jwt = mock(JwtService.class);
+        AuthController controller = controller(users, jwt);
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "googleClientId", "our-client-id");
+        org.springframework.web.client.RestTemplate http = mock(org.springframework.web.client.RestTemplate.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "http", http);
+        when(http.getForObject(anyString(), org.mockito.ArgumentMatchers.eq(Map.class), anyString()))
+                .thenReturn(Map.of("aud", "our-client-id", "iss", "https://accounts.google.com",
+                        "email", "real@gmail.com", "email_verified", "true", "sub", "g-2", "name", "Real"));
+        // A legitimately-verified email+password user keeps their password on link.
+        String hash = enc.encode("my-real-password");
+        User verified = User.builder().id("r").email("real@gmail.com").emailVerified(true).passwordHash(hash).build();
+        when(users.findAllByEmail("real@gmail.com")).thenReturn(List.of(verified));
+        when(users.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+        when(jwt.issue(any(), any(), any())).thenReturn("tok");
+
+        controller.google(Map.of("credential", "tok"));
+
+        ArgumentCaptor<User> cap = ArgumentCaptor.forClass(User.class);
+        org.mockito.Mockito.verify(users).save(cap.capture());
+        assertEquals(hash, cap.getValue().getPasswordHash(), "a verified user's own password survives Google linking");
+    }
 }

@@ -34,27 +34,33 @@ public class DashboardController {
     private final ScrapingJobRepository scrapingJobRepository;
     private final ShopRepository shopRepository;
     private final SellerRepository sellerRepository;
+    private final org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
 
     public DashboardController(ProductRepository productRepository,
                                ReviewRepository reviewRepository,
                                PriceHistoryRepository priceHistoryRepository,
                                ScrapingJobRepository scrapingJobRepository,
                                ShopRepository shopRepository,
-                               SellerRepository sellerRepository) {
+                               SellerRepository sellerRepository,
+                               org.springframework.data.mongodb.core.MongoTemplate mongoTemplate) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.priceHistoryRepository = priceHistoryRepository;
         this.scrapingJobRepository = scrapingJobRepository;
         this.shopRepository = shopRepository;
         this.sellerRepository = sellerRepository;
+        this.mongoTemplate = mongoTemplate;
     }
 
     @GetMapping("/stats")
     @Cacheable("dashboard-stats")
     public ResponseEntity<DashboardStats> getStats() {
-        long totalProducts    = safe(() -> productRepository.count());
-        long totalReviews     = safe(() -> reviewRepository.count());
-        long totalPricePoints = safe(() -> priceHistoryRepository.count());
+        // estimatedCount = O(1) collection metadata, not a full countDocuments
+        // scan. price_history has millions of rows, so count() there was 7-11s on
+        // every cache miss (Redis is best-effort, so misses are common).
+        long totalProducts    = safe(() -> mongoTemplate.estimatedCount(Product.class));
+        long totalReviews     = safe(() -> mongoTemplate.estimatedCount(com.damKemon.dam.kemon.model.Review.class));
+        long totalPricePoints = safe(() -> mongoTemplate.estimatedCount(com.damKemon.dam.kemon.model.PriceHistory.class));
 
         List<String> recentSearches = safeList(() -> scrapingJobRepository.findTop10ByOrderByStartedAtDesc().stream()
                 .map(ScrapingJob::getQuery).filter(Objects::nonNull).distinct().limit(5)

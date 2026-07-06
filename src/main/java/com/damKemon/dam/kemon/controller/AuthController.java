@@ -293,6 +293,20 @@ public class AuthController {
                         .build();
             } else {
                 u = matches.get(0);
+                // Account pre-hijacking guard: if this email was NEVER verified,
+                // any password on the row was set by someone who couldn't prove
+                // they own the inbox (an attacker pre-registering the victim's
+                // email). Google just proved true ownership, so wipe that password
+                // and any pending tokens — the attacker's credential dies, and the
+                // real owner can set a fresh password via forgot-password. A
+                // legitimately-verified email+password user keeps their password.
+                if (!Boolean.TRUE.equals(u.getEmailVerified())) {
+                    u.setPasswordHash(null);
+                    u.setVerifyToken(null);
+                    u.setVerifyTokenExpiry(null);
+                    u.setResetToken(null);
+                    u.setResetTokenExpiry(null);
+                }
                 if (u.getGoogleSub() == null) u.setGoogleSub(sub);
                 u.setEmailVerified(true);       // Google proved the inbox
                 if (u.getAvatarUrl() == null) u.setAvatarUrl(picture);
