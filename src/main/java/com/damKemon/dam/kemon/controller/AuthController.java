@@ -431,6 +431,21 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("ok", true));
     }
 
+    /**
+     * Public client config. The frontend reads the Google client id from HERE at
+     * runtime instead of a build-time env var, so the backend {@code GOOGLE_CLIENT_ID}
+     * env is the single source of truth — no CI variable, no frontend rebuild when
+     * it changes. A Google OAuth client id is public by design (it ships in every
+     * Google sign-in button), so serving it is not a disclosure. Empty = the
+     * button hides itself.
+     */
+    @GetMapping("/config")
+    public ResponseEntity<Map<String, Object>> config() {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("googleClientId", googleClientId == null ? "" : googleClientId);
+        return ResponseEntity.ok(out);
+    }
+
     // ─────────────────────────────── Helpers ───────────────────────────────
 
     private void sendVerificationMailAsync(User u) {
