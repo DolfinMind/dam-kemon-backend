@@ -107,12 +107,14 @@ public class ShowcaseService {
             for (Document d : cats) {
                 String cat = d.getString("_id");
                 if (cat == null || cat.isBlank()) continue;
-                // Over-fetch (the guards below drop miscategorised / imageless /
-                // hidden-shop rows), exact category match so the index applies.
+                // Deep over-fetch (up to 200 freshest): the freshest rows in a
+                // polluted category are often the junk (a batch of routers just
+                // crawled into "smartphones"), so we must scan past them to find
+                // the real members. Exact category match keeps the index in play.
                 List<Product> rows = mongo.find(
                         Query.query(Criteria.where("category").is(cat))
                                 .with(Sort.by(Sort.Direction.DESC, "updatedAt"))
-                                .limit(PER_CATEGORY * 5),
+                                .limit(200),
                         Product.class);
                 List<Product> keep = new ArrayList<>(PER_CATEGORY);
                 for (Product p : rows) {
@@ -120,12 +122,15 @@ public class ShowcaseService {
                     shopVisibility.stripInPlace(p);
                     if (p.getPrices() == null || p.getPrices().isEmpty()) continue;
                     if (p.getLowestPrice() == null || p.getImageUrl() == null) continue;
-                    // Re-classify guard: the rail only shows products today's
-                    // classifier would file under this rail. "general" (no
-                    // signal) gets the benefit of the doubt.
+                    // Strict guard: the rail shows a product ONLY when today's
+                    // classifier POSITIVELY files it under this exact rail. A row
+                    // whose stored category is wrong (indexer misclassified it) is
+                    // excluded even if it hasn't been re-indexed yet — the homepage
+                    // never inherits stale category data. ("general" no longer
+                    // gets a pass; a curated rail wants certainty.)
                     String reclass = classifier.classify(p.getName())
                             .primaryCategory().getLabel().toLowerCase();
-                    if (!"general".equals(reclass) && !reclass.equals(cat)) continue;
+                    if (!reclass.equals(cat)) continue;
                     keep.add(p);
                     if (keep.size() >= PER_CATEGORY) break;
                 }

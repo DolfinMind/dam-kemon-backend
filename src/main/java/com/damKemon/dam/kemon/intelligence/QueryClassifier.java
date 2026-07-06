@@ -51,7 +51,11 @@ public class QueryClassifier {
      *  Weight 1: still enough to win when nothing else matches ("mobile" alone
      *  → smartphones), never enough to beat a real object word. */
     private static final Set<String> CONTEXT_WORDS = Set.of(
-            "galaxy","note","ultra","mobile","mobiles","mobail","audio");
+            "galaxy","note","ultra","mobile","mobiles","mobail","audio",
+            // "android" is an OS, not a form factor — set-top boxes, car players,
+            // TV boxes and projectors all say it. Weight 1 still wins for a bare
+            // "android" query but never beats a real object word.
+            "android");
 
     /** Dedup-safe set builder (Set.of throws on duplicates; this doesn't). */
     private static Set<String> kw(String... s) { return new HashSet<>(Arrays.asList(s)); }
@@ -92,7 +96,12 @@ public class QueryClassifier {
             "network switch","modem","ont","onu","lan card","wifi adapter","usb wifi","powerline","রাউটার",
             // pocket/SIM routers name themselves "mobile …" — must not read as phones
             "pocket router","mobile router","4g router","lte router","5g router","sim router",
-            "mobile wifi","mobile hotspot","mifi"
+            "mobile wifi","mobile hotspot","mifi",
+            // switches read as DESKTOP because the word "desktop switch" contains
+            // "desktop"; the compound must outweigh it. + fiber-line gear.
+            "switch","gigabit switch","desktop switch","poe switch","port switch",
+            "ethernet switch","rackmount switch","managed switch","unmanaged switch",
+            "gpon","epon","olt","fiber router","optical network"
         ));
         KW.put(ProductCategory.PRINTER, kw(
             "printer","scanner","all in one printer","inkjet","laserjet","laser printer","photocopier","ink cartridge",
@@ -127,7 +136,8 @@ public class QueryClassifier {
         ));
         KW.put(ProductCategory.TV, kw(
             "tv","television","smart tv","led tv","oled","qled","4k tv","8k tv","android tv","google tv","fire tv",
-            "tv box","android box","projector","টিভি","টেলিভিশন"
+            "tv box","android box","set top box","set-top box","tv stick","streaming stick","projector",
+            "টিভি","টেলিভিশন"
         ));
         KW.put(ProductCategory.AC, kw(
             "ac","air conditioner","split ac","window ac","inverter ac","portable ac","aircon","1 ton ac",
