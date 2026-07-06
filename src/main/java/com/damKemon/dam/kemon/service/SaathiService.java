@@ -226,12 +226,32 @@ public class SaathiService {
         List<Product> raw = resp.getProducts();
         final List<Product> hits = (raw == null) ? List.of() : raw;
 
-        // Best catalog match — first organic, skipping any sponsored slot we
-        // injected for consumers (sellers want the real competitor picture).
-        Product best = hits.stream()
-                .filter(p -> p.getId() != null && !Boolean.TRUE.equals(p.getSponsored()))
-                .findFirst()
-                .orElseGet(() -> hits.isEmpty() ? null : hits.get(0));
+        // PREFER THE SELLER'S OWN LISTING. The whole point of live-assist is to
+        // answer "what's your price?" with THEIR price — so among the search
+        // hits, pick the first product this seller actually lists, before falling
+        // back to the global best match. Without this, a query like "iphone 15"
+        // could match a different (e.g. used) catalog row than the one the seller
+        // stocks, and their own price would never surface.
+        Product best = null;
+        if (acc != null && !hits.isEmpty()) {
+            Set<String> mine = new HashSet<>();
+            for (SaathiProduct sp : products.findBySaathiId(acc.getId())) {
+                if (sp.getProductId() != null) mine.add(sp.getProductId());
+            }
+            if (!mine.isEmpty()) {
+                for (Product p : hits) {
+                    if (p.getId() != null && mine.contains(p.getId())) { best = p; break; }
+                }
+            }
+        }
+        // Fall back to the best organic match (skip any sponsored slot we inject
+        // for consumers — sellers want the real competitor picture).
+        if (best == null) {
+            best = hits.stream()
+                    .filter(p -> p.getId() != null && !Boolean.TRUE.equals(p.getSponsored()))
+                    .findFirst()
+                    .orElseGet(() -> hits.isEmpty() ? null : hits.get(0));
+        }
         result.setMatch(best);
 
         // Their own listing for this catalog id, if any.
