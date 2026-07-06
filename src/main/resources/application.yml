@@ -197,12 +197,17 @@ owner:
   password: "${OWNER_PASSWORD:$Sm7406.2025}"
   email: "${OWNER_EMAIL:}"
 
-# ───── JWT session signing ─────
-# Used to sign the bearer token issued by POST /api/auth/login. No external
+# ───── JWT session signing + Google sign-in ─────
+# jwt-secret signs the bearer token issued by POST /api/auth/login. No external
 # service — HMAC-SHA256 with this secret. 32+ chars in prod.
+# google-client-id is the OAuth web client id from Google Cloud console; the
+# SAME id must be built into the frontend (VITE_GOOGLE_CLIENT_ID). Blank = the
+# /api/auth/google endpoint answers 503 and the frontend hides the button —
+# safe to deploy unconfigured.
 auth:
   jwt-secret: ${AUTH_JWT_SECRET:}
   jwt-ttl-days: ${AUTH_JWT_TTL_DAYS:30}
+  google-client-id: ${GOOGLE_CLIENT_ID:}
 
 # ───── Resend API Integration ─────
 # Used for sending Newsletter welcomes and Feedback emails
@@ -210,13 +215,6 @@ auth:
 # (verify-email, password-reset, price-drop alerts).
 app:
   site-url: ${APP_SITE_URL:https://damkemon.com}
-
-# ───── Google sign-in ─────
-# OAuth web client id from Google Cloud console. The SAME id must be built into
-# the frontend (VITE_GOOGLE_CLIENT_ID). Blank = the /api/auth/google endpoint
-# answers 503 and the frontend hides the button — safe to deploy unconfigured.
-auth:
-  google-client-id: ${GOOGLE_CLIENT_ID:}
 
 resend:
   api-key: ${RESEND_API_KEY:}
