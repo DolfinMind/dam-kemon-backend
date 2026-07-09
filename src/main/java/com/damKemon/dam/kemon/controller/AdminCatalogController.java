@@ -54,10 +54,17 @@ public class AdminCatalogController {
     public ResponseEntity<?> list(
             @RequestParam(value = "q", required = false) String q,
             @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "sort", required = false) String sort,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "30") int size) {
         try {
-            Query query = new Query().with(PageRequest.of(page, Math.min(size, 100)));
+            PageRequest pr = PageRequest.of(page, Math.min(size, 100));
+            if ("date_desc".equals(sort)) {
+                pr = PageRequest.of(page, Math.min(size, 100), org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+            } else if ("date_asc".equals(sort)) {
+                pr = PageRequest.of(page, Math.min(size, 100), org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "createdAt"));
+            }
+            Query query = new Query().with(pr);
             if (q != null && !q.isBlank()) {
                 query.addCriteria(Criteria.where("name").regex(java.util.regex.Pattern.quote(q), "i"));
             }
