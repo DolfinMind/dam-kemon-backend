@@ -116,7 +116,8 @@ public class ShowcaseService {
                                 .with(Sort.by(Sort.Direction.DESC, "updatedAt"))
                                 .limit(200),
                         Product.class);
-                List<Product> keep = new ArrayList<>(PER_CATEGORY);
+                // Collect ALL valid candidates, then pick by highest seller count.
+                List<Product> candidates = new ArrayList<>();
                 for (Product p : rows) {
                     if (p.getName() == null) continue;
                     shopVisibility.stripInPlace(p);
@@ -131,9 +132,15 @@ public class ShowcaseService {
                     String reclass = classifier.classify(p.getName())
                             .primaryCategory().getLabel().toLowerCase();
                     if (!reclass.equals(cat)) continue;
-                    keep.add(p);
-                    if (keep.size() >= PER_CATEGORY) break;
+                    candidates.add(p);
                 }
+                // Sort by number of sellers (prices) descending — products
+                // with the most sellers headline the homepage rail.
+                candidates.sort(Comparator.comparingInt(
+                        (Product p) -> p.getPrices().size()).reversed());
+                List<Product> keep = candidates.size() > PER_CATEGORY
+                        ? candidates.subList(0, PER_CATEGORY)
+                        : candidates;
                 if (keep.isEmpty()) continue;
                 Map<String, Object> section = new LinkedHashMap<>();
                 section.put("category", cat);
