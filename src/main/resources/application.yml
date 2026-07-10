@@ -48,6 +48,14 @@ scraper:
     - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0"
 
+# ───── IndexNow (Bing/Yandex instant indexing) ─────
+# The key doubles as the ownership proof: SitemapController serves it at
+# /{key}.txt. Pings only fire when enabled (set INDEXNOW_ENABLED=true on the
+# JVM that runs the indexer).
+indexnow:
+  enabled: ${INDEXNOW_ENABLED:false}
+  key: ${INDEXNOW_KEY:ad7958e779cb42a4b88f07514ebb823b}
+
 # ───── Nightly catalog indexer ─────
 indexer:
   # Cron expression for daily run. Default: 03:00 local time.

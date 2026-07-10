@@ -13,6 +13,7 @@ import com.damKemon.dam.kemon.scraper.ExtractorRegistry;
 import com.damKemon.dam.kemon.scraper.ProductExtractor;
 import com.damKemon.dam.kemon.scraper.ScrapedProduct;
 import com.damKemon.dam.kemon.service.CategoryFocusService;
+import com.damKemon.dam.kemon.service.IndexNowService;
 import com.damKemon.dam.kemon.service.ShopHealthService;
 import java.time.Instant;
 import org.slf4j.Logger;
@@ -78,6 +79,7 @@ public class BulkIndexer {
     private final DomCardHarvester domCardHarvester;
     private final CategoryFocusService categoryFocus;
     private final MongoTemplate mongoTemplate;
+    private final IndexNowService indexNow;
 
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
@@ -136,7 +138,8 @@ public class BulkIndexer {
                        ApiSniffer apiSniffer,
                        DomCardHarvester domCardHarvester,
                        CategoryFocusService categoryFocus,
-                       MongoTemplate mongoTemplate) {
+                       MongoTemplate mongoTemplate,
+                       IndexNowService indexNow) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
@@ -152,6 +155,7 @@ public class BulkIndexer {
         this.domCardHarvester = domCardHarvester;
         this.categoryFocus = categoryFocus;
         this.mongoTemplate = mongoTemplate;
+        this.indexNow = indexNow;
     }
 
     /**
@@ -809,6 +813,7 @@ public class BulkIndexer {
         Product saved = safeSave(p);
         if (saved != null && saved.getId() != null) {
             lsh.add(saved.getId(), normName, null);
+            indexNow.submit(saved.getSlug());
         }
         inserted.incrementAndGet();
         return true;
@@ -842,6 +847,7 @@ public class BulkIndexer {
         Product saved = safeSave(existing);
         if (saved != null && saved.getId() != null) {
             lsh.add(saved.getId(), normaliseForMatching(saved.getName()), null);
+            indexNow.submit(saved.getSlug());
         }
         merged.incrementAndGet();
     }

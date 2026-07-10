@@ -305,8 +305,8 @@
     "semantic_hash": "ac13216578add6735e446faae3df8eb4"
   },
   "src/main/java/com/damKemon/dam/kemon/controller/SitemapController.java": {
-    "mtime": 1783682999.244237,
-    "ast_hash": "4469157eead0034f4f4a7228d343699c",
+    "mtime": 1783684163.779809,
+    "ast_hash": "e5f7012b1739d160024c078095d2dc12",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/controller/StatsController.java": {
@@ -350,8 +350,8 @@
     "semantic_hash": "7f3d991e300343e373f1311ba3a0aea5"
   },
   "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java": {
-    "mtime": 1783265850.5409703,
-    "ast_hash": "5c96a0d53a2de3e61a1fb3086f28722d",
+    "mtime": 1783684208.2671013,
+    "ast_hash": "490d0533ee9aab8ddccb722d5285750c",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/indexer/CatalogRemergeService.java": {
@@ -1235,8 +1235,8 @@
     "semantic_hash": "1f6a073916d642ecd7044ec63c6393c5"
   },
   "src/main/resources/application.yml": {
-    "mtime": 1783427890.2993994,
-    "ast_hash": "3e725e54c3ffde4009043c99db3f66eb",
+    "mtime": 1783684231.2103932,
+    "ast_hash": "cc833ad1764642f90975fa1304e0756e",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/ShopVisibilityService.java": {
@@ -1277,6 +1277,26 @@
   "ops/trigger.txt": {
     "mtime": 1783676324.228788,
     "ast_hash": "6fc8ad2d58a14c64feca87d90df4bf71",
+    "semantic_hash": ""
+  },
+  "src/main/java/com/damKemon/dam/kemon/controller/SharePreviewController.java": {
+    "mtime": 1783683858.9697633,
+    "ast_hash": "89b9d8ea972fb34e4874cd14650fa30e",
+    "semantic_hash": ""
+  },
+  "src/test/java/com/damKemon/dam/kemon/controller/SharePreviewControllerTest.java": {
+    "mtime": 1783683874.1389508,
+    "ast_hash": "a1e370df43b724ea1d264d39da6a322b",
+    "semantic_hash": ""
+  },
+  "src/main/java/com/damKemon/dam/kemon/service/IndexNowService.java": {
+    "mtime": 1783684117.1658616,
+    "ast_hash": "75d6a5348328ce3049da76d33e0b8104",
+    "semantic_hash": ""
+  },
+  "src/test/java/com/damKemon/dam/kemon/service/IndexNowServiceTest.java": {
+    "mtime": 1783684243.7821546,
+    "ast_hash": "bcaf427ada0a2676dc56e257e223eaa0",
     "semantic_hash": ""
   }
 }
