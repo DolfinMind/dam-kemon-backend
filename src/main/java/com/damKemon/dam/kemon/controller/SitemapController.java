@@ -28,7 +28,9 @@ public class SitemapController {
 
     private final ProductRepository productRepository;
 
-    @Value("${auth.web-url:http://localhost:5173}")
+    // Default to the public domain, NOT localhost: prod never set AUTH_WEB_URL,
+    // which shipped a sitemap full of http://localhost:5173 URLs to Google.
+    @Value("${auth.web-url:https://damkemon.com}")
     private String webUrl;
 
     public SitemapController(ProductRepository productRepository) {
