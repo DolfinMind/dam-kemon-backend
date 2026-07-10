@@ -1,11 +1,13 @@
 package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.service.AnalyticsService;
+import com.damKemon.dam.kemon.service.AdminAnalyticsService;
 import com.damKemon.dam.kemon.util.ClientIp;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,9 +23,11 @@ import java.util.Map;
 public class AnalyticsController {
 
     private final AnalyticsService analytics;
+    private final AdminAnalyticsService adminAnalytics;
 
-    public AnalyticsController(AnalyticsService analytics) {
+    public AnalyticsController(AnalyticsService analytics, AdminAnalyticsService adminAnalytics) {
         this.analytics = analytics;
+        this.adminAnalytics = adminAnalytics;
     }
 
     @PostMapping("/view")
@@ -73,6 +77,16 @@ public class AnalyticsController {
                 asString(body.get("referer")),
                 req.getHeader("User-Agent"));
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Public endpoint to get trending/hot products based on outbound clicks in the last 24h.
+     * Used for the /trending page and Social Proof UI.
+     */
+    @GetMapping("/trending")
+    public ResponseEntity<List<Map<String, Object>>> trending() {
+        // Return top 24 clicked products in the last 1 day.
+        return ResponseEntity.ok(adminAnalytics.topClickedProducts(1, 24));
     }
 
     private static String asString(Object o) {
