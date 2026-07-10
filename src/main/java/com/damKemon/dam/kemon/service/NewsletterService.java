@@ -152,6 +152,12 @@ public class NewsletterService {
             + "<tr><td align=\"center\" style=\"padding:20px 24px 8px;\">"
             + "<a href=\"" + siteUrl + "\" style=\"display:inline-block;background:#c8f032;color:#15131a;font-weight:800;font-size:14px;text-decoration:none;padding:13px 28px;border-radius:999px;\">Browse all deals →</a>"
             + "</td></tr>"
+            // growth loop: the reader is the cheapest acquisition channel
+            + "<tr><td align=\"center\" style=\"padding:14px 24px 0;color:#6b6b6b;font-size:13px;line-height:1.6;\">"
+            + "Watching a price? <a href=\"" + siteUrl + "\" style=\"color:#15131a;font-weight:700;\">Set a drop alert</a>"
+            + " and we'll email you the moment it gets cheaper.<br>"
+            + "Know someone who overpays for tech? Forward them this email."
+            + "</td></tr>"
             // footer
             + "<tr><td style=\"padding:24px;color:#9a9a9a;font-size:11px;line-height:1.6;text-align:center;\">"
             + "You're getting this because you subscribed to the Damkemon weekly.<br>"

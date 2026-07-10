@@ -45,6 +45,7 @@ public class HeadlineStatsService {
     private final AffiliateClickRepository clicks;
     private final HotDropsService hotDrops;
     private final MongoTemplate mongo;
+    private final com.damKemon.dam.kemon.repository.NewsletterSubscriberRepository newsletter;
 
     /** Baselines so the widgets always feel alive. Tune or zero via env. */
     @Value("${headline.baseline.saved-this-month:230000}")
@@ -57,11 +58,13 @@ public class HeadlineStatsService {
     public HeadlineStatsService(AnalyticsEventRepository events,
                                 AffiliateClickRepository clicks,
                                 HotDropsService hotDrops,
-                                MongoTemplate mongo) {
+                                MongoTemplate mongo,
+                                com.damKemon.dam.kemon.repository.NewsletterSubscriberRepository newsletter) {
         this.events = events;
         this.clicks = clicks;
         this.hotDrops = hotDrops;
         this.mongo = mongo;
+        this.newsletter = newsletter;
     }
 
     @Cacheable("headline-stats")
@@ -96,6 +99,14 @@ public class HeadlineStatsService {
         out.put("comparisonsToday", comparisons);
         out.put("dropsThisWeek", drops);
         out.put("priceRefreshHours", 24);
+
+        // Real subscriber count for the newsletter CTAs; the frontend hides
+        // it below a floor, so an early list never reads as weak proof.
+        try {
+            out.put("newsletterReaders", newsletter.count());
+        } catch (Exception e) {
+            log.debug("headline: readers fallback ({})", e.getMessage());
+        }
         return out;
     }
 

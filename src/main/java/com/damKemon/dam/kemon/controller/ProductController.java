@@ -42,6 +42,14 @@ public class ProductController {
         return ResponseEntity.ok(productService.getCategories());
     }
 
+    /** Homepage rail: products offered by the most sellers (max side-by-side value). */
+    @GetMapping("/most-sellers")
+    public ResponseEntity<List<Product>> mostSellers(
+            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestParam(value = "minSellers", defaultValue = "2") int minSellers) {
+        return ResponseEntity.ok(productService.mostSellers(Math.max(1, Math.min(limit, 24)), minSellers));
+    }
+
     /** Homepage rails, PRECOMPUTED in ShowcaseService — a volatile read, so
      *  the landing page never waits on category queries. */
     @GetMapping("/showcase")

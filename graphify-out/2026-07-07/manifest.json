@@ -225,9 +225,9 @@
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/controller/EngagementController.java": {
-    "mtime": 1783430055.0406735,
-    "ast_hash": "02616c5cd7c20b284927b0493711dee8",
-    "semantic_hash": ""
+    "mtime": 1782057330.9368906,
+    "ast_hash": "176e55d934bd6ae03fc430324d93756e",
+    "semantic_hash": "176e55d934bd6ae03fc430324d93756e"
   },
   "src/main/java/com/damKemon/dam/kemon/controller/FcommerceController.java": {
     "mtime": 1779208959.470069,
@@ -915,9 +915,9 @@
     "semantic_hash": "8aaff884c7e077603355800a3a68211c"
   },
   "src/main/java/com/damKemon/dam/kemon/service/HeadlineStatsService.java": {
-    "mtime": 1783430118.819907,
-    "ast_hash": "7905be78e8e7fb15152bd3aecba09e7b",
-    "semantic_hash": ""
+    "mtime": 1782054231.9497724,
+    "ast_hash": "b4fa35b9f472e240c33c6d253de84ffb",
+    "semantic_hash": "b4fa35b9f472e240c33c6d253de84ffb"
   },
   "src/main/java/com/damKemon/dam/kemon/service/HotDropsService.java": {
     "mtime": 1783265850.5447805,
@@ -940,9 +940,9 @@
     "semantic_hash": "0e1ae69f0c603741ffe882c7293a296d"
   },
   "src/main/java/com/damKemon/dam/kemon/service/NewsletterService.java": {
-    "mtime": 1783430068.9338872,
-    "ast_hash": "b46be0a106d768e3c26eaaab53877ca2",
-    "semantic_hash": ""
+    "mtime": 1782137465.1333537,
+    "ast_hash": "bfa2891b2c1a150783eff8c71bd8aa46",
+    "semantic_hash": "bfa2891b2c1a150783eff8c71bd8aa46"
   },
   "src/main/java/com/damKemon/dam/kemon/service/OperatorStatsService.java": {
     "mtime": 1783265850.5451121,

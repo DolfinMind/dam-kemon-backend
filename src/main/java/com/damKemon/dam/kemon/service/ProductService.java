@@ -219,6 +219,42 @@ public class ProductService {
         }
     }
 
+    /**
+     * Homepage "most compared" rail: the products offered by the most sellers.
+     * Mongo ranks ids by raw offer count on a slim projection (cheap sort),
+     * then we re-check against VISIBLE offers after shop-visibility stripping,
+     * over-fetching 3× to survive it. Cached 60s like the showcase.
+     */
+    @org.springframework.cache.annotation.Cacheable(value = "most-sellers", key = "{#limit, #minSellers}")
+    public List<Product> mostSellers(int limit, int minSellers) {
+        try {
+            List<org.bson.Document> pipeline = List.of(
+                    new org.bson.Document("$project", new org.bson.Document("sellerCount",
+                            new org.bson.Document("$size", new org.bson.Document("$ifNull",
+                                    java.util.Arrays.asList("$prices", List.of()))))),
+                    new org.bson.Document("$match", new org.bson.Document("sellerCount",
+                            new org.bson.Document("$gte", minSellers))),
+                    new org.bson.Document("$sort", new org.bson.Document("sellerCount", -1)),
+                    new org.bson.Document("$limit", (long) limit * 3));
+            List<String> ids = new java.util.ArrayList<>();
+            mongoTemplate.getCollection("products").aggregate(pipeline)
+                    .forEach(d -> ids.add(d.get("_id").toString()));
+            List<Product> keep = new java.util.ArrayList<>(limit);
+            for (Product p : findByIds(ids)) {
+                shopVisibility.stripInPlace(p);
+                if (p.getPrices() == null || p.getPrices().size() < minSellers) continue;
+                if (p.getLowestPrice() == null || p.getImageUrl() == null) continue;
+                keep.add(p);
+            }
+            // Stable sort: ties keep the Mongo rank order.
+            keep.sort((a, b) -> b.getPrices().size() - a.getPrices().size());
+            return keep.size() > limit ? new java.util.ArrayList<>(keep.subList(0, limit)) : keep;
+        } catch (Exception e) {
+            // Landing page must render without this rail rather than 500.
+            return List.of();
+        }
+    }
+
     /** Bulk lookup preserving the caller's order. Missing ids are skipped. */
     public List<Product> findByIds(List<String> ids) {
         if (ids == null || ids.isEmpty()) return Collections.emptyList();

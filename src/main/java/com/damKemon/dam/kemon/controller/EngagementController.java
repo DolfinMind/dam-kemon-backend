@@ -95,11 +95,13 @@ public class EngagementController {
         String email = payload.get("email");
         String message = payload.get("message");
 
-        if (email == null || email.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
-        }
+        // Email is optional: one-click pulse votes arrive anonymous. The
+        // contact form still requires it client-side so replies stay possible.
         if (message == null || message.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Message is required"));
+        }
+        if (message.length() > 2000) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Message too long"));
         }
 
         Feedback feedback = new Feedback();
@@ -109,17 +111,19 @@ public class EngagementController {
         feedback.setSubmittedAt(Instant.now());
         feedbackRepo.save(feedback);
 
-        // Notify support
-        String subject = "New Feedback from " + (name != null && !name.isEmpty() ? name : "Anonymous");
-        String htmlContent = "<div style=\"font-family: sans-serif;\">"
-                + "<h3>New Feedback Submission</h3>"
-                + "<p><strong>Name:</strong> " + (name != null ? name : "N/A") + "</p>"
-                + "<p><strong>Email:</strong> " + (email != null ? email : "N/A") + "</p>"
-                + "<p><strong>Message:</strong></p>"
-                + "<blockquote style=\"border-left: 4px solid #ccc; padding-left: 10px;\">" + message.replace("\n", "<br>") + "</blockquote>"
-                + "</div>";
-
-        resendService.sendEmail(feedbackEmail, subject, htmlContent);
+        // Notify support only when there's a reply path — anonymous pulse
+        // votes are just stored, so thumbs clicks never spam the inbox.
+        if (email != null && !email.trim().isEmpty()) {
+            String subject = "New Feedback from " + (name != null && !name.isEmpty() ? name : "Anonymous");
+            String htmlContent = "<div style=\"font-family: sans-serif;\">"
+                    + "<h3>New Feedback Submission</h3>"
+                    + "<p><strong>Name:</strong> " + (name != null ? name : "N/A") + "</p>"
+                    + "<p><strong>Email:</strong> " + email + "</p>"
+                    + "<p><strong>Message:</strong></p>"
+                    + "<blockquote style=\"border-left: 4px solid #ccc; padding-left: 10px;\">" + message.replace("\n", "<br>") + "</blockquote>"
+                    + "</div>";
+            resendService.sendEmail(feedbackEmail, subject, htmlContent);
+        }
 
         return ResponseEntity.ok(Map.of("success", true, "message", "Feedback submitted"));
     }
