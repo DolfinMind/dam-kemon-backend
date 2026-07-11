@@ -7,6 +7,7 @@ import com.damKemon.dam.kemon.intelligence.QueryExpander;
 import com.damKemon.dam.kemon.intelligence.QueryIntent;
 import com.damKemon.dam.kemon.intelligence.TrigramSearchIndex;
 import com.damKemon.dam.kemon.model.Product;
+import com.damKemon.dam.kemon.model.SitePrice;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
@@ -101,5 +102,44 @@ class CatalogSearchServiceRecallTest {
         // Broadening keys off the distinctive word "iphone", so off-brand stays out.
         assertFalse(names.stream().anyMatch(n -> n.contains("Samsung")),
                 "off-brand product must not be pulled in by the relaxation; got " + names);
+    }
+
+    @Test
+    void inStockOutranksOutOfStockAtEqualRelevance() {
+        // Prod bug: stale out-of-stock listings tied with live ones on every
+        // ranking term, so a dead ৳2-lakh listing beat the buyable phone.
+        Product oos = Product.builder().id("oos").name("Apple iPhone 16 Plus 256GB Smartphone")
+                .category("smartphones").lowestPrice(199999.0)
+                .prices(List.of(SitePrice.builder().siteName("Techland").price(199999.0).inStock(false).build()))
+                .build();
+        Product live = Product.builder().id("live").name("Apple iPhone 16 Plus 128GB Smartphone")
+                .category("smartphones").lowestPrice(120000.0)
+                .prices(List.of(SitePrice.builder().siteName("Daraz").price(120000.0).inStock(true).build()))
+                .build();
+
+        SearchResponse resp = serviceWith(List.of(oos, live)).search("iphone 16", 0, 20);
+        List<String> ids = resp.getProducts().stream().map(Product::getId).toList();
+
+        assertTrue(ids.contains("live") && ids.contains("oos"), "both phones should be recalled; got " + ids);
+        assertTrue(ids.indexOf("live") < ids.indexOf("oos"),
+                "in-stock product must rank above the out-of-stock one; got " + ids);
+    }
+
+    @Test
+    void audioAccessoryHiddenOnDeviceQueryEvenWhenMiscategorized() {
+        // Prod bug: "EarPods For iPhone 15 Series" was miscategorized as
+        // "smartphones", dodging the category-based exclusion and outranking
+        // real phones. The name pattern must catch it regardless of category.
+        Product phone = Product.builder().id("p").name("Apple iPhone 16 Plus 128GB Smartphone")
+                .category("smartphones").lowestPrice(120000.0).build();
+        Product earpods = Product.builder().id("a").name("Pix USB-C Connector EarPods For iPhone 16 Series")
+                .category("smartphones").lowestPrice(650.0).build();
+
+        SearchResponse resp = serviceWith(List.of(phone, earpods)).search("iphone 16", 0, 20);
+        List<String> names = resp.getProducts().stream().map(Product::getName).toList();
+
+        assertTrue(names.stream().anyMatch(n -> n.contains("iPhone 16 Plus")), "the phone must surface; got " + names);
+        assertFalse(names.stream().anyMatch(n -> n.contains("EarPods")),
+                "audio accessory must be hidden on a default device search; got " + names);
     }
 }

@@ -80,7 +80,10 @@ public class CatalogSearchService {
      *  laptop keyboard covers, and "iphone" surfaces phones, not phone cases. */
     private static final Pattern ACCESSORY = Pattern.compile(
             "\\b(case|cover|protector|tempered|glass|skin|pouch|sleeve|holder|stand|mount|film|guard|bumper|casing"
-          + "|bundle|pack|sticker|lens|charger|cable|adapter|strap|lanyard|grip|stylus|defender|screenguard)\\b");
+          + "|bundle|pack|sticker|lens|charger|cable|adapter|strap|lanyard|grip|stylus|defender|screenguard"
+          // Audio/power add-ons sold "for iPhone 15" etc. — accessories to a device
+          // query, but real products when the query itself carries one of these words.
+          + "|earphone|earphones|earbuds|earpods|airpods|headset|headphones|neckband|powerbank)\\b");
 
     /** Upper-bound price phrases — deliberately NO bare "max" (collides with "Pro Max"). */
     private static final Pattern PRICE_MAX = Pattern.compile(
@@ -584,8 +587,14 @@ public class CatalogSearchService {
         // orders a category browse by real products, not the cheapest oddity.
         int sellers = p.getPrices() == null ? 0 : p.getPrices().size();
         double popular = Math.min(sellers, 5) / 5.0;
+        // Stock: a product with no live offer is a dead end — rank it below an
+        // equally-relevant in-stock one. Unknown stock (null) counts as live so
+        // shops that don't report stock aren't punished.
+        boolean anyLive = p.getPrices() != null && p.getPrices().stream()
+                .anyMatch(sp -> !Boolean.FALSE.equals(sp.getInStock()));
+        double stockFavor = anyLive ? 0.10 : 0;
         return 0.55 * tokenCov + 0.25 * expandedCov + 0.15 * brandHit + 0.05 * priceFavor
-                - accessoryPenalty + catBoost + 0.06 * popular;
+                - accessoryPenalty + catBoost + 0.06 * popular + stockFavor;
     }
 
     private static double coverage(String name, List<String> tokens) {
