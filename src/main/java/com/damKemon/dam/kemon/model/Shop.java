@@ -96,6 +96,14 @@ public class Shop {
     @Builder.Default
     private Integer lastIndexedCount = 0;
 
+    /**
+     * Live catalog truth: distinct products currently carrying one of this
+     * shop's offers. Denormalised (recomputed on admin list loads, ≤10 min
+     * stale) because {@code lastIndexedCount} only reflects the last CRAWL —
+     * feed-sync, manual ingest, merges and remerges all drift away from it.
+     */
+    private Integer catalogCount;
+
     /** Most recent error message, if {@code status == "blocked"}. */
     private String lastError;
 

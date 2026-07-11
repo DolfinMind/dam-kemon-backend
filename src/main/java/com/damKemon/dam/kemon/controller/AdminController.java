@@ -19,6 +19,9 @@ import com.damKemon.dam.kemon.repository.ShopRepository;
 import com.damKemon.dam.kemon.service.HotDropsService;
 import com.damKemon.dam.kemon.service.MarketplaceSellerService;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -337,34 +340,129 @@ public class AdminController {
         return ResponseEntity.ok(out);
     }
 
-    @GetMapping("/shops")
-    public ResponseEntity<List<Map<String, Object>>> listShops() {
+    private final java.util.concurrent.atomic.AtomicLong countsRefreshedAt =
+            new java.util.concurrent.atomic.AtomicLong(0);
+
+    /**
+     * Recompute every shop's {@code catalogCount} (distinct products currently
+     * carrying that shop's offer) and denormalise it onto the shop docs, so the
+     * admin table can page/sort by the TRUE count. {@code lastIndexedCount}
+     * only reflects the last crawl — feed-sync, manual ingest and remerges all
+     * drift from it, which is why the Products column read wrong.
+     * ponytail: refreshed lazily on admin loads with a 10-min TTL (~1s pass
+     * over the catalog); move to a scheduler if admins ever feel the first hit.
+     */
+    private void refreshCatalogCountsIfStale() {
+        long now = System.currentTimeMillis();
+        long last = countsRefreshedAt.get();
+        if (now - last < 10 * 60_000L || !countsRefreshedAt.compareAndSet(last, now)) return;
         try {
-            List<Shop> shops = shopRepository.findAll();
-            List<Map<String, Object>> out = shops.stream().map(s -> {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("slug", s.getSlug());
-                m.put("name", s.getName());
-                m.put("baseUrl", s.getBaseUrl());
-                m.put("platform", s.getPlatform());
-                m.put("feedUrl", s.getFeedUrl());
-                m.put("categories", s.getCategories());
-                m.put("status", s.getStatus());
-                m.put("blockedBy", s.getBlockedBy());
-                m.put("health", s.getHealth());
-                m.put("consecutiveFailures", s.getConsecutiveFailures());
-                m.put("needsRetry", s.getNeedsRetry());
-                m.put("sitemapUrl", s.getSitemapUrl());
-                m.put("lastIndexedAt", s.getLastIndexedAt());
-                m.put("lastIndexedCount", s.getLastIndexedCount());
-                m.put("lastError", s.getLastError());
-                m.put("recentRuns", s.getRecentRuns());
-                return m;
-            }).toList();
-            return ResponseEntity.ok(out);
-        } catch (DataAccessException e) {
-            return ResponseEntity.ok(Collections.emptyList());
+            List<org.bson.Document> pipeline = List.of(
+                    new org.bson.Document("$project", new org.bson.Document("slugs",
+                            new org.bson.Document("$setUnion", List.of(
+                                    new org.bson.Document("$ifNull", List.of("$prices.siteSlug", List.of())),
+                                    List.of())))),
+                    new org.bson.Document("$unwind", "$slugs"),
+                    new org.bson.Document("$group", new org.bson.Document("_id", "$slugs")
+                            .append("n", new org.bson.Document("$sum", 1))));
+            Map<String, Integer> counts = new LinkedHashMap<>();
+            mongoTemplate.getCollection("products").aggregate(pipeline).allowDiskUse(true)
+                    .forEach(d -> counts.put(String.valueOf(d.get("_id")), ((Number) d.get("n")).intValue()));
+            // Zero first (separate call, so ordering vs the unordered bulk is safe):
+            // a shop whose products all merged away must not keep a stale count.
+            mongoTemplate.updateMulti(new Query(),
+                    new org.springframework.data.mongodb.core.query.Update().set("catalogCount", 0), Shop.class);
+            if (!counts.isEmpty()) {
+                var bulk = mongoTemplate.bulkOps(
+                        org.springframework.data.mongodb.core.BulkOperations.BulkMode.UNORDERED, Shop.class);
+                for (Map.Entry<String, Integer> e : counts.entrySet()) {
+                    bulk.updateMulti(new Query(Criteria.where("slug").is(e.getKey())),
+                            new org.springframework.data.mongodb.core.query.Update().set("catalogCount", e.getValue()));
+                }
+                bulk.execute();
+            }
+        } catch (Exception e) {
+            log.warn("catalog-count refresh failed: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Shop list. Without {@code page} it keeps the legacy full-array shape
+     * (growth scripts parse that); with {@code page} it returns a Mongo-side
+     * paginated {@code {shops, page, size, totalElements}} so the admin table
+     * never pulls the whole collection. {@code recentRuns} is dropped from both
+     * shapes — nothing reads it and it was the bulk of the old payload.
+     */
+    @GetMapping("/shops")
+    public ResponseEntity<?> listShops(
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "size", defaultValue = "100") int size,
+            @RequestParam(value = "q", required = false) String q,
+            @RequestParam(value = "health", required = false) String health,
+            @RequestParam(value = "sort", defaultValue = "name") String sort) {
+        try {
+            if (page == null) {
+                return ResponseEntity.ok(shopRepository.findAll().stream()
+                        .map(AdminController::shopRow).toList());
+            }
+            refreshCatalogCountsIfStale();
+            Query query = new Query();
+            if (q != null && !q.isBlank()) {
+                String rx = java.util.regex.Pattern.quote(q.trim());
+                query.addCriteria(new Criteria().orOperator(
+                        Criteria.where("name").regex(rx, "i"),
+                        Criteria.where("slug").regex(rx, "i")));
+            }
+            if (health != null && !health.isBlank() && !"all".equals(health)) {
+                if ("failing".equals(health)) {
+                    query.addCriteria(new Criteria().orOperator(
+                            Criteria.where("consecutiveFailures").gt(0),
+                            Criteria.where("needsRetry").is(true)));
+                } else if ("active".equals(health)) {
+                    // legacy rows have no health field — they count as active
+                    query.addCriteria(new Criteria().orOperator(
+                            Criteria.where("health").is("active"),
+                            Criteria.where("health").is(null)));
+                } else {
+                    query.addCriteria(Criteria.where("health").is(health));
+                }
+            }
+            long total = mongoTemplate.count(query, Shop.class);
+            Sort order = "products".equals(sort)
+                    ? Sort.by(Sort.Direction.DESC, "catalogCount")
+                    : Sort.by(Sort.Direction.ASC, "name");
+            query.with(PageRequest.of(Math.max(0, page), Math.max(1, Math.min(size, 500)), order));
+            query.fields().exclude("recentRuns");
+            List<Map<String, Object>> out = mongoTemplate.find(query, Shop.class).stream()
+                    .map(AdminController::shopRow).toList();
+            return ResponseEntity.ok(Map.of(
+                    "shops", out, "page", page, "size", size, "totalElements", total));
+        } catch (DataAccessException e) {
+            return ResponseEntity.ok(page == null ? Collections.emptyList()
+                    : Map.of("shops", List.of(), "totalElements", 0L));
+        }
+    }
+
+    private static Map<String, Object> shopRow(Shop s) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("slug", s.getSlug());
+        m.put("name", s.getName());
+        m.put("baseUrl", s.getBaseUrl());
+        m.put("platform", s.getPlatform());
+        m.put("feedUrl", s.getFeedUrl());
+        m.put("categories", s.getCategories());
+        m.put("status", s.getStatus());
+        m.put("blockedBy", s.getBlockedBy());
+        m.put("health", s.getHealth());
+        m.put("consecutiveFailures", s.getConsecutiveFailures());
+        m.put("needsRetry", s.getNeedsRetry());
+        m.put("sitemapUrl", s.getSitemapUrl());
+        m.put("requiresJs", s.getRequiresJs());
+        m.put("lastIndexedAt", s.getLastIndexedAt());
+        m.put("lastIndexedCount", s.getLastIndexedCount());
+        m.put("catalogCount", s.getCatalogCount());
+        m.put("lastError", s.getLastError());
+        return m;
     }
 
     @PostMapping("/shops/{slug}/status")

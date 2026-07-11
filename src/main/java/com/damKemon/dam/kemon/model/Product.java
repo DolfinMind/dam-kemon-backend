@@ -63,6 +63,8 @@ public class Product {
 
     /** Last time a per-shop scrape refreshed this product. */
     private LocalDateTime lastScraped;
+    /** Indexed: the admin catalog lists newest-first — unindexed, that sort scans the whole collection. */
+    @Indexed
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

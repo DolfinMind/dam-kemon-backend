@@ -67,6 +67,40 @@ public class AdminAnalyticsService {
     private static final String CLICKS = "affiliate_clicks";
     private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
 
+    /**
+     * One bot definition for the whole admin: every human-facing traffic number
+     * excludes user-agents matching this (Googlebot post-sitemap-submit was
+     * inflating "active now" to 70+ while real visitors sat at 8). Bots stay
+     * fully visible where they're the point: topIps, topPaths, recentRequests
+     * and the device breakdown's "bot" bucket. Rows with NO user-agent pass as
+     * human — real browsers always send one.
+     */
+    private static final java.util.regex.Pattern BOT_UA = java.util.regex.Pattern.compile(
+            "bot|spider|crawl|curl|python|wget|scrapy|headless|phantom|slurp"
+                    + "|facebookexternalhit|whatsapp|telegram|axios|okhttp|httpclient"
+                    + "|java/|go-http|node-fetch|uptime|pingdom|monitor|lighthouse|pagespeed",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Googlebot's page RENDERER fires the SPA's API calls with a plain Chrome
+     * UA — the {@code Googlebot/2.1} token only appears on its direct fetches.
+     * Its crawl IP range is the only reliable tell (observed 2026-07-11: 23k
+     * requests/day from 24 IPs in 66.249.0.0/16, each render minting a fresh
+     * anonId). Null ip passes as human.
+     */
+    private static final java.util.regex.Pattern CRAWLER_IP =
+            java.util.regex.Pattern.compile("^66\\.249\\.");
+
+    /** AND a human-only (non-bot user-agent, non-crawler IP) clause onto {@code c}. */
+    private static Criteria human(Criteria c) {
+        return c.and("userAgent").not().regex(BOT_UA)
+                .and("ip").not().regex(CRAWLER_IP);
+    }
+
+    static boolean isBotUa(String ua) {
+        return ua != null && BOT_UA.matcher(ua).find();
+    }
+
     private final MongoTemplate mongo;
     private final RequestLogRepository requestLog;
     private final ZoneId zone;
@@ -94,15 +128,15 @@ public class AdminAnalyticsService {
             Instant hourAgo = now.minus(1, ChronoUnit.HOURS);
             Instant fiveMin = now.minus(5, ChronoUnit.MINUTES);
 
-            out.put("requestsToday", mongo.count(query(where("ts").gte(dayStart)), REQUESTS));
-            out.put("searchesToday", mongo.count(query(where("type").is("search").and("ts").gte(dayStart)), EVENTS));
-            out.put("pageViewsToday", mongo.count(query(where("type").is("pageview").and("ts").gte(dayStart)), EVENTS));
-            out.put("productViewsToday", mongo.count(query(where("type").is("view").and("ts").gte(dayStart)), EVENTS));
-            out.put("clicksToday", mongo.count(query(where("type").is("click").and("ts").gte(dayStart)), EVENTS));
-            out.put("visitorsToday", distinctVisitors(EVENTS, where("ts").gte(dayStart)));
-            out.put("ipsToday", distinctField(REQUESTS, where("ts").gte(dayStart), "ip"));
-            out.put("requestsLastHour", mongo.count(query(where("ts").gte(hourAgo)), REQUESTS));
-            out.put("activeNow", distinctVisitors(REQUESTS, where("ts").gte(fiveMin)));
+            out.put("requestsToday", mongo.count(query(human(where("ts").gte(dayStart))), REQUESTS));
+            out.put("searchesToday", mongo.count(query(human(where("type").is("search").and("ts").gte(dayStart))), EVENTS));
+            out.put("pageViewsToday", mongo.count(query(human(where("type").is("pageview").and("ts").gte(dayStart))), EVENTS));
+            out.put("productViewsToday", mongo.count(query(human(where("type").is("view").and("ts").gte(dayStart))), EVENTS));
+            out.put("clicksToday", mongo.count(query(human(where("type").is("click").and("ts").gte(dayStart))), EVENTS));
+            out.put("visitorsToday", distinctVisitors(EVENTS, human(where("ts").gte(dayStart))));
+            out.put("ipsToday", distinctField(REQUESTS, human(where("ts").gte(dayStart)), "ip"));
+            out.put("requestsLastHour", mongo.count(query(human(where("ts").gte(hourAgo))), REQUESTS));
+            out.put("activeNow", distinctVisitors(EVENTS, human(where("ts").gte(fiveMin))));
             out.put("totalRequestsRetained", mongo.count(query(new Criteria()), REQUESTS));
             
             // New Dashboard Metrics
@@ -126,7 +160,7 @@ public class AdminAnalyticsService {
         List<Map<String, Object>> out = new ArrayList<>();
         try {
             Aggregation agg = newAggregation(
-                    match(where("type").is("search").and("ts").gte(cutoff).and("query").ne(null)),
+                    match(human(where("type").is("search").and("ts").gte(cutoff).and("query").ne(null))),
                     group("query")
                             .count().as("hits")
                             .sum(ConditionalOperators.when(where("resultCount").gt(0)).then(1).otherwise(0)).as("withResults")
@@ -152,9 +186,9 @@ public class AdminAnalyticsService {
 
     public Map<String, Object> hourly(int days) {
         Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
-        long[] searches = hourBuckets(EVENTS, where("type").is("search").and("ts").gte(cutoff));
-        long[] pageViews = hourBuckets(EVENTS, where("type").is("pageview").and("ts").gte(cutoff));
-        long[] requests = hourBuckets(REQUESTS, where("ts").gte(cutoff));
+        long[] searches = hourBuckets(EVENTS, human(where("type").is("search").and("ts").gte(cutoff)));
+        long[] pageViews = hourBuckets(EVENTS, human(where("type").is("pageview").and("ts").gte(cutoff)));
+        long[] requests = hourBuckets(REQUESTS, human(where("ts").gte(cutoff)));
 
         List<Map<String, Object>> buckets = new ArrayList<>(24);
         int peak = 0;
@@ -202,7 +236,7 @@ public class AdminAnalyticsService {
         List<Map<String, Object>> out = new ArrayList<>();
         try {
             Aggregation agg = newAggregation(
-                    match(where("type").is("search").and("ts").gte(cutoff).and("query").ne(null)),
+                    match(human(where("type").is("search").and("ts").gte(cutoff).and("query").ne(null))),
                     project("query").and(DateOperators.dateOf("ts").withTimezone(tz).hour()).as("h"),
                     match(where("h").is(hour)),
                     group("query").count().as("n"),
@@ -224,9 +258,9 @@ public class AdminAnalyticsService {
         LocalDate first = LocalDate.now(zone).minusDays(days - 1L);
         Instant cutoff = first.atStartOfDay(zone).toInstant();
         Map<String, Long> users = usersByDay(cutoff);
-        Map<String, Long> searches = countByDay(EVENTS, where("type").is("search").and("ts").gte(cutoff));
-        Map<String, Long> pageViews = countByDay(EVENTS, where("type").is("pageview").and("ts").gte(cutoff));
-        Map<String, Long> requests = countByDay(REQUESTS, where("ts").gte(cutoff));
+        Map<String, Long> searches = countByDay(EVENTS, human(where("type").is("search").and("ts").gte(cutoff)));
+        Map<String, Long> pageViews = countByDay(EVENTS, human(where("type").is("pageview").and("ts").gte(cutoff)));
+        Map<String, Long> requests = countByDay(REQUESTS, human(where("ts").gte(cutoff)));
 
         List<Map<String, Object>> out = new ArrayList<>();
         LocalDate today = LocalDate.now(zone);
@@ -248,7 +282,7 @@ public class AdminAnalyticsService {
         Map<String, Long> m = new HashMap<>();
         try {
             Aggregation agg = newAggregation(
-                    match(where("ts").gte(cutoff).and("anonId").ne(null)),
+                    match(human(where("ts").gte(cutoff).and("anonId").ne(null))),
                     project("anonId").and(DateOperators.dateOf("ts").withTimezone(tz).toString("%Y-%m-%d")).as("d"),
                     group("d", "anonId"),
                     group("_id.d").count().as("n"));
@@ -382,7 +416,7 @@ public class AdminAnalyticsService {
         Map<String, long[]> hosts = new HashMap<>();           // host -> [views, uniques]
         try {
             Aggregation agg = newAggregation(
-                    match(where("type").is("pageview").and("ts").gte(cutoff)),
+                    match(human(where("type").is("pageview").and("ts").gte(cutoff))),
                     group("referer").count().as("views").addToSet("anonId").as("anonIds"));
             for (Document d : mongo.aggregate(agg, EVENTS, Document.class)) {
                 String host = refererHost(d.getString("_id"));
@@ -406,9 +440,8 @@ public class AdminAnalyticsService {
 
     private static String classifyUa(String ua) {
         if (ua == null || ua.isBlank()) return "unknown";
+        if (isBotUa(ua)) return "bot";
         String s = ua.toLowerCase();
-        if (s.contains("bot") || s.contains("spider") || s.contains("crawl")
-                || s.contains("curl") || s.contains("python") || s.contains("wget")) return "bot";
         if (s.contains("ipad") || (s.contains("tablet") && !s.contains("mobile"))) return "tablet";
         if (s.contains("mobi") || s.contains("android") || s.contains("iphone")) return "mobile";
         return "desktop";
@@ -452,7 +485,7 @@ public class AdminAnalyticsService {
         Map<String, Long> catTotals = new LinkedHashMap<>();
         try {
             Aggregation agg = newAggregation(
-                    match(where("ts").gte(cutoff)),
+                    match(human(where("ts").gte(cutoff))),
                     group("category", "siteSlug").count().as("clicks").max("ts").as("lastSeen"),
                     sort(Sort.Direction.DESC, "clicks"));
             for (Document d : mongo.aggregate(agg, CLICKS, Document.class)) {
@@ -493,7 +526,7 @@ public class AdminAnalyticsService {
         List<Map<String, Object>> out = new ArrayList<>();
         try {
             Aggregation agg = newAggregation(
-                    match(where("ts").gte(cutoff).and("siteSlug").ne(null)),
+                    match(human(where("ts").gte(cutoff).and("siteSlug").ne(null))),
                     group("siteSlug")
                             .count().as("clicks")
                             .addToSet("productId").as("products")
@@ -522,7 +555,7 @@ public class AdminAnalyticsService {
         List<Map<String, Object>> out = new ArrayList<>();
         try {
             Aggregation agg = newAggregation(
-                    match(where("ts").gte(cutoff).and("productId").ne(null)),
+                    match(human(where("ts").gte(cutoff).and("productId").ne(null))),
                     group("productId")
                             .count().as("clicks")
                             .last("productName").as("name")
@@ -551,7 +584,7 @@ public class AdminAnalyticsService {
         List<Map<String, Object>> out = new ArrayList<>();
         try {
             Aggregation agg = newAggregation(
-                    match(where("ts").gte(cutoff).and("fromQuery").ne(null).and("fromQuery").ne("")),
+                    match(human(where("ts").gte(cutoff).and("fromQuery").ne(null).and("fromQuery").ne(""))),
                     group("fromQuery")
                             .count().as("clicks")
                             .addToSet("productId").as("products")
@@ -580,9 +613,9 @@ public class AdminAnalyticsService {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("days", days);
         try {
-            long searches = mongo.count(query(where("type").is("search").and("ts").gte(cutoff)), EVENTS);
-            long views = mongo.count(query(where("type").is("view").and("ts").gte(cutoff)), EVENTS);
-            long clicks = mongo.count(query(where("ts").gte(cutoff)), CLICKS);
+            long searches = mongo.count(query(human(where("type").is("search").and("ts").gte(cutoff))), EVENTS);
+            long views = mongo.count(query(human(where("type").is("view").and("ts").gte(cutoff))), EVENTS);
+            long clicks = mongo.count(query(human(where("ts").gte(cutoff))), CLICKS);
             out.put("searches", searches);
             out.put("productViews", views);
             out.put("outboundClicks", clicks);
@@ -611,7 +644,7 @@ public class AdminAnalyticsService {
         long totalFirst = 0;
         try {
             Aggregation first = newAggregation(
-                    match(where("type").is("search").and("ts").gte(cutoff).and("resultShops").ne(null)),
+                    match(human(where("type").is("search").and("ts").gte(cutoff).and("resultShops").ne(null))),
                     project().and(ArrayOperators.ArrayElemAt.arrayOf("resultShops").elementAt(0)).as("shop"),
                     group("shop").count().as("n"),
                     sort(Sort.Direction.DESC, "n"));
@@ -622,7 +655,7 @@ public class AdminAnalyticsService {
                 totalFirst += n;
             }
             Aggregation appears = newAggregation(
-                    match(where("type").is("search").and("ts").gte(cutoff).and("resultShops").ne(null)),
+                    match(human(where("type").is("search").and("ts").gte(cutoff).and("resultShops").ne(null))),
                     unwind("resultShops"),
                     group("resultShops").count().as("n"));
             for (Document d : mongo.aggregate(appears, EVENTS, Document.class)) {
@@ -649,8 +682,8 @@ public class AdminAnalyticsService {
         List<Map<String, Object>> out = new ArrayList<>();
         try {
             Aggregation agg = newAggregation(
-                    match(where("type").is("search").and("ts").gte(cutoff)
-                            .and("query").ne(null).and("resultCount").lte(0)),
+                    match(human(where("type").is("search").and("ts").gte(cutoff)
+                            .and("query").ne(null).and("resultCount").lte(0))),
                     group("query").count().as("hits").max("ts").as("lastSeen"),
                     sort(Sort.Direction.DESC, "hits"),
                     limit(lim));
@@ -731,7 +764,10 @@ public class AdminAnalyticsService {
 
     private long distinctField(String coll, Criteria base, String field) {
         try {
-            return mongo.findDistinct(query(base.and(field).ne(null)), field, coll, String.class).size();
+            // No .and(field).ne(null) here: base may already constrain this field
+            // (human() adds an ip clause) and Criteria rejects a duplicate key.
+            return mongo.findDistinct(query(base), field, coll, String.class)
+                    .stream().filter(v -> v != null && !v.isBlank()).count();
         } catch (Exception e) {
             return 0;
         }
