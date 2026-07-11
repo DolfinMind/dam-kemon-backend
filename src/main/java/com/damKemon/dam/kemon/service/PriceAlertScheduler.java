@@ -42,9 +42,9 @@ public class PriceAlertScheduler {
     private static final Logger log = LoggerFactory.getLogger(PriceAlertScheduler.class);
 
     /** When alertsEnabled but no explicit % set, this is the default trigger. */
-    private static final double DEFAULT_DROP_PCT = 0.05;
+    private static final double DEFAULT_DROP_PCT = 0.10;
     /** Stair-step: re-alert only if the new low is this much below the last alert price. */
-    private static final double RE_ALERT_FLOOR_PCT = 0.02;
+    private static final double RE_ALERT_FLOOR_PCT = 0.05;
 
     private final WishlistItemRepository wishlist;
     private final ProductRepository products;
@@ -114,8 +114,8 @@ public class PriceAlertScheduler {
             return false;
         }
 
-        // Debounce: skip if we fired in the last 24h
-        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        // Debounce: skip if we fired in the last 72h
+        LocalDateTime since = LocalDateTime.now().minusHours(72);
         if (!notifications.findByUserIdAndProductIdAndCreatedAtAfter(
                 w.getUserId(), w.getProductId(), since).isEmpty()) {
             return false;
