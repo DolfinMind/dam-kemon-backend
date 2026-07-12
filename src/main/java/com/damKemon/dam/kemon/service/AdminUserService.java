@@ -189,10 +189,18 @@ public class AdminUserService {
     }
 
     private Set<String> distinct(String collection, String field, Document filter) {
+        // ponytail: $group aggregation, not the distinct command — distinct caps its result
+        // at 16MB BSON and fails once anonId cardinality grows past it (prod traffic did).
+        // Streaming cursor + allowDiskUse has no such cap; the instanceof guard skips any
+        // legacy non-string value instead of throwing a decode error. Upgrade path: if even
+        // the union set gets huge, count via $group+$count for the fields we only size().
         Set<String> values = new HashSet<>();
-        this.collection(collection).distinct(field, filter, String.class).into(values);
-        values.remove(null);
-        values.remove("");
+        List<Document> pipeline = List.of(
+                new Document("$match", filter),
+                new Document("$group", new Document("_id", "$" + field)));
+        for (Document doc : collection(collection).aggregate(pipeline).allowDiskUse(true)) {
+            if (doc.get("_id") instanceof String value && !value.isBlank()) values.add(value);
+        }
         return values;
     }
 
