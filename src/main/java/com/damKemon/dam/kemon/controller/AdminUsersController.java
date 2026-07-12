@@ -1,6 +1,8 @@
 package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.service.AdminUserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +15,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/users")
 public class AdminUsersController {
+
+    private static final Logger log = LoggerFactory.getLogger(AdminUsersController.class);
 
     private final AdminUserService users;
 
@@ -31,7 +35,14 @@ public class AdminUsersController {
 
     @GetMapping("/conversion")
     public ResponseEntity<Map<String, Object>> conversion(@RequestParam(defaultValue = "30") int days) {
-        return ResponseEntity.ok(users.conversion(clamp(days, 1, 90)));
+        try {
+            return ResponseEntity.ok(users.conversion(clamp(days, 1, 90)));
+        } catch (Exception e) {
+            // Admin-only: surface the real cause instead of an opaque 500 so it's diagnosable.
+            log.error("users/conversion failed", e);
+            return ResponseEntity.status(500).body(Map.of("error",
+                    e.getClass().getSimpleName() + (e.getMessage() != null ? ": " + e.getMessage() : "")));
+        }
     }
 
     @GetMapping("/{id}")

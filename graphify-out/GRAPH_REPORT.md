@@ -1,16 +1,16 @@
 # Graph Report - dam-kemon-backend  (2026-07-12)
 
 ## Corpus Check
-- 261 files · ~153,548 words
+- 261 files · ~153,651 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3539 nodes · 10390 edges · 189 communities (156 shown, 33 thin omitted)
-- Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 1473 edges (avg confidence: 0.8)
+- 3540 nodes · 10394 edges · 188 communities (152 shown, 36 thin omitted)
+- Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 1475 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `dc4e1171`
+- Built from commit: `122785d8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -201,7 +201,6 @@
 - [[_COMMUNITY_AffiliateClickRepository|AffiliateClickRepository]]
 - [[_COMMUNITY_ProxyBootstrap|ProxyBootstrap]]
 - [[_COMMUNITY_PriceSnapshotScheduler.java|PriceSnapshotScheduler.java]]
-- [[_COMMUNITY_ProductCategory.java|ProductCategory.java]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `Product` - 126 edges
@@ -235,10 +234,10 @@
 - **Crawl-index-dedup-search pipeline** — readme_bulkindexer, readme_sitemapcrawler, readme_extractorregistry, readme_minhashlsh, readme_catalogsearchservice [EXTRACTED 0.90]
 - **Sellers-per-product levers (re-merge, seller-depth, Daraz)** — src_main_resources_application_remerge, src_main_resources_application_seller_depth, src_main_resources_application_daraz [INFERRED 0.85]
 
-## Communities (189 total, 33 thin omitted)
+## Communities (188 total, 36 thin omitted)
 
 ### Community 0 - ".of"
-Cohesion: 0.17
+Cohesion: 0.19
 Nodes (14): AdminController, AtomicLong, GetMapping, Integer, List, Logger, Map, Object (+6 more)
 
 ### Community 1 - ".toString"
@@ -250,8 +249,8 @@ Cohesion: 0.29
 Nodes (12): DeleteMapping, GetMapping, HttpServletRequest, Map, Object, PatchMapping, PostMapping, RequestMapping (+4 more)
 
 ### Community 3 - ".build"
-Cohesion: 0.08
-Nodes (27): ChaldalHarvester, Double, JsonNode, List, Logger, ObjectMapper, Override, Service (+19 more)
+Cohesion: 0.06
+Nodes (37): ApiSniffer, ConcurrentHashMap, Double, JsonNode, List, Logger, Long, ObjectMapper (+29 more)
 
 ### Community 4 - "ScrapingJob"
 Cohesion: 0.05
@@ -262,20 +261,20 @@ Cohesion: 0.20
 Nodes (11): Boolean, Collection, Double, Integer, Map, MongoTemplate, Object, Scheduled (+3 more)
 
 ### Community 6 - "ProtectService"
-Cohesion: 0.09
-Nodes (29): SecureRandom, Event, AllArgsConstructor, Builder, Data, Document, Double, Integer (+21 more)
+Cohesion: 0.06
+Nodes (52): SecureRandom, Integer, AnalyticsController, GetMapping, HttpServletRequest, List, Map, Object (+44 more)
 
 ### Community 7 - ".debug"
 Cohesion: 0.17
-Nodes (13): AdminSellersController, DeleteMapping, Integer, List, Logger, Map, Object, Pattern (+5 more)
+Nodes (12): AdminSellersController, DeleteMapping, List, Logger, Map, Object, Pattern, PostMapping (+4 more)
 
 ### Community 8 - ".trim"
 Cohesion: 0.20
 Nodes (8): GetMapping, ResponseEntity, RestController, String, SharePreviewController, String, Test, SharePreviewControllerTest
 
 ### Community 9 - "BulkIndexer"
-Cohesion: 0.12
-Nodes (16): ExecutorService, Semaphore, BulkIndexer, AtomicInteger, AtomicLong, ConcurrentHashMap, Double, List (+8 more)
+Cohesion: 0.13
+Nodes (15): ExecutorService, Semaphore, BulkIndexer, AtomicInteger, AtomicLong, ConcurrentHashMap, Double, List (+7 more)
 
 ### Community 10 - "FeedSyncService"
 Cohesion: 0.09
@@ -290,20 +289,20 @@ Cohesion: 0.16
 Nodes (14): Matcher, CatalogSearchService, Cacheable, Double, Hit, List, Logger, Map (+6 more)
 
 ### Community 13 - "AppRole"
-Cohesion: 0.15
-Nodes (12): AppRole, Component, String, IndexingScheduler, Logger, Scheduled, Service, Logger (+4 more)
+Cohesion: 0.23
+Nodes (7): AppRole, Component, String, IndexingScheduler, Logger, Scheduled, Service
 
 ### Community 14 - "Product"
-Cohesion: 0.18
-Nodes (10): List, LocalDateTime, Optional, Page, Pageable, Repository, String, NameView (+2 more)
+Cohesion: 0.11
+Nodes (22): AllArgsConstructor, Boolean, Builder, Data, Document, Double, Integer, List (+14 more)
 
 ### Community 15 - "ProductExtractor"
-Cohesion: 0.05
-Nodes (49): MongoTemplate, GetMapping, List, Map, Object, RequestMapping, ResponseEntity, RestController (+41 more)
+Cohesion: 0.10
+Nodes (20): AdminExtractorDebugController, RequestMapping, ResponseEntity, RestController, GetMapping, List, Map, Object (+12 more)
 
 ### Community 16 - "SellerRepository"
-Cohesion: 0.17
-Nodes (10): Optional, Logger, Long, Map, MongoTemplate, Scheduled, Service, Set (+2 more)
+Cohesion: 0.22
+Nodes (9): Logger, Long, Map, MongoTemplate, Scheduled, Service, Set, String (+1 more)
 
 ### Community 17 - "What You Must Do When Invoked"
 Cohesion: 0.08
@@ -311,15 +310,15 @@ Nodes (24): For /graphify add and --watch, For /graphify query, For the commit h
 
 ### Community 18 - "ProductService"
 Cohesion: 0.14
-Nodes (16): graphify Update/Cluster-only Reference, getLabel(), Boolean, Cacheable, Integer, List, Map, MongoTemplate (+8 more)
+Nodes (14): Boolean, Cacheable, Integer, List, Map, MongoTemplate, Object, Optional (+6 more)
 
 ### Community 19 - "TrigramSearchIndex"
-Cohesion: 0.19
+Cohesion: 0.18
 Nodes (8): EventListener, Hit, List, Logger, Scheduled, Service, String, TrigramSearchIndex
 
 ### Community 20 - "SecurityConfig.java"
-Cohesion: 0.15
-Nodes (15): CorsConfigurationSource, EnableWebSecurity, HttpSecurity, SecurityFilterChain, RateLimiter, AdminGateFilter, Bean, Configuration (+7 more)
+Cohesion: 0.07
+Nodes (29): CorsConfigurationSource, EnableWebSecurity, HttpSecurity, SecurityFilterChain, Bucket, AtomicLong, ConcurrentHashMap, String (+21 more)
 
 ### Community 21 - "SellerDepthHarvester"
 Cohesion: 0.16
@@ -342,12 +341,12 @@ Cohesion: 0.24
 Nodes (13): AccountController, DeleteMapping, Double, GetMapping, HttpServletRequest, Map, Object, PatchMapping (+5 more)
 
 ### Community 26 - "AdminAnalyticsController"
-Cohesion: 0.35
-Nodes (9): AdminAnalyticsController, GetMapping, List, Map, Object, RequestMapping, ResponseEntity, RestController (+1 more)
+Cohesion: 0.05
+Nodes (64): OncePerRequestFilter, AuditLogFilter, Component, FilterChain, HttpServletRequest, HttpServletResponse, Override, String (+56 more)
 
 ### Community 27 - "AdminCatalogController.java"
-Cohesion: 0.14
-Nodes (19): AdminCatalogController, CreateReq, DeleteMapping, Document, Double, GetMapping, List, Logger (+11 more)
+Cohesion: 0.06
+Nodes (41): AdminCatalogController, CreateReq, DeleteMapping, Document, Double, GetMapping, List, Logger (+33 more)
 
 ### Community 28 - "LinkedHashMap"
 Cohesion: 0.06
@@ -362,8 +361,8 @@ Cohesion: 0.18
 Nodes (11): DarazHarvester, Double, Integer, JsonNode, List, Logger, Map, ObjectMapper (+3 more)
 
 ### Community 31 - "PendingShopRepository"
-Cohesion: 0.13
-Nodes (16): AllArgsConstructor, Builder, Data, Document, List, LocalDateTime, NoArgsConstructor, String (+8 more)
+Cohesion: 0.21
+Nodes (7): List, Optional, String, PendingShopRepository, BeforeEach, Test, SubmitShopControllerTest
 
 ### Community 32 - "MinHashLSH"
 Cohesion: 0.15
@@ -374,7 +373,7 @@ Cohesion: 0.15
 Nodes (15): AffiliateController, GetMapping, HttpServletRequest, Logger, Object, RequestMapping, ResponseEntity, RestController (+7 more)
 
 ### Community 34 - "BrowserFetcher"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (15): Browser, Playwright, BrowserFetcher, AtomicBoolean, AtomicLong, Document, List, Logger (+7 more)
 
 ### Community 35 - "AuthController"
@@ -386,7 +385,7 @@ Cohesion: 0.14
 Nodes (14): AdminSaathiController, GetMapping, Map, Object, PostMapping, RequestMapping, ResponseEntity, RestController (+6 more)
 
 ### Community 37 - "ApiSniffer"
-Cohesion: 0.25
+Cohesion: 0.23
 Nodes (7): Logger, Map, Object, Scheduled, Service, String, ShopLifecycleScheduler
 
 ### Community 38 - "JsonCatalogHarvester"
@@ -394,20 +393,16 @@ Cohesion: 0.21
 Nodes (11): Double, JsonNode, List, Logger, ObjectMapper, Order, Override, Service (+3 more)
 
 ### Community 39 - "HotDropsService"
-Cohesion: 0.18
-Nodes (15): Comparator, HotDropsService, AtomicBoolean, Cacheable, CacheManager, EventListener, Integer, List (+7 more)
+Cohesion: 0.15
+Nodes (17): Comparator, HotDropsService, AtomicBoolean, Cacheable, CacheManager, Double, EventListener, Integer (+9 more)
 
 ### Community 40 - "PriceHistory"
-Cohesion: 0.19
-Nodes (10): ApiSniffer, ConcurrentHashMap, Double, JsonNode, List, Logger, Long, ObjectMapper (+2 more)
-
-### Community 41 - ".named"
-Cohesion: 0.12
-Nodes (17): AllArgsConstructor, Boolean, Builder, Data, Document, Double, Integer, List (+9 more)
+Cohesion: 0.23
+Nodes (9): Boolean, Document, Integer, List, Logger, Map, Service, String (+1 more)
 
 ### Community 42 - "AdminDiagController.java"
-Cohesion: 0.06
-Nodes (45): CrudRepository, AdminDiagController, GetMapping, Map, Object, PostMapping, RequestMapping, ResponseEntity (+37 more)
+Cohesion: 0.08
+Nodes (35): CrudRepository, AdminDiagController, GetMapping, Map, Object, PostMapping, RequestMapping, ResponseEntity (+27 more)
 
 ### Community 43 - "ProductController"
 Cohesion: 0.25
@@ -418,12 +413,12 @@ Cohesion: 0.18
 Nodes (14): AllArgsConstructor, Boolean, Builder, Data, Document, Integer, LocalDateTime, NoArgsConstructor (+6 more)
 
 ### Community 45 - "SaathiProduct"
-Cohesion: 0.14
-Nodes (18): AllArgsConstructor, Boolean, Builder, CompoundIndex, Data, Document, Double, LocalDateTime (+10 more)
+Cohesion: 0.15
+Nodes (17): AllArgsConstructor, Boolean, Builder, CompoundIndex, Data, Document, Double, LocalDateTime (+9 more)
 
 ### Community 46 - "ScrapedProduct"
-Cohesion: 0.18
-Nodes (7): Component, Document, Override, String, PickabooScraper, String, ProductExtractor
+Cohesion: 0.30
+Nodes (5): Component, Document, Override, String, PickabooScraper
 
 ### Community 47 - "FcommerceController"
 Cohesion: 0.19
@@ -434,24 +429,24 @@ Cohesion: 0.25
 Nodes (11): GetMapping, HttpServletRequest, Logger, Map, Object, PostMapping, RequestMapping, ResponseEntity (+3 more)
 
 ### Community 49 - "MarketplaceSeller"
-Cohesion: 0.27
-Nodes (10): BrandHit, Logger, Map, Pattern, PostConstruct, Service, Set, String (+2 more)
+Cohesion: 0.11
+Nodes (20): getLabel(), String, ProductCategory, BrandHit, Logger, Map, Pattern, PostConstruct (+12 more)
 
 ### Community 50 - "QueryIntent"
-Cohesion: 0.07
-Nodes (37): CompareController, GetMapping, RequestMapping, RestController, String, AttributeRow, CompareResponse, AllArgsConstructor (+29 more)
+Cohesion: 0.20
+Nodes (11): IndexNowService, HttpClient, List, Logger, ObjectMapper, Queue, Scheduled, Service (+3 more)
 
 ### Community 51 - "SubmitShopController"
-Cohesion: 0.18
-Nodes (9): AtomicReference, ClientIp, String, LocalDateTime, String, Test, ShopDedupeTest, Test (+1 more)
+Cohesion: 0.43
+Nodes (4): LocalDateTime, String, Test, ShopDedupeTest
 
 ### Community 52 - "PriceAlertNotification"
 Cohesion: 0.18
 Nodes (16): AllArgsConstructor, Boolean, Builder, CompoundIndex, Data, Document, Double, LocalDateTime (+8 more)
 
 ### Community 53 - "SaathiQuery"
-Cohesion: 0.19
-Nodes (14): AllArgsConstructor, Builder, CompoundIndex, Data, Document, Instant, NoArgsConstructor, String (+6 more)
+Cohesion: 0.16
+Nodes (15): AllArgsConstructor, Builder, CompoundIndex, Data, Document, Instant, NoArgsConstructor, String (+7 more)
 
 ### Community 54 - "SyntheticMonitorService"
 Cohesion: 0.17
@@ -470,7 +465,7 @@ Cohesion: 0.18
 Nodes (15): AllArgsConstructor, Boolean, Builder, CompoundIndex, Data, Document, Double, LocalDateTime (+7 more)
 
 ### Community 58 - "CacheController"
-Cohesion: 0.25
+Cohesion: 0.23
 Nodes (13): AdminJobsController, ConcurrentHashMap, GetMapping, List, Logger, Map, Object, PostMapping (+5 more)
 
 ### Community 59 - "PriceAlertScheduler"
@@ -478,8 +473,8 @@ Cohesion: 0.17
 Nodes (10): EmailNotifier, Logger, Service, String, Double, Logger, Scheduled, Service (+2 more)
 
 ### Community 60 - "AdminAnalyticsService"
-Cohesion: 0.08
-Nodes (40): Criteria, DateTimeFormatter, LinkedHashMap, MongoCollection, Query, AdminUsersController, GetMapping, Map (+32 more)
+Cohesion: 0.07
+Nodes (41): Criteria, DateTimeFormatter, LinkedHashMap, MongoCollection, Query, AdminUsersController, GetMapping, Logger (+33 more)
 
 ### Community 61 - "NewsletterService"
 Cohesion: 0.29
@@ -490,11 +485,11 @@ Cohesion: 0.19
 Nodes (14): IndexerRunRecord, AllArgsConstructor, Builder, Data, Document, Instant, Integer, Long (+6 more)
 
 ### Community 63 - ".findAll"
-Cohesion: 0.23
-Nodes (8): Boolean, GetMapping, List, RequestMapping, ResponseEntity, RestController, String, SellerController
+Cohesion: 0.15
+Nodes (12): Boolean, GetMapping, List, RequestMapping, ResponseEntity, RestController, String, SellerController (+4 more)
 
 ### Community 64 - "SaathiAccount"
-Cohesion: 0.18
+Cohesion: 0.17
 Nodes (13): AllArgsConstructor, Builder, Data, Document, Double, Integer, List, LocalDateTime (+5 more)
 
 ### Community 65 - "StructuredDataExtractor"
@@ -507,27 +502,27 @@ Nodes (8): AdminMaintenanceController, Map, Object, PostMapping, RequestMapping,
 
 ### Community 67 - "ProductRepository"
 Cohesion: 0.11
-Nodes (23): List, ShopHarvester, AllArgsConstructor, Boolean, Builder, Data, Document, Integer (+15 more)
+Nodes (24): MongoTemplate, List, ShopHarvester, AllArgsConstructor, Boolean, Builder, Data, Document (+16 more)
 
 ### Community 68 - "ShopTrustRepository"
 Cohesion: 0.17
 Nodes (17): AllArgsConstructor, Builder, Data, Document, Double, Integer, LocalDateTime, Long (+9 more)
 
 ### Community 69 - "RequestLog"
-Cohesion: 0.06
-Nodes (55): Async, AnalyticsController, GetMapping, HttpServletRequest, List, Map, Object, PostMapping (+47 more)
+Cohesion: 0.34
+Nodes (7): Async, AnalyticsService, List, Logger, Long, Service, String
 
 ### Community 70 - "OperatorStatsController"
 Cohesion: 0.35
 Nodes (8): List, Logger, Map, Object, Service, Set, String, ShopDiscoveryService
 
 ### Community 71 - "ShopDiscoveryService"
-Cohesion: 0.33
+Cohesion: 0.30
 Nodes (6): HttpClient, Logger, ObjectMapper, Service, String, SaathiMessengerService
 
 ### Community 72 - "ShopLifecycleScheduler"
-Cohesion: 0.23
-Nodes (10): String, ProductCategory, AllArgsConstructor, Builder, Data, List, NoArgsConstructor, Set (+2 more)
+Cohesion: 0.21
+Nodes (11): GetMapping, HttpServletRequest, Integer, List, Map, Object, RequestMapping, ResponseEntity (+3 more)
 
 ### Community 73 - "MarketplaceSellerService"
 Cohesion: 0.22
@@ -535,7 +530,7 @@ Nodes (10): EventListener, List, Logger, Map, MongoTemplate, Object, Scheduled, 
 
 ### Community 74 - "AdminController.java"
 Cohesion: 0.23
-Nodes (9): OncePerRequestFilter, Component, FilterChain, HttpServletRequest, HttpServletResponse, Order, Override, String (+1 more)
+Nodes (10): Boolean, Component, EventListener, List, Logger, MongoTemplate, ObjectMapper, String (+2 more)
 
 ### Community 75 - "SavedSearch"
 Cohesion: 0.21
@@ -550,11 +545,11 @@ Cohesion: 0.11
 Nodes (13): Component, List, Map, Set, String, QueryExpander, CatalogSearchNormalizationTest, Test (+5 more)
 
 ### Community 78 - "BaseScraper"
-Cohesion: 0.26
-Nodes (7): Component, Document, List, ObjectMapper, Override, String, ShopifyExtractor
+Cohesion: 0.15
+Nodes (11): GetMapping, String, Component, Document, List, ObjectMapper, Override, String (+3 more)
 
 ### Community 79 - "AdminIngestController.java"
-Cohesion: 0.15
+Cohesion: 0.16
 Nodes (14): AdminIngestController, IngestBatch, IngestOffer, IngestRequest, Boolean, Double, List, Logger (+6 more)
 
 ### Community 80 - "AdminNewsletterController"
@@ -562,7 +557,7 @@ Cohesion: 0.22
 Nodes (10): AdminNewsletterController, GetMapping, Map, Object, Page, PostMapping, RequestMapping, ResponseEntity (+2 more)
 
 ### Community 81 - ".setStatus"
-Cohesion: 0.16
+Cohesion: 0.17
 Nodes (10): AdminReviewsController, GetMapping, List, Map, Object, PostMapping, RequestMapping, ResponseEntity (+2 more)
 
 ### Community 82 - "StatsController"
@@ -570,7 +565,7 @@ Cohesion: 0.19
 Nodes (11): CacheErrorHandler, CachingConfigurer, RedisCacheConfiguration, CacheConfig, Bean, Configuration, Logger, Override (+3 more)
 
 ### Community 83 - "SearchSeedCrawler"
-Cohesion: 0.31
+Cohesion: 0.35
 Nodes (7): List, Logger, Map, Pattern, Service, String, SearchSeedCrawler
 
 ### Community 84 - "SellerDirectoryService"
@@ -578,8 +573,8 @@ Cohesion: 0.18
 Nodes (12): Collection, Double, Integer, Logger, Long, Map, MongoTemplate, Object (+4 more)
 
 ### Community 85 - "SaathiService"
-Cohesion: 0.22
-Nodes (8): Integer, Logger, Map, Object, Pattern, Service, String, SaathiService
+Cohesion: 0.23
+Nodes (9): Double, Integer, Logger, Map, Object, Pattern, Service, String (+1 more)
 
 ### Community 86 - "EngagementController"
 Cohesion: 0.25
@@ -598,31 +593,31 @@ Cohesion: 0.24
 Nodes (10): Boolean, Component, EventListener, List, Logger, ObjectMapper, Set, String (+2 more)
 
 ### Community 90 - "CategoryFocusService"
-Cohesion: 0.29
-Nodes (7): List, Logger, Service, Set, String, ResultValidator, ScoredResult
+Cohesion: 0.17
+Nodes (12): getMaxPrice(), getMinPrice(), isPlausiblePrice(), Double, Double, List, Logger, Service (+4 more)
 
 ### Community 91 - "NewsletterSubscriberRepository"
 Cohesion: 0.22
 Nodes (10): Data, Document, Instant, String, NewsletterSubscriber, Instant, Optional, Repository (+2 more)
 
 ### Community 92 - "ShopifyHarvester"
-Cohesion: 0.14
-Nodes (14): ApplicationArguments, ApplicationRunner, ConfigurableApplicationContext, IndexerRunner, Component, Logger, Override, Runnable (+6 more)
+Cohesion: 0.23
+Nodes (9): ApplicationArguments, ApplicationRunner, ConfigurableApplicationContext, IndexerRunner, Component, Logger, Override, Runnable (+1 more)
 
 ### Community 93 - "OncePerRequestFilter"
 Cohesion: 0.22
 Nodes (13): AllArgsConstructor, Boolean, Builder, Data, Document, Double, Integer, List (+5 more)
 
 ### Community 94 - "SitemapCrawler"
-Cohesion: 0.26
-Nodes (9): AuditLogFilter, Component, FilterChain, HttpServletRequest, HttpServletResponse, Override, String, AuditLogRepository (+1 more)
+Cohesion: 0.33
+Nodes (7): List, Logger, Pattern, Service, Set, String, SitemapCrawler
 
 ### Community 95 - "RequestLogService"
-Cohesion: 0.29
-Nodes (8): FilterChain, HttpServletRequest, HttpServletResponse, List, Override, String, RateLimitFilter, Rule
+Cohesion: 0.28
+Nodes (8): CompareService, Boolean, Double, Function, Integer, List, Object, String
 
 ### Community 96 - "AdminMaintenanceController"
-Cohesion: 0.24
+Cohesion: 0.29
 Nodes (8): Character, AhoCorasick, Hit, List, Map, String, Node, Output
 
 ### Community 97 - "DarazScraper"
@@ -638,16 +633,16 @@ Cohesion: 0.22
 Nodes (10): Boolean, Component, EventListener, Integer, List, Logger, ObjectMapper, String (+2 more)
 
 ### Community 100 - "SaathiMessengerService"
-Cohesion: 0.31
-Nodes (3): BeforeEach, Test, ShopHealthServiceTest
+Cohesion: 0.20
+Nodes (6): AtomicReference, Test, ReviewReputationServiceTest, BeforeEach, Test, ShopHealthServiceTest
 
 ### Community 101 - "ShopDiagnostic"
-Cohesion: 0.16
-Nodes (8): AdminExtractorDebugController, GetMapping, RequestMapping, ResponseEntity, RestController, String, Object, String
+Cohesion: 0.27
+Nodes (13): AttributeRow, CompareResponse, AllArgsConstructor, Boolean, Builder, Data, Integer, List (+5 more)
 
 ### Community 102 - "AnalyticsEvent"
-Cohesion: 0.19
-Nodes (8): List, Service, Set, String, ShopVisibilityService, String, Test, ShopVisibilityServiceTest
+Cohesion: 0.30
+Nodes (13): AllArgsConstructor, Boolean, Builder, Data, Document, Instant, Integer, List (+5 more)
 
 ### Community 103 - "RyansScraper"
 Cohesion: 0.30
@@ -675,18 +670,18 @@ Nodes (6): Integer, Map, Pattern, Set, String, SpecExtractor
 
 ### Community 110 - ".get"
 Cohesion: 0.23
-Nodes (11): AuditLogEntry, AllArgsConstructor, Builder, Data, Document, Instant, Integer, NoArgsConstructor (+3 more)
+Nodes (12): AllArgsConstructor, Boolean, Builder, Data, Double, Integer, List, Map (+4 more)
 
 ### Community 111 - "ProtectedOrderRepository"
 Cohesion: 0.33
 Nodes (8): Connection, BaseScraper, AtomicLong, ConcurrentHashMap, Document, List, Logger, String
 
 ### Community 112 - "Seller"
-Cohesion: 0.28
-Nodes (9): AtomicInteger, AtomicLong, Logger, MongoTemplate, PreDestroy, Queue, Scheduled, Service (+1 more)
+Cohesion: 0.27
+Nodes (6): MongoTemplate, List, Optional, Pageable, String, ShopDiagnosticRepository
 
 ### Community 113 - "AtlasSearchService"
-Cohesion: 0.29
+Cohesion: 0.33
 Nodes (6): AtlasSearchService, List, Logger, MongoTemplate, Service, String
 
 ### Community 114 - "CatalogRemergeService"
@@ -722,8 +717,8 @@ Cohesion: 0.43
 Nodes (5): Logger, RestTemplate, Service, String, ResendService
 
 ### Community 122 - "DashboardStats"
-Cohesion: 0.27
-Nodes (10): AllArgsConstructor, Boolean, Builder, Data, Double, Integer, LocalDateTime, NoArgsConstructor (+2 more)
+Cohesion: 0.29
+Nodes (5): Logger, Service, String, Result, ShopApprovalService
 
 ### Community 124 - ".rendersSafeAttractiveDigest"
 Cohesion: 0.33
@@ -738,8 +733,8 @@ Cohesion: 0.43
 Nodes (5): CorsRegistry, Configuration, Override, WebConfig, WebMvcConfigurer
 
 ### Community 127 - "SellerRepository"
-Cohesion: 0.31
-Nodes (4): List, Optional, String, SellerRepository
+Cohesion: 0.36
+Nodes (9): AllArgsConstructor, Builder, Data, Document, List, LocalDateTime, NoArgsConstructor, String (+1 more)
 
 ### Community 128 - "User auth, price alerts, wishlist — design"
 Cohesion: 0.25
@@ -774,20 +769,20 @@ Cohesion: 0.22
 Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
 
 ### Community 147 - "RateLimiter"
-Cohesion: 0.21
-Nodes (6): Double, Set, HotDropsVisibleLowestTest, Double, String, Test
+Cohesion: 0.36
+Nodes (5): CompareController, GetMapping, RequestMapping, RestController, String
 
 ### Community 148 - "AdminGateFilter"
-Cohesion: 0.41
-Nodes (3): BeforeEach, Test, QueryClassifierFocusTest
+Cohesion: 0.20
+Nodes (10): AllArgsConstructor, Builder, Data, List, NoArgsConstructor, Set, String, QueryIntent (+2 more)
 
 ### Community 149 - "ShopTrustRepository"
 Cohesion: 0.39
 Nodes (6): Collection, List, Optional, Repository, String, ShopTrustRepository
 
 ### Community 150 - ".tryConsume"
-Cohesion: 0.22
-Nodes (6): Bucket, AtomicLong, ConcurrentHashMap, String, Test, RateLimiterTest
+Cohesion: 0.33
+Nodes (3): ClientIp, HttpServletRequest, String
 
 ### Community 151 - ".canonicalIdentifier"
 Cohesion: 0.29
@@ -798,8 +793,8 @@ Cohesion: 0.33
 Nodes (5): For /graphify explain, For /graphify path, graphify reference: query, path, explain, Step 0 — Constrained query expansion (REQUIRED before traversal), Step 1 — Traversal
 
 ### Community 153 - "RequestLogRepository"
-Cohesion: 0.21
-Nodes (12): AllArgsConstructor, Builder, Data, Document, Instant, Integer, Long, NoArgsConstructor (+4 more)
+Cohesion: 0.47
+Nodes (3): CatalogSearchModelMatchTest, String, Test
 
 ### Community 154 - "graphify reference: add a URL and watch a folder"
 Cohesion: 0.50
@@ -821,10 +816,6 @@ Nodes (3): Cache (Redis/Caffeine) Config, Per-IP Rate Limit Config, Search / Atl
 Cohesion: 0.25
 Nodes (9): AllArgsConstructor, Boolean, Builder, Data, Double, Integer, NoArgsConstructor, String (+1 more)
 
-### Community 181 - "CategoryFocusService"
-Cohesion: 0.29
-Nodes (6): CategoryFocusService, Logger, PostConstruct, Service, Set, String
-
 ### Community 182 - "AffiliateClick"
 Cohesion: 0.36
 Nodes (9): AffiliateClick, AllArgsConstructor, Builder, CompoundIndex, Data, Document, Instant, NoArgsConstructor (+1 more)
@@ -841,32 +832,24 @@ Nodes (7): List, Logger, Map, Object, Service, String, WorldCupService
 Cohesion: 0.42
 Nodes (3): AffiliateClickRepository, Instant, String
 
-### Community 186 - "ProxyBootstrap"
-Cohesion: 0.43
-Nodes (5): Component, Logger, PostConstruct, String, ProxyBootstrap
-
 ### Community 187 - "PriceSnapshotScheduler.java"
-Cohesion: 0.21
-Nodes (14): CompoundIndexes, AllArgsConstructor, Builder, Data, Document, Double, LocalDateTime, NoArgsConstructor (+6 more)
-
-### Community 188 - "ProductCategory.java"
-Cohesion: 0.33
-Nodes (5): getMaxPrice(), getMinPrice(), isPlausiblePrice(), Double, Double
+Cohesion: 0.15
+Nodes (19): CompoundIndexes, AllArgsConstructor, Builder, Data, Document, Double, LocalDateTime, NoArgsConstructor (+11 more)
 
 ## Knowledge Gaps
 - **118 isolated node(s):** `check-gstack.sh script`, `ci-crawl.sh script`, `damkemon-watchdog.sh script`, `install.sh script`, `install-worker.sh script` (+113 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **33 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **36 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ProductRepository` connect `Product` to `.of`, `.toString`, `QueryClassifier`, `ScrapingJob`, `BulkIndexer`, `CatalogSearchService`, `AppRole`, `ProductExtractor`, `ProductService`, `TrigramSearchIndex`, `SellerDepthHarvester`, `AccountController`, `AdminCatalogController.java`, `LinkedHashMap`, `AffiliateClickRepository`, `.named`, `AdminDiagController.java`, `FcommerceController`, `QueryIntent`, `SaathiQuery`, `.publicProfile`, `.get`, `PriceAlertScheduler`, `ProductRepository`, `RequestLog`, `SavedSearch`, `SaathiService`, `StartechHarvester`, `ShopifyHarvester`, `SaathiMessengerService`, `AnalyticsEvent`, `Feedback`, `AtlasSearchService`, `SellerRepository`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
-- **Why does `BulkIndexer` connect `BulkIndexer` to `.of`, `ScrapingJob`, `FeedSyncService`, `AppRole`, `Product`, `ProductExtractor`, `SellerDepthHarvester`, `.name`, `LinkedHashMap`, `PriceHistory`, `MarketplaceSeller`, `QueryIntent`, `graphify Update/Cluster-only Reference`, `CategoryFocusService`, `CacheController`, `AdminJobsController`, `ProductRepository`, `HomepageCrawler`, `AdminIngestController.java`, `SearchSeedCrawler`, `ShopifyHarvester`, `AnalyticsEvent`, `CatalogRemergeService`?**
+- **Why does `ProductRepository` connect `Product` to `.of`, `.toString`, `QueryClassifier`, `ScrapingJob`, `ProtectService`, `BulkIndexer`, `CatalogSearchService`, `AppRole`, `ProductExtractor`, `ProductService`, `TrigramSearchIndex`, `SellerDepthHarvester`, `AccountController`, `AdminCatalogController.java`, `LinkedHashMap`, `AffiliateClickRepository`, `AdminDiagController.java`, `FcommerceController`, `SaathiQuery`, `.publicProfile`, `.get`, `PriceAlertScheduler`, `.findAll`, `ProductRepository`, `SavedSearch`, `SaathiService`, `StartechHarvester`, `ShopifyHarvester`, `RequestLogService`, `SaathiMessengerService`, `ShopDiagnostic`, `Feedback`, `Seller`?**
+  _High betweenness centrality (0.070) - this node is a cross-community bridge._
+- **Why does `Product` connect `Product` to `.toString`, `.trim`, `BulkIndexer`, `CatalogSearchService`, `RateLimiter.java`, `CatalogSearchRelevanceTest`, `ProductService`, `RequestLogRepository`, `AdminCatalogController.java`, `AffiliateClickRepository`, `HotDropsService`, `.named`, `AdminDiagController.java`, `ProductController`, `SaathiProduct`, `graphify Update/Cluster-only Reference`, `PriceAlertScheduler`, `ShopLifecycleScheduler`, `.serviceWith`, `SaathiService`, `RequestLogService`, `ShopDiagnostic`, `.get`, `AtlasSearchService`, `CatalogRemergeService`, `.serviceWith`?**
   _High betweenness centrality (0.046) - this node is a cross-community bridge._
-- **Why does `Product` connect `.named` to `.toString`, `.trim`, `BulkIndexer`, `CatalogSearchService`, `Product`, `RateLimiter.java`, `CatalogSearchRelevanceTest`, `ProductService`, `RateLimiter`, `AffiliateClickRepository`, `HotDropsService`, `AdminDiagController.java`, `ProductController`, `SaathiProduct`, `QueryIntent`, `graphify Update/Cluster-only Reference`, `PriceAlertScheduler`, `RequestLog`, `.serviceWith`, `SaathiService`, `AnalyticsEvent`, `AtlasSearchService`, `CatalogRemergeService`, `.serviceWith`, `DashboardStats`?**
-  _High betweenness centrality (0.045) - this node is a cross-community bridge._
+- **Why does `BulkIndexer` connect `BulkIndexer` to `.of`, `.build`, `ScrapingJob`, `FeedSyncService`, `AppRole`, `Product`, `ProductExtractor`, `SellerDepthHarvester`, `.name`, `AdminCatalogController.java`, `LinkedHashMap`, `PriceHistory`, `MarketplaceSeller`, `QueryIntent`, `graphify Update/Cluster-only Reference`, `CacheController`, `AdminJobsController`, `ProductRepository`, `HomepageCrawler`, `AdminIngestController.java`, `SearchSeedCrawler`, `ShopifyHarvester`, `SitemapCrawler`, `Seller`, `CatalogRemergeService`?**
+  _High betweenness centrality (0.039) - this node is a cross-community bridge._
 - **Are the 6 inferred relationships involving `LinkedHashMap` (e.g. with `.listProducts()` and `.testReply()`) actually correct?**
   _`LinkedHashMap` has 6 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `check-gstack.sh script`, `ci-crawl.sh script`, `damkemon-watchdog.sh script` to the rest of the system?**
@@ -874,4 +857,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `.toString` be split into smaller, more focused modules?**
   _Cohesion score 0.07792207792207792 - nodes in this community are weakly interconnected._
 - **Should `.build` be split into smaller, more focused modules?**
-  _Cohesion score 0.08007013442431327 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05651176133103844 - nodes in this community are weakly interconnected._

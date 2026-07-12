@@ -28,7 +28,8 @@ import java.util.regex.Pattern;
 @Service
 public class AdminUserService {
 
-    private static final Set<String> ACTIVATION_EVENTS = Set.of("search", "view", "click", "suggest_click");
+    // List, not Set: the driver's $in encodes a List unambiguously across codec registries.
+    private static final List<String> ACTIVATION_EVENTS = List.of("search", "view", "click", "suggest_click");
 
     private final MongoTemplate mongo;
     private final UserRepository users;
@@ -93,8 +94,10 @@ public class AdminUserService {
         activeUsers.addAll(distinct("request_log", "userId", new Document("ts", new Document("$gte", since))
                 .append("userId", new Document("$ne", null))
                 .append("path", new Document("$regex", "^/api/(wishlist|saved-searches|reviews|affiliate)"))));
-        Set<String> registeredUsers = new HashSet<>(mongo.findDistinct(
-                Query.query(Criteria.where("role").ne("admin")), "id", User.class, String.class));
+        // ponytail: aggregation, not findDistinct — findDistinct runs the distinct command,
+        // the same 16MB-cap / decode footgun the anonId helper already dodges. This was the
+        // last distinct command in the method and the remaining 500 path.
+        Set<String> registeredUsers = distinct("users", "_id", new Document("role", new Document("$ne", "admin")));
         activeUsers.retainAll(registeredUsers);
         long activated = newUserIds.stream().filter(activeUsers::contains).count();
         long googleSignups = newUsers.stream().filter(u -> "google".equalsIgnoreCase(u.getSignupSource())).count();
