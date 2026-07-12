@@ -39,7 +39,8 @@ class AuthControllerTest {
 
     private AuthController controller(UserRepository users, JwtService jwt) {
         return new AuthController(jwt, users,
-                mock(NewsletterSubscriberRepository.class), mock(ResendService.class));
+                mock(NewsletterSubscriberRepository.class), mock(ResendService.class),
+                mock(com.damKemon.dam.kemon.service.AnalyticsService.class));
     }
 
     @Test

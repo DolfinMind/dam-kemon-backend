@@ -4,6 +4,7 @@ import com.damKemon.dam.kemon.model.NewsletterSubscriber;
 import com.damKemon.dam.kemon.model.User;
 import com.damKemon.dam.kemon.repository.NewsletterSubscriberRepository;
 import com.damKemon.dam.kemon.repository.UserRepository;
+import com.damKemon.dam.kemon.service.AnalyticsService;
 import com.damKemon.dam.kemon.service.JwtService;
 import com.damKemon.dam.kemon.service.ResendService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -51,6 +52,7 @@ public class AuthController {
     private final UserRepository users;
     private final NewsletterSubscriberRepository newsletter;
     private final ResendService resend;
+    private final AnalyticsService analytics;
     private final BCryptPasswordEncoder hasher = new BCryptPasswordEncoder();
     // non-final so tests can swap in a stub instead of calling Google for real
     private org.springframework.web.client.RestTemplate http =
@@ -66,11 +68,12 @@ public class AuthController {
 
     public AuthController(JwtService jwt, UserRepository users,
                           NewsletterSubscriberRepository newsletter,
-                          ResendService resend) {
+                          ResendService resend, AnalyticsService analytics) {
         this.jwt = jwt;
         this.users = users;
         this.newsletter = newsletter;
         this.resend = resend;
+        this.analytics = analytics;
     }
 
     // ─────────────────────────────── Sign up ───────────────────────────────
@@ -122,6 +125,7 @@ public class AuthController {
 
             sendVerificationMailAsync(saved);
             if (newsletterOptIn) subscribeNewsletter(email);
+            analytics.recordAccountActivity("signup", saved.getId());
 
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("token", jwt.issue(saved.getId(), saved.getEmail(), saved.getRole()));
@@ -151,6 +155,7 @@ public class AuthController {
             u.setVerifyTokenExpiry(null);
             u.setUpdatedAt(LocalDateTime.now());
             users.save(u);
+            analytics.recordAccountActivity("email_verified", u.getId());
             return ResponseEntity.ok(Map.of("ok", true, "email", u.getEmail()));
         } catch (DataAccessException e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "could not verify — try again"));
@@ -278,6 +283,7 @@ public class AuthController {
             LocalDateTime now = LocalDateTime.now();
             List<User> matches = users.findAllByEmail(email);
             User u;
+            boolean created = matches.isEmpty();
             if (matches.isEmpty()) {
                 u = User.builder()
                         .email(email)
@@ -323,6 +329,7 @@ public class AuthController {
                 u = again.get(0);
             }
             Map<String, Object> out = new LinkedHashMap<>();
+            analytics.recordAccountActivity(created ? "google_signup" : "google_login", u.getId());
             out.put("token", jwt.issue(u.getId(), u.getEmail(), u.getRole()));
             out.put("user", publicProfile(u));
             return ResponseEntity.ok(out);
@@ -361,6 +368,7 @@ public class AuthController {
             }
             u.setLastLoginAt(LocalDateTime.now());
             try { users.save(u); } catch (DataAccessException ignored) {}
+            analytics.recordAccountActivity("login", u.getId());
 
             String token = jwt.issue(u.getId(), u.getEmail(), u.getRole());
             Map<String, Object> out = new LinkedHashMap<>();
@@ -419,6 +427,7 @@ public class AuthController {
             }
             u.setUpdatedAt(LocalDateTime.now());
             users.save(u);
+            analytics.recordAccountActivity("profile_update", u.getId());
             return ResponseEntity.ok(publicProfile(u));
         } catch (DataAccessException e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "could not update profile"));

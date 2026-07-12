@@ -33,7 +33,7 @@ public class AnalyticsEvent {
     @Id
     private String id;
 
-    /** "search" | "view" | "click" | "pageview" | "suggest_click" */
+    /** "search" | "view" | "click" | "pageview" | "suggest_click" | auth/profile events. */
     @Indexed
     private String type;
 

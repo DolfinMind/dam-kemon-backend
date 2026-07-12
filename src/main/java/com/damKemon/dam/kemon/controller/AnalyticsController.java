@@ -44,7 +44,8 @@ public class AnalyticsController {
     @PostMapping("/view")
     public ResponseEntity<Void> view(@RequestBody Map<String, Object> body,
                                      HttpServletRequest req) {
-        analytics.recordView(asString(body.get("productId")), asString(body.get("anonId")), ClientIp.of(req));
+        analytics.recordView(asString(body.get("productId")), asString(body.get("anonId")), ClientIp.of(req),
+                asString(req.getAttribute("authUserId")));
         return ResponseEntity.noContent().build();
     }
 
@@ -55,7 +56,8 @@ public class AnalyticsController {
                 asString(body.get("productId")),
                 asString(body.get("sellerSlug")),
                 asString(body.get("anonId")),
-                ClientIp.of(req));
+                ClientIp.of(req),
+                asString(req.getAttribute("authUserId")));
         return ResponseEntity.noContent().build();
     }
 
@@ -68,7 +70,8 @@ public class AnalyticsController {
                 asString(body.get("productId")),
                 asString(body.get("productName")),
                 asString(body.get("anonId")),
-                ClientIp.of(req));
+                ClientIp.of(req),
+                asString(req.getAttribute("authUserId")));
         return ResponseEntity.noContent().build();
     }
 

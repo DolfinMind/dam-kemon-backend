@@ -65,11 +65,17 @@ public class AnalyticsService {
 
     @Async
     public void recordView(String productId, String anonId, String ip) {
+        recordView(productId, anonId, ip, null);
+    }
+
+    @Async
+    public void recordView(String productId, String anonId, String ip, String userId) {
         if (productId == null || productId.isBlank()) return;
         save(AnalyticsEvent.builder()
                 .type("view")
                 .productId(productId)
                 .anonId(safe(anonId))
+                .userId(safe(userId))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
                 .ts(Instant.now())
@@ -78,12 +84,18 @@ public class AnalyticsService {
 
     @Async
     public void recordClick(String productId, String sellerSlug, String anonId, String ip) {
+        recordClick(productId, sellerSlug, anonId, ip, null);
+    }
+
+    @Async
+    public void recordClick(String productId, String sellerSlug, String anonId, String ip, String userId) {
         if (productId == null && sellerSlug == null) return;
         save(AnalyticsEvent.builder()
                 .type("click")
                 .productId(productId)
                 .sellerSlug(sellerSlug)
                 .anonId(safe(anonId))
+                .userId(safe(userId))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
                 .ts(Instant.now())
@@ -95,6 +107,12 @@ public class AnalyticsService {
     @Async
     public void recordSuggestClick(String query, String productId, String productName,
                                    String anonId, String ip) {
+        recordSuggestClick(query, productId, productName, anonId, ip, null);
+    }
+
+    @Async
+    public void recordSuggestClick(String query, String productId, String productName,
+                                   String anonId, String ip, String userId) {
         if (productId == null && productName == null) return;
         String q = query == null ? null : query.trim().toLowerCase();
         if (q != null && q.length() > MAX_QUERY_LEN) q = q.substring(0, MAX_QUERY_LEN);
@@ -104,6 +122,7 @@ public class AnalyticsService {
                 .productId(safe(productId))
                 .productName(safe256(productName))
                 .anonId(safe(anonId))
+                .userId(safe(userId))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
                 .ts(Instant.now())
@@ -126,6 +145,17 @@ public class AnalyticsService {
                 .userAgent(safe256(userAgent))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .ts(Instant.now())
+                .build());
+    }
+
+    /** Explicit account lifecycle events that cannot be inferred from authenticated requests. */
+    @Async
+    public void recordAccountActivity(String type, String userId) {
+        if (type == null || userId == null) return;
+        save(AnalyticsEvent.builder()
+                .type(safe(type))
+                .userId(safe(userId))
                 .ts(Instant.now())
                 .build());
     }
