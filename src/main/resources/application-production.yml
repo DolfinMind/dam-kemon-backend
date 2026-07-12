@@ -61,6 +61,14 @@ browser:
   enabled: false       # OFF on the API node — no Chromium in the request-serving JVM, ever.
                        # SPA-shop rendering lives in the worker (WORKER_BROWSER_ENABLED, needs >= 2 GB).
 
+# The in-memory trigram index stores millions of posting-list entries and was
+# retaining the full 120k-product catalog on the 1 GB API node (>1 GB heap at
+# startup). Mongo text/prefix search remains available; keep fuzzy indexing off
+# until it is moved to a compact external index or the box is resized.
+search:
+  trigram:
+    enabled: false
+
 # Heavy crawl/consolidation @Scheduled jobs are OFF on the API node — the worker
 # (damkemon-prod-worker.service) owns them. Light, serving-side jobs stay ON here:
 # price-history snapshot, hot-drops rebuild, trigram refresh, price alerts, seller sync.

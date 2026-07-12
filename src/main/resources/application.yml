@@ -243,16 +243,18 @@ showcase:
   refresh-ms: ${SHOWCASE_REFRESH_MS:900000}
 
 # ───── Hot-drops rebuild ─────
-# Rebuilt every 4h (was once daily) so the "price drops" rail tracks fresh
-# crawls through the day instead of going stale between nightly runs.
+# Rebuilt once daily, 30 minutes after the 04:00 price-history snapshot. The
+# catalog crawl is nightly, so running the same history aggregation six times a
+# day only repeated results and created avoidable heap pressure.
 hot-drops:
-  cron: ${HOT_DROPS_CRON:0 0 */4 * * *}
+  cron: ${HOT_DROPS_CRON:0 30 4 * * *}
   # Parse-error guards: a real BD tech price never legitimately drops more than
-  # max-drop-pct from its 7-day peak, and nothing in a computing/mobile catalog
+  # max-drop-pct from its same-shop 7-day typical price, and nothing in a computing/mobile catalog
   # sells for under min-price taka — anything past either bound is a scraper
   # mis-parse (e.g. "৳55,500" read as 55) and must never headline the rail.
-  max-drop-pct: ${HOT_DROPS_MAX_DROP_PCT:70}
-  min-price: ${HOT_DROPS_MIN_PRICE:200}
+  max-drop-pct: ${HOT_DROPS_MAX_DROP_PCT:45}
+  min-price: ${HOT_DROPS_MIN_PRICE:500}
+  max-product-age-hours: ${HOT_DROPS_MAX_PRODUCT_AGE_HOURS:72}
 
 # ───── Weekly newsletter ─────
 # Monday 09:00 Asia/Dhaka. Composes the current hot-drops into an HTML digest

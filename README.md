@@ -170,7 +170,7 @@ file on disk.
 | `GET` | `/api/dashboard/stats` | Catalog stats |
 | `GET` | `/api/stats/live` | Active anon users, searches in last 60s/24h |
 | `GET` | `/api/stats/trending?limit=10` | Top search terms in last 24h |
-| `GET` | `/api/stats/hot-drops?limit=12` | Products with current price ≥10% below 7-day peak |
+| `GET` | `/api/stats/hot-drops?limit=12` | Genuine current offers ≥10% below that shop's 7-day typical price |
 | `POST`| `/api/events/view` | Anon product-view beacon (no PII) |
 | `POST`| `/api/events/click` | Anon outbound-seller-click beacon |
 | `POST`| `/api/shops/submit` | Public shop submission → `pending_shops` |
@@ -351,7 +351,7 @@ These are the user-traffic features you mentioned. None are wired yet.
 |---|---|---|
 | ✅ | "X users searching now" pill on Home | Distinct `anonId` count of search events in the last 60s, served from `GET /api/stats/live`. |
 | ✅ | Trending searches | Top search terms in the last 24h with hit counts, surfaced as `TrendingStrip` on Home. `GET /api/stats/trending`. |
-| ✅ | "Hot drops" feed | Products whose current `lowestPrice` is ≥10% below the 7-day peak. Rebuilt nightly at 05:00. `GET /api/stats/hot-drops`. |
+| ✅ | "Hot drops" feed | Genuine current offers ≥10% below the same shop's 7-day typical price. Rebuilt daily at 04:30 after the price snapshot. `GET /api/stats/hot-drops`. |
 | ✅ | "Recently viewed" rail | localStorage keeps the last 12 product IDs, Home hydrates via `GET /api/products/by-ids`. |
 
 **Operator-facing counters** (in the admin console at `/admin/stats`):
