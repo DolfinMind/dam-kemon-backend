@@ -85,4 +85,9 @@ public class Product {
 
     /** Sponsor tier (1=top of all, 2=top of category, 3=anywhere). Higher = lower priority. */
     private Integer sponsorTier;
+
+    /** Wire-only: true distinct-seller count when {@code prices} is capped for
+     *  anonymous callers, so the UI can still say "12 shops". Never persisted. */
+    @org.springframework.data.annotation.Transient
+    private Integer totalSellerCount;
 }

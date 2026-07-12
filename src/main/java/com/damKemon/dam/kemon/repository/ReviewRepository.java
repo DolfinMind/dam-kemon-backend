@@ -23,6 +23,12 @@ public interface ReviewRepository extends MongoRepository<Review, String> {
     /** Dedup guard for the lightweight delivery-report path. */
     long countByProductIdAndAnonIdAndSource(String productId, String anonId, String source);
 
+    /** One signed-in review per product. */
+    long countByProductIdAndUserId(String productId, String userId);
+
+    /** Account → Contributions tab. */
+    List<Review> findByUserIdOrderByReviewDateDesc(String userId);
+
     /** Moderation queue — flagged/hidden reviews for the admin view. */
     List<Review> findByStatusOrderByReviewDateDesc(String status);
 }

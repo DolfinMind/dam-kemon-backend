@@ -530,6 +530,7 @@ public class AuthController {
         m.put("birthYear", u.getBirthYear());
         m.put("interests", u.getInterests());
         m.put("newsletterOptIn", u.getNewsletterOptIn());
+        m.put("reputation", u.getReputation() == null ? 1 : Math.max(1, u.getReputation()));
         m.put("createdAt", u.getCreatedAt());
         return m;
     }

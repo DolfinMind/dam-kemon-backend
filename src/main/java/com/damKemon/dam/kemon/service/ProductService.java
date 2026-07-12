@@ -394,7 +394,8 @@ public class ProductService {
      * untouched — those reflect scraped seller ratings; community sentiment
      * lives in the Reviews tab and the shop trust score.
      */
-    public ReviewOutcome addCommunityReview(String idOrSlug, Map<String, Object> body, String anonHeader) {
+    public ReviewOutcome addCommunityReview(String idOrSlug, Map<String, Object> body,
+                                            String userId, String anonHeader) {
         Optional<Product> po = findByIdOrSlug(idOrSlug);
         if (po.isEmpty()) return new ReviewOutcome(404, Map.of("error", "product not found"));
         Product product = po.get();
@@ -407,14 +408,20 @@ public class ProductService {
         String anonId = firstNonBlank(anonHeader, asStr(body.get("anonId")));
         String shopSlug = trimToNull(asStr(body.get("shopSlug")));
         String siteName = trimToNull(asStr(body.get("siteName")));
-        String name = firstNonBlank(trimToNull(asStr(body.get("reviewerName"))), "Anonymous");
+        String name = firstNonBlank(trimToNull(asStr(body.get("reviewerName"))), "Damkemon member");
         String title = clamp(trimToNull(asStr(body.get("title"))), 140);
         String content = clamp(trimToNull(asStr(body.get("content"))), 2000);
         Integer deliveryDays = clampInt(asInt(body.get("deliveryDaysReported")), 0, 60);
         Boolean recommend = asBool(body.get("wouldRecommend"));
         String trustVote = normVote(asStr(body.get("trustVote")));
 
-        if (anonId != null) {
+        if (userId != null) {
+            try {
+                if (reviewRepository.countByProductIdAndUserId(product.getId(), userId) > 0) {
+                    return new ReviewOutcome(409, Map.of("error", "you have already reviewed this product"));
+                }
+            } catch (DataAccessException ignored) { /* unique vote identity still protects scoring */ }
+        } else if (anonId != null) {
             try {
                 if (reviewRepository.countByProductIdAndAnonId(product.getId(), anonId) > 0) {
                     return new ReviewOutcome(409, Map.of("error", "you have already reviewed this product"));
@@ -439,6 +446,7 @@ public class ProductService {
 
         Review review = Review.builder()
                 .productId(product.getId())
+                .userId(userId)
                 .siteName(siteName)
                 .shopSlug(shopSlug)
                 .reviewerName(name)
@@ -450,8 +458,13 @@ public class ProductService {
                 .wouldRecommend(recommend)
                 .trustVote(trustVote)
                 .helpfulCount(0)
+                .upvoteCount(0)
+                .downvoteCount(0)
+                .score(0)
+                .authorReputation(1)
                 .source("community")
                 .verified(verified)
+                .trusted(verified)
                 .status(status)
                 .reviewDate(LocalDateTime.now())
                 .build();
@@ -517,19 +530,6 @@ public class ProductService {
         ShopTrust updated = trustService.applyDeliveryReport(shopSlug, days);
         if (updated != null) out.put("trust", trustService.view(updated));
         return new ReviewOutcome(201, out);
-    }
-
-    /** Increment a review's helpful count. Returns the saved review, or null. */
-    public Review markHelpful(String reviewId) {
-        try {
-            Optional<Review> r = reviewRepository.findById(reviewId);
-            if (r.isEmpty()) return null;
-            Review rv = r.get();
-            rv.setHelpfulCount((rv.getHelpfulCount() == null ? 0 : rv.getHelpfulCount()) + 1);
-            return reviewRepository.save(rv);
-        } catch (DataAccessException e) {
-            return null;
-        }
     }
 
     /** Reviews awaiting moderation (spam-flagged). Admin-only. */

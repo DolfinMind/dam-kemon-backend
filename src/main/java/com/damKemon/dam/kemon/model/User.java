@@ -87,6 +87,10 @@ public class User {
     /** Where the account came from: "signup" | "owner-bootstrap". */
     private String signupSource;
 
+    /** Community standing: starts at 1; +10 per review upvote, -2 per downvote. */
+    @Builder.Default
+    private Integer reputation = 1;
+
     /** When the user last successfully signed in. */
     private LocalDateTime lastLoginAt;
 

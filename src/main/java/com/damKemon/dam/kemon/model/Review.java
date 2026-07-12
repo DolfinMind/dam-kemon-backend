@@ -15,8 +15,8 @@ import java.time.LocalDateTime;
  * <ul>
  *   <li>{@code source = "scraped"} — pulled from a shop's product page by the
  *       indexer. Has {@link #siteName} but no community fields.</li>
- *   <li>{@code source = "community"} — submitted by a shopper on Damkemon.
- *       Anonymous (keyed by {@link #anonId}); carries the trust/delivery
+ *   <li>{@code source = "community"} — submitted by a signed-in shopper on Damkemon.
+ *       Keyed by {@link #userId}; carries the trust/delivery
  *       signals that feed {@code ShopTrust} via {@code TrustService}.</li>
  * </ul>
  */
@@ -31,6 +31,9 @@ public class Review {
 
     @Indexed
     private String productId;
+    /** Signed-in author. Null for imported and clearly-labelled sample rows. */
+    @Indexed
+    private String userId;
     private String siteName;
     private String reviewerName;
     private Integer rating;
@@ -58,6 +61,22 @@ public class Review {
 
     @Builder.Default
     private Integer helpfulCount = 0;
+
+    /** Reddit/Stack Overflow style voting. score is always upvotes - downvotes. */
+    @Builder.Default
+    private Integer upvoteCount = 0;
+    @Builder.Default
+    private Integer downvoteCount = 0;
+    @Builder.Default
+    private Integer score = 0;
+
+    /** Author points at the time this review was last voted on. */
+    @Builder.Default
+    private Integer authorReputation = 1;
+
+    /** Verified purchase, or 5+ net votes from an author with 50+ reputation. */
+    @Builder.Default
+    private Boolean trusted = false;
 
     /** "community" | "scraped" | "delivery_report". */
     @Builder.Default

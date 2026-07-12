@@ -30,4 +30,9 @@ public class SitePrice {
     private String sellerId;
     private Integer soldCount;
     private LocalDateTime lastUpdated;
+
+    /** Wire-only: identity stripped for anonymous callers — price stays, the
+     *  shop behind it is the signup carrot. Never persisted. */
+    @org.springframework.data.annotation.Transient
+    private Boolean locked;
 }

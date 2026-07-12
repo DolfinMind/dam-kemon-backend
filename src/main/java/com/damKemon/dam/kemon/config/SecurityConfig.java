@@ -142,7 +142,7 @@ public class SecurityConfig {
         // got a bare 403 "Invalid CORS request".
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("X-Admin-Key", "X-Anon-Id", "Authorization"));
+        configuration.setExposedHeaders(List.of("X-Admin-Key", "X-Anon-Id", "Authorization", "X-Total-Reviews"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
