@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -47,9 +46,6 @@ public class TrigramSearchIndex implements ApplicationRunner {
     private volatile Instant lastSuccess;
     private volatile String lastFailure;
 
-    @Value("${search.trigram.enabled:true}")
-    private boolean enabled;
-
     public TrigramSearchIndex(ProductRepository productRepository) {
         this.productRepository = productRepository;
     }
@@ -57,7 +53,7 @@ public class TrigramSearchIndex implements ApplicationRunner {
     /** Build the lightweight index before Spring reports the application ready. */
     @Override
     public void run(ApplicationArguments args) {
-        if (enabled) rebuild();
+        rebuild();
     }
 
     /** Index refresh. Every 6h by default: the catalog only changes on the nightly
@@ -66,7 +62,6 @@ public class TrigramSearchIndex implements ApplicationRunner {
      *  Aligned to :05 so it never collides with the crawl window. */
     @Scheduled(cron = "${search.trigram.cron:0 5 */6 * * *}")
     public void hourlyRefresh() {
-        if (!enabled) return;
         try { rebuild(); }
         catch (Exception e) { log.warn("Trigram hourly refresh failed: {}", e.getMessage()); }
     }
@@ -103,7 +98,6 @@ public class TrigramSearchIndex implements ApplicationRunner {
 
     /** Top-K fuzzy matches above the given threshold, ranked by trigram-Jaccard. */
     public List<TrigramIndex.Hit> topK(String query, int k, double minScore) {
-        if (!enabled) return List.of();
         TrigramIndex idx = indexRef.get();
         if (idx == null || idx.size() == 0) return List.of();
         List<TrigramIndex.Hit> raw = idx.topK(query, k);
@@ -114,13 +108,13 @@ public class TrigramSearchIndex implements ApplicationRunner {
 
     public int size() { return indexRef.get().size(); }
 
-    public boolean isEnabled() { return enabled; }
+    public boolean isEnabled() { return true; }
 
-    public boolean isReady() { return !enabled || ready; }
+    public boolean isReady() { return ready; }
 
     public Map<String, Object> status() {
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("enabled", enabled);
+        out.put("enabled", true);
         out.put("ready", isReady());
         out.put("size", size());
         if (lastSuccess != null) out.put("lastSuccess", lastSuccess.toString());

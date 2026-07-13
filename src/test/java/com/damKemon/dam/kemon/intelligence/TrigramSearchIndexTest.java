@@ -4,7 +4,6 @@ import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataRetrievalFailureException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 
@@ -20,10 +19,16 @@ class TrigramSearchIndexTest {
 
     private final ProductRepository repo = mock(ProductRepository.class);
 
-    private TrigramSearchIndex enabledIndex() {
+    private TrigramSearchIndex index() {
+        return new TrigramSearchIndex(repo);
+    }
+
+    @Test
+    void baselineRecallCannotBeDisabled() {
         TrigramSearchIndex index = new TrigramSearchIndex(repo);
-        ReflectionTestUtils.setField(index, "enabled", true);
-        return index;
+
+        assertTrue(index.isEnabled());
+        assertFalse(index.isReady());
     }
 
     @Test
@@ -31,7 +36,7 @@ class TrigramSearchIndexTest {
         when(repo.findAllSearchDocuments()).thenReturn(List.of(Product.builder()
                 .id("s24").name("Samsung Galaxy S24 Ultra")
                 .brands(List.of("Samsung")).build()));
-        TrigramSearchIndex index = enabledIndex();
+        TrigramSearchIndex index = index();
 
         index.rebuild();
 
@@ -45,7 +50,7 @@ class TrigramSearchIndexTest {
         Product phone = Product.builder().id("s24").name("Samsung Galaxy S24 Ultra").build();
         when(repo.findAllSearchDocuments()).thenReturn(List.of(phone))
                 .thenThrow(new DataRetrievalFailureException("mongo unavailable"));
-        TrigramSearchIndex index = enabledIndex();
+        TrigramSearchIndex index = index();
 
         index.rebuild();
         index.rebuild();
@@ -59,7 +64,7 @@ class TrigramSearchIndexTest {
     void nonEmptyCatalogCannotBecomeReadyWithEmptyIndex() {
         when(repo.findAllSearchDocuments()).thenReturn(List.of());
         when(repo.count()).thenReturn(1L);
-        TrigramSearchIndex index = enabledIndex();
+        TrigramSearchIndex index = index();
 
         index.rebuild();
 

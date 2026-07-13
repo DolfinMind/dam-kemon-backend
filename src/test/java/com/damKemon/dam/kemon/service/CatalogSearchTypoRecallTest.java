@@ -78,7 +78,6 @@ class CatalogSearchTypoRecallTest {
         // REAL trigram index over the catalog: the scores are the true, length-biased
         // Jaccard + length-independent coverage prod sees, NOT hand-picked fixtures.
         TrigramSearchIndex trigram = new TrigramSearchIndex(repo);
-        ReflectionTestUtils.setField(trigram, "enabled", true);
         trigram.rebuild();
 
         CatalogSearchService svc = new CatalogSearchService(repo, classifier, expander, trigram, atlas,
