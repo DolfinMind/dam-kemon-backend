@@ -16,15 +16,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
- * Manual curation inlet: lets an operator push hand-verified offers straight
- * into the catalog. Each batch is a shop slug plus the offers found on that
- * shop; everything flows through {@link BulkIndexer.EnrichSession}, i.e. the
- * exact matchKey/LSH/URL merge path and category gate the nightly indexer
- * uses — so manually added offers group onto existing products as extra
- * sellers, and unknown models insert as new products, with no special-case
- * persistence logic to drift out of sync.
+ * Bounded catalog inlet for trusted workers and operator-curated offers. Each
+ * batch uses the indexer's URL/match-key merge path and category gate without
+ * warming the full-catalog fuzzy index.
  */
 @RestController
 @RequestMapping("/api/admin/catalog")
@@ -55,9 +52,9 @@ public class AdminIngestController {
             return ResponseEntity.badRequest().body(Map.of("error", "no batches"));
         }
         int submitted = request.batches().stream()
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .map(IngestBatch::offers)
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .mapToInt(List::size)
                 .sum();
         if (submitted > MAX_OFFERS) {
