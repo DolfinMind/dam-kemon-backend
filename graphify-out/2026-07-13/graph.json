@@ -324,7 +324,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_approle",
-      "community": 13,
+      "community": 37,
       "norm_label": "approle.java"
     },
     {
@@ -334,7 +334,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_approle_approle",
-      "community": 13,
+      "community": 37,
       "norm_label": "approle"
     },
     {
@@ -344,7 +344,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_approle_java_component",
-      "community": 13,
+      "community": 37,
       "norm_label": "component"
     },
     {
@@ -354,7 +354,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_approle_java_string",
-      "community": 13,
+      "community": 37,
       "norm_label": "string"
     },
     {
@@ -364,7 +364,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_approle_approle_approle",
-      "community": 13,
+      "community": 37,
       "norm_label": ".approle()"
     },
     {
@@ -404,7 +404,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_auditlogfilter",
-      "community": 147,
+      "community": 26,
       "norm_label": "auditlogfilter.java"
     },
     {
@@ -414,7 +414,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_auditlogfilter_auditlogfilter",
-      "community": 147,
+      "community": 26,
       "norm_label": "auditlogfilter"
     },
     {
@@ -424,7 +424,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "onceperrequestfilter",
-      "community": 99,
+      "community": 26,
       "norm_label": "onceperrequestfilter"
     },
     {
@@ -434,7 +434,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_auditlogfilter_java_component",
-      "community": 147,
+      "community": 26,
       "norm_label": "component"
     },
     {
@@ -444,7 +444,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_auditlogfilter_auditlogfilter_auditlogfilter",
-      "community": 147,
+      "community": 26,
       "norm_label": ".auditlogfilter()"
     },
     {
@@ -454,7 +454,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_auditlogfilter_auditlogfilter_dofilterinternal",
-      "community": 147,
+      "community": 26,
       "norm_label": ".dofilterinternal()"
     },
     {
@@ -464,7 +464,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_auditlogfilter_java_httpservletrequest",
-      "community": 147,
+      "community": 26,
       "norm_label": "httpservletrequest"
     },
     {
@@ -474,7 +474,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_auditlogfilter_java_httpservletresponse",
-      "community": 147,
+      "community": 26,
       "norm_label": "httpservletresponse"
     },
     {
@@ -484,7 +484,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_auditlogfilter_java_filterchain",
-      "community": 147,
+      "community": 26,
       "norm_label": "filterchain"
     },
     {
@@ -494,7 +494,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_auditlogfilter_java_override",
-      "community": 147,
+      "community": 26,
       "norm_label": "override"
     },
     {
@@ -504,7 +504,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_auditlogfilter_auditlogfilter_haship",
-      "community": 147,
+      "community": 26,
       "norm_label": ".haship()"
     },
     {
@@ -514,7 +514,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_auditlogfilter_java_string",
-      "community": 147,
+      "community": 26,
       "norm_label": "string"
     },
     {
@@ -824,7 +824,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxybootstrap",
-      "community": 196,
+      "community": 26,
       "norm_label": "proxybootstrap.java"
     },
     {
@@ -834,7 +834,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxybootstrap_proxybootstrap",
-      "community": 196,
+      "community": 26,
       "norm_label": "proxybootstrap"
     },
     {
@@ -844,7 +844,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxybootstrap_java_component",
-      "community": 196,
+      "community": 26,
       "norm_label": "component"
     },
     {
@@ -854,7 +854,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxybootstrap_java_logger",
-      "community": 196,
+      "community": 26,
       "norm_label": "logger"
     },
     {
@@ -864,7 +864,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxybootstrap_java_string",
-      "community": 196,
+      "community": 26,
       "norm_label": "string"
     },
     {
@@ -874,7 +874,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxybootstrap_proxybootstrap_init",
-      "community": 196,
+      "community": 26,
       "norm_label": ".init()"
     },
     {
@@ -884,7 +884,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxybootstrap_java_postconstruct",
-      "community": 196,
+      "community": 26,
       "norm_label": "postconstruct"
     },
     {
@@ -894,7 +894,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxypool",
-      "community": 24,
+      "community": 144,
       "norm_label": "proxypool.java"
     },
     {
@@ -904,7 +904,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxypool_proxypool",
-      "community": 24,
+      "community": 144,
       "norm_label": "proxypool"
     },
     {
@@ -914,7 +914,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxypool_java_component",
-      "community": 24,
+      "community": 144,
       "norm_label": "component"
     },
     {
@@ -924,7 +924,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxypool_java_string",
-      "community": 24,
+      "community": 144,
       "norm_label": "string"
     },
     {
@@ -934,7 +934,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxypool_java_list",
-      "community": 24,
+      "community": 144,
       "norm_label": "list"
     },
     {
@@ -944,7 +944,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxypool_java_atomicinteger",
-      "community": 24,
+      "community": 144,
       "norm_label": "atomicinteger"
     },
     {
@@ -954,7 +954,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxypool_proxypool_init",
-      "community": 24,
+      "community": 144,
       "norm_label": ".init()"
     },
     {
@@ -964,7 +964,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxypool_java_postconstruct",
-      "community": 24,
+      "community": 144,
       "norm_label": "postconstruct"
     },
     {
@@ -974,7 +974,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxypool_proxypool_enabled",
-      "community": 24,
+      "community": 50,
       "norm_label": ".enabled()"
     },
     {
@@ -984,7 +984,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxypool_proxypool_size",
-      "community": 24,
+      "community": 144,
       "norm_label": ".size()"
     },
     {
@@ -994,7 +994,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_proxypool_proxypool_next",
-      "community": 24,
+      "community": 144,
       "norm_label": ".next()"
     },
     {
@@ -1004,7 +1004,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter",
-      "community": 122,
+      "community": 20,
       "norm_label": "ratelimitfilter.java"
     },
     {
@@ -1014,7 +1014,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_ratelimitfilter",
-      "community": 122,
+      "community": 20,
       "norm_label": "ratelimitfilter"
     },
     {
@@ -1024,7 +1024,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_rule",
-      "community": 122,
+      "community": 20,
       "norm_label": "rule"
     },
     {
@@ -1034,7 +1034,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_java_list",
-      "community": 122,
+      "community": 20,
       "norm_label": "list"
     },
     {
@@ -1044,7 +1044,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_java_string",
-      "community": 122,
+      "community": 20,
       "norm_label": "string"
     },
     {
@@ -1054,7 +1054,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_rule_matches",
-      "community": 122,
+      "community": 20,
       "norm_label": ".matches()"
     },
     {
@@ -1064,7 +1064,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_ratelimitfilter_ratelimitfilter",
-      "community": 122,
+      "community": 20,
       "norm_label": ".ratelimitfilter()"
     },
     {
@@ -1074,7 +1074,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_ratelimitfilter_dofilterinternal",
-      "community": 122,
+      "community": 20,
       "norm_label": ".dofilterinternal()"
     },
     {
@@ -1084,7 +1084,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_java_httpservletrequest",
-      "community": 122,
+      "community": 20,
       "norm_label": "httpservletrequest"
     },
     {
@@ -1094,7 +1094,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_java_httpservletresponse",
-      "community": 122,
+      "community": 20,
       "norm_label": "httpservletresponse"
     },
     {
@@ -1104,7 +1104,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_java_filterchain",
-      "community": 122,
+      "community": 20,
       "norm_label": "filterchain"
     },
     {
@@ -1114,7 +1114,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_java_override",
-      "community": 122,
+      "community": 20,
       "norm_label": "override"
     },
     {
@@ -1124,7 +1124,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimitfilter_ratelimitfilter_clientip",
-      "community": 122,
+      "community": 20,
       "norm_label": ".clientip()"
     },
     {
@@ -1164,7 +1164,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimiter_java_string",
-      "community": 189,
+      "community": 20,
       "norm_label": "string"
     },
     {
@@ -1184,7 +1184,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimiter_ratelimiter_capacity",
-      "community": 122,
+      "community": 20,
       "norm_label": ".capacity()"
     },
     {
@@ -1194,7 +1194,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimiter_ratelimiter_tryconsume",
-      "community": 189,
+      "community": 20,
       "norm_label": ".tryconsume()"
     },
     {
@@ -1204,7 +1204,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_ratelimiter_ratelimiter_tryconsumeremaining",
-      "community": 189,
+      "community": 20,
       "norm_label": ".tryconsumeremaining()"
     },
     {
@@ -1254,7 +1254,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter",
-      "community": 99,
+      "community": 26,
       "norm_label": "requestlogfilter.java"
     },
     {
@@ -1264,7 +1264,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_requestlogfilter",
-      "community": 99,
+      "community": 26,
       "norm_label": "requestlogfilter"
     },
     {
@@ -1274,7 +1274,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_java_component",
-      "community": 99,
+      "community": 26,
       "norm_label": "component"
     },
     {
@@ -1284,7 +1284,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_java_order",
-      "community": 99,
+      "community": 26,
       "norm_label": "order"
     },
     {
@@ -1294,7 +1294,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_requestlogfilter_requestlogfilter",
-      "community": 99,
+      "community": 26,
       "norm_label": ".requestlogfilter()"
     },
     {
@@ -1304,7 +1304,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_requestlogfilter_dofilterinternal",
-      "community": 99,
+      "community": 26,
       "norm_label": ".dofilterinternal()"
     },
     {
@@ -1314,7 +1314,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_java_httpservletrequest",
-      "community": 99,
+      "community": 26,
       "norm_label": "httpservletrequest"
     },
     {
@@ -1324,7 +1324,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_java_httpservletresponse",
-      "community": 99,
+      "community": 26,
       "norm_label": "httpservletresponse"
     },
     {
@@ -1334,7 +1334,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_java_filterchain",
-      "community": 99,
+      "community": 26,
       "norm_label": "filterchain"
     },
     {
@@ -1344,7 +1344,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_java_override",
-      "community": 99,
+      "community": 26,
       "norm_label": "override"
     },
     {
@@ -1354,7 +1354,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_requestlogfilter_shouldnotfilter",
-      "community": 99,
+      "community": 26,
       "norm_label": ".shouldnotfilter()"
     },
     {
@@ -1364,7 +1364,7 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_requestlogfilter_record",
-      "community": 99,
+      "community": 26,
       "norm_label": ".record()"
     },
     {
@@ -1374,7 +1374,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_requestlogfilter_trim",
-      "community": 99,
+      "community": 26,
       "norm_label": ".trim()"
     },
     {
@@ -1384,7 +1384,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_requestlogfilter_java_string",
-      "community": 99,
+      "community": 26,
       "norm_label": "string"
     },
     {
@@ -1444,7 +1444,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_securityconfig_java_string",
-      "community": 190,
+      "community": 20,
       "norm_label": "string"
     },
     {
@@ -1554,7 +1554,7 @@
       "source_location": "L162",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_securityconfig_admingatefilter",
-      "community": 190,
+      "community": 20,
       "norm_label": "admingatefilter"
     },
     {
@@ -1564,7 +1564,7 @@
       "source_location": "L165",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_securityconfig_admingatefilter_admingatefilter",
-      "community": 190,
+      "community": 20,
       "norm_label": ".admingatefilter()"
     },
     {
@@ -1574,7 +1574,7 @@
       "source_location": "L169",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_securityconfig_admingatefilter_dofilterinternal",
-      "community": 190,
+      "community": 20,
       "norm_label": ".dofilterinternal()"
     },
     {
@@ -1584,7 +1584,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_securityconfig_java_httpservletrequest",
-      "community": 190,
+      "community": 20,
       "norm_label": "httpservletrequest"
     },
     {
@@ -1594,7 +1594,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_securityconfig_java_httpservletresponse",
-      "community": 190,
+      "community": 20,
       "norm_label": "httpservletresponse"
     },
     {
@@ -1604,7 +1604,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_securityconfig_java_filterchain",
-      "community": 190,
+      "community": 20,
       "norm_label": "filterchain"
     },
     {
@@ -1614,7 +1614,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_securityconfig_java_override",
-      "community": 190,
+      "community": 20,
       "norm_label": "override"
     },
     {
@@ -1624,7 +1624,7 @@
       "source_location": "L212",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_securityconfig_admingatefilter_isdirectloopbackingest",
-      "community": 190,
+      "community": 20,
       "norm_label": ".isdirectloopbackingest()"
     },
     {
@@ -1634,7 +1634,7 @@
       "source_location": "L224",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_config_securityconfig_admingatefilter_constanttimeequals",
-      "community": 190,
+      "community": 20,
       "norm_label": ".constanttimeequals()"
     },
     {
@@ -2694,7 +2694,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller",
-      "community": 62,
+      "community": 37,
       "norm_label": "admincontroller.java"
     },
     {
@@ -2734,7 +2734,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_java_logger",
-      "community": 62,
+      "community": 37,
       "norm_label": "logger"
     },
     {
@@ -2744,7 +2744,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_java_mongotemplate",
-      "community": 112,
+      "community": 37,
       "norm_label": "mongotemplate"
     },
     {
@@ -2754,7 +2754,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_admincontroller_admincontroller",
-      "community": 112,
+      "community": 37,
       "norm_label": ".admincontroller()"
     },
     {
@@ -2834,7 +2834,7 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_admincontroller_indexhistory",
-      "community": 150,
+      "community": 0,
       "norm_label": ".indexhistory()"
     },
     {
@@ -2844,7 +2844,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_java_list",
-      "community": 150,
+      "community": 0,
       "norm_label": "list"
     },
     {
@@ -2854,7 +2854,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_java_getmapping",
-      "community": 150,
+      "community": 0,
       "norm_label": "getmapping"
     },
     {
@@ -2864,7 +2864,7 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_admincontroller_auditlog",
-      "community": 150,
+      "community": 0,
       "norm_label": ".auditlog()"
     },
     {
@@ -2974,7 +2974,7 @@
       "source_location": "L355",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_admincontroller_refreshcatalogcountsifstale",
-      "community": 150,
+      "community": 0,
       "norm_label": ".refreshcatalogcountsifstale()"
     },
     {
@@ -2984,7 +2984,7 @@
       "source_location": "L396",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_admincontroller_listshops",
-      "community": 150,
+      "community": 0,
       "norm_label": ".listshops()"
     },
     {
@@ -2994,7 +2994,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_java_integer",
-      "community": 150,
+      "community": 0,
       "norm_label": "integer"
     },
     {
@@ -3054,7 +3054,7 @@
       "source_location": "L560",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_admincontroller_listpending",
-      "community": 150,
+      "community": 0,
       "norm_label": ".listpending()"
     },
     {
@@ -3094,7 +3094,7 @@
       "source_location": "L627",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincontroller_admincontroller_getallfeedback",
-      "community": 150,
+      "community": 0,
       "norm_label": ".getallfeedback()"
     },
     {
@@ -3154,7 +3154,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincrawlercontroller_admincrawlercontroller_admincrawlercontroller",
-      "community": 30,
+      "community": 149,
       "norm_label": ".admincrawlercontroller()"
     },
     {
@@ -3244,7 +3244,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admincrawlercontroller_admincrawlercontroller_response",
-      "community": 149,
+      "community": 186,
       "norm_label": ".response()"
     },
     {
@@ -3294,7 +3294,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_admindiagcontroller_admindiagcontroller_admindiagcontroller",
-      "community": 93,
+      "community": 87,
       "norm_label": ".admindiagcontroller()"
     },
     {
@@ -3484,7 +3484,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminextractordebugcontroller_adminextractordebugcontroller_debug",
-      "community": 9,
+      "community": 40,
       "norm_label": ".debug()"
     },
     {
@@ -3494,7 +3494,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminextractordebugcontroller_java_string",
-      "community": 9,
+      "community": 40,
       "norm_label": "string"
     },
     {
@@ -3514,7 +3514,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminextractordebugcontroller_java_getmapping",
-      "community": 9,
+      "community": 40,
       "norm_label": "getmapping"
     },
     {
@@ -4574,7 +4574,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller",
-      "community": 1,
+      "community": 69,
       "norm_label": "adminsellerscontroller.java"
     },
     {
@@ -4584,7 +4584,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller",
-      "community": 1,
+      "community": 69,
       "norm_label": "adminsellerscontroller"
     },
     {
@@ -4594,7 +4594,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_restcontroller",
-      "community": 1,
+      "community": 69,
       "norm_label": "restcontroller"
     },
     {
@@ -4604,7 +4604,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_requestmapping",
-      "community": 1,
+      "community": 69,
       "norm_label": "requestmapping"
     },
     {
@@ -4614,7 +4614,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_logger",
-      "community": 1,
+      "community": 69,
       "norm_label": "logger"
     },
     {
@@ -4624,7 +4624,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_pattern",
-      "community": 1,
+      "community": 69,
       "norm_label": "pattern"
     },
     {
@@ -4644,7 +4644,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_quickadd",
-      "community": 1,
+      "community": 69,
       "norm_label": ".quickadd()"
     },
     {
@@ -4654,7 +4654,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_map",
-      "community": 1,
+      "community": 69,
       "norm_label": "map"
     },
     {
@@ -4664,7 +4664,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_string",
-      "community": 1,
+      "community": 69,
       "norm_label": "string"
     },
     {
@@ -4674,7 +4674,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_object",
-      "community": 1,
+      "community": 69,
       "norm_label": "object"
     },
     {
@@ -4684,7 +4684,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_responseentity",
-      "community": 1,
+      "community": 69,
       "norm_label": "responseentity"
     },
     {
@@ -4694,7 +4694,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_postmapping",
-      "community": 1,
+      "community": 69,
       "norm_label": "postmapping"
     },
     {
@@ -4704,7 +4704,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_bulkimport",
-      "community": 1,
+      "community": 69,
       "norm_label": ".bulkimport()"
     },
     {
@@ -4714,7 +4714,7 @@
       "source_location": "L154",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_wipedemos",
-      "community": 1,
+      "community": 69,
       "norm_label": ".wipedemos()"
     },
     {
@@ -4724,7 +4724,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_deletemapping",
-      "community": 1,
+      "community": 69,
       "norm_label": "deletemapping"
     },
     {
@@ -4734,7 +4734,7 @@
       "source_location": "L173",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_uniqueslug",
-      "community": 1,
+      "community": 69,
       "norm_label": ".uniqueslug()"
     },
     {
@@ -4744,7 +4744,7 @@
       "source_location": "L179",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_uniqueslugskipping",
-      "community": 1,
+      "community": 69,
       "norm_label": ".uniqueslugskipping()"
     },
     {
@@ -4754,7 +4754,7 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_slugify",
-      "community": 1,
+      "community": 69,
       "norm_label": ".slugify()"
     },
     {
@@ -4764,7 +4764,7 @@
       "source_location": "L188",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_str",
-      "community": 1,
+      "community": 69,
       "norm_label": ".str()"
     },
     {
@@ -4774,7 +4774,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_aslist",
-      "community": 1,
+      "community": 69,
       "norm_label": ".aslist()"
     },
     {
@@ -4784,7 +4784,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_list",
-      "community": 1,
+      "community": 69,
       "norm_label": "list"
     },
     {
@@ -4794,7 +4794,7 @@
       "source_location": "L202",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_splitpipe",
-      "community": 1,
+      "community": 69,
       "norm_label": ".splitpipe()"
     },
     {
@@ -4804,7 +4804,7 @@
       "source_location": "L206",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_asbool",
-      "community": 1,
+      "community": 69,
       "norm_label": ".asbool()"
     },
     {
@@ -4814,7 +4814,7 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_parsebool",
-      "community": 1,
+      "community": 69,
       "norm_label": ".parsebool()"
     },
     {
@@ -4824,7 +4824,7 @@
       "source_location": "L216",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_at",
-      "community": 1,
+      "community": 6,
       "norm_label": ".at()"
     },
     {
@@ -4834,7 +4834,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_java_integer",
-      "community": 1,
+      "community": 6,
       "norm_label": "integer"
     },
     {
@@ -4844,7 +4844,7 @@
       "source_location": "L222",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_ordefault",
-      "community": 1,
+      "community": 69,
       "norm_label": ".ordefault()"
     },
     {
@@ -4854,7 +4854,7 @@
       "source_location": "L226",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_adminsellerscontroller_adminsellerscontroller_parsecsvline",
-      "community": 1,
+      "community": 69,
       "norm_label": ".parsecsvline()"
     },
     {
@@ -5384,7 +5384,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_analyticscontroller_analyticscontroller_analyticscontroller",
-      "community": 74,
+      "community": 19,
       "norm_label": ".analyticscontroller()"
     },
     {
@@ -7894,7 +7894,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_protectcontroller_protectcontroller_get",
-      "community": 19,
+      "community": 35,
       "norm_label": ".get()"
     },
     {
@@ -7904,7 +7904,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_protectcontroller_java_getmapping",
-      "community": 19,
+      "community": 35,
       "norm_label": "getmapping"
     },
     {
@@ -8414,7 +8414,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_saathimessengercontroller_saathimessengercontroller_saathimessengercontroller",
-      "community": 48,
+      "community": 147,
       "norm_label": ".saathimessengercontroller()"
     },
     {
@@ -8794,7 +8794,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller",
-      "community": 72,
+      "community": 19,
       "norm_label": "searchcontroller.java"
     },
     {
@@ -8804,7 +8804,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_searchcontroller",
-      "community": 72,
+      "community": 19,
       "norm_label": "searchcontroller"
     },
     {
@@ -8814,7 +8814,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_java_restcontroller",
-      "community": 72,
+      "community": 19,
       "norm_label": "restcontroller"
     },
     {
@@ -8824,7 +8824,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_java_requestmapping",
-      "community": 72,
+      "community": 19,
       "norm_label": "requestmapping"
     },
     {
@@ -8834,7 +8834,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_searchcontroller_searchcontroller",
-      "community": 72,
+      "community": 19,
       "norm_label": ".searchcontroller()"
     },
     {
@@ -8844,7 +8844,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_searchcontroller_search",
-      "community": 72,
+      "community": 19,
       "norm_label": ".search()"
     },
     {
@@ -8854,7 +8854,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_java_string",
-      "community": 72,
+      "community": 19,
       "norm_label": "string"
     },
     {
@@ -8864,7 +8864,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_java_integer",
-      "community": 72,
+      "community": 19,
       "norm_label": "integer"
     },
     {
@@ -8874,7 +8874,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_java_httpservletrequest",
-      "community": 72,
+      "community": 19,
       "norm_label": "httpservletrequest"
     },
     {
@@ -8884,7 +8884,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_java_responseentity",
-      "community": 72,
+      "community": 19,
       "norm_label": "responseentity"
     },
     {
@@ -8894,7 +8894,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_java_getmapping",
-      "community": 72,
+      "community": 19,
       "norm_label": "getmapping"
     },
     {
@@ -8904,7 +8904,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_searchcontroller_resultshops",
-      "community": 72,
+      "community": 19,
       "norm_label": ".resultshops()"
     },
     {
@@ -8914,7 +8914,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_java_list",
-      "community": 72,
+      "community": 19,
       "norm_label": "list"
     },
     {
@@ -8924,7 +8924,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_searchcontroller_cheapestslug",
-      "community": 72,
+      "community": 19,
       "norm_label": ".cheapestslug()"
     },
     {
@@ -8934,7 +8934,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_searchcontroller_suggest",
-      "community": 72,
+      "community": 19,
       "norm_label": ".suggest()"
     },
     {
@@ -8944,7 +8944,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_java_map",
-      "community": 72,
+      "community": 19,
       "norm_label": "map"
     },
     {
@@ -8954,7 +8954,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_java_object",
-      "community": 72,
+      "community": 19,
       "norm_label": "object"
     },
     {
@@ -8964,7 +8964,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_searchcontroller_searchcontroller_clientip",
-      "community": 72,
+      "community": 19,
       "norm_label": ".clientip()"
     },
     {
@@ -9134,7 +9134,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "mediatype",
-      "community": 55,
+      "community": 8,
       "norm_label": "mediatype"
     },
     {
@@ -9554,7 +9554,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_statscontroller_statscontroller_statscontroller",
-      "community": 180,
+      "community": 68,
       "norm_label": ".statscontroller()"
     },
     {
@@ -9734,7 +9734,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_submitshopcontroller_submitshopcontroller_submitshopcontroller",
-      "community": 11,
+      "community": 37,
       "norm_label": ".submitshopcontroller()"
     },
     {
@@ -9884,7 +9884,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller",
-      "community": 5,
+      "community": 112,
       "norm_label": "trustcontroller.java"
     },
     {
@@ -9894,7 +9894,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller_trustcontroller",
-      "community": 5,
+      "community": 112,
       "norm_label": "trustcontroller"
     },
     {
@@ -9904,7 +9904,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller_java_restcontroller",
-      "community": 5,
+      "community": 112,
       "norm_label": "restcontroller"
     },
     {
@@ -9914,7 +9914,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller_java_requestmapping",
-      "community": 5,
+      "community": 112,
       "norm_label": "requestmapping"
     },
     {
@@ -9924,7 +9924,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller_trustcontroller_trustcontroller",
-      "community": 5,
+      "community": 112,
       "norm_label": ".trustcontroller()"
     },
     {
@@ -9934,7 +9934,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller_trustcontroller_shops",
-      "community": 5,
+      "community": 112,
       "norm_label": ".shops()"
     },
     {
@@ -9944,7 +9944,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller_java_string",
-      "community": 5,
+      "community": 112,
       "norm_label": "string"
     },
     {
@@ -9954,7 +9954,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller_java_responseentity",
-      "community": 5,
+      "community": 112,
       "norm_label": "responseentity"
     },
     {
@@ -9964,7 +9964,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller_java_map",
-      "community": 5,
+      "community": 112,
       "norm_label": "map"
     },
     {
@@ -9974,7 +9974,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller_java_object",
-      "community": 5,
+      "community": 112,
       "norm_label": "object"
     },
     {
@@ -9984,7 +9984,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller_java_getmapping",
-      "community": 5,
+      "community": 112,
       "norm_label": "getmapping"
     },
     {
@@ -9994,7 +9994,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_controller_trustcontroller_trustcontroller_sellers",
-      "community": 5,
+      "community": 112,
       "norm_label": ".sellers()"
     },
     {
@@ -10004,7 +10004,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse",
-      "community": 101,
+      "community": 95,
       "norm_label": "compareresponse.java"
     },
     {
@@ -10014,7 +10014,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_compareresponse",
-      "community": 101,
+      "community": 95,
       "norm_label": "compareresponse"
     },
     {
@@ -10024,7 +10024,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_java_data",
-      "community": 101,
+      "community": 95,
       "norm_label": "data"
     },
     {
@@ -10034,7 +10034,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_java_builder",
-      "community": 101,
+      "community": 95,
       "norm_label": "builder"
     },
     {
@@ -10044,7 +10044,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_java_allargsconstructor",
-      "community": 101,
+      "community": 95,
       "norm_label": "allargsconstructor"
     },
     {
@@ -10054,7 +10054,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_java_noargsconstructor",
-      "community": 101,
+      "community": 95,
       "norm_label": "noargsconstructor"
     },
     {
@@ -10064,7 +10064,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_java_list",
-      "community": 101,
+      "community": 95,
       "norm_label": "list"
     },
     {
@@ -10074,7 +10074,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_java_map",
-      "community": 101,
+      "community": 95,
       "norm_label": "map"
     },
     {
@@ -10084,7 +10084,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_java_string",
-      "community": 101,
+      "community": 95,
       "norm_label": "string"
     },
     {
@@ -10094,7 +10094,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_java_integer",
-      "community": 101,
+      "community": 95,
       "norm_label": "integer"
     },
     {
@@ -10104,7 +10104,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_attributerow",
-      "community": 101,
+      "community": 95,
       "norm_label": "attributerow"
     },
     {
@@ -10114,7 +10114,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_java_object",
-      "community": 101,
+      "community": 95,
       "norm_label": "object"
     },
     {
@@ -10124,7 +10124,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_compareresponse_java_boolean",
-      "community": 101,
+      "community": 95,
       "norm_label": "boolean"
     },
     {
@@ -10314,7 +10314,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse",
-      "community": 110,
+      "community": 19,
       "norm_label": "searchresponse.java"
     },
     {
@@ -10324,7 +10324,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_searchresponse",
-      "community": 110,
+      "community": 19,
       "norm_label": "searchresponse"
     },
     {
@@ -10334,7 +10334,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_java_data",
-      "community": 110,
+      "community": 19,
       "norm_label": "data"
     },
     {
@@ -10344,7 +10344,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_java_noargsconstructor",
-      "community": 110,
+      "community": 19,
       "norm_label": "noargsconstructor"
     },
     {
@@ -10354,7 +10354,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_java_allargsconstructor",
-      "community": 110,
+      "community": 19,
       "norm_label": "allargsconstructor"
     },
     {
@@ -10364,7 +10364,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_java_builder",
-      "community": 110,
+      "community": 19,
       "norm_label": "builder"
     },
     {
@@ -10374,7 +10374,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_java_string",
-      "community": 110,
+      "community": 19,
       "norm_label": "string"
     },
     {
@@ -10384,7 +10384,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_java_list",
-      "community": 110,
+      "community": 19,
       "norm_label": "list"
     },
     {
@@ -10394,7 +10394,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_java_integer",
-      "community": 110,
+      "community": 19,
       "norm_label": "integer"
     },
     {
@@ -10404,7 +10404,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_java_boolean",
-      "community": 110,
+      "community": 19,
       "norm_label": "boolean"
     },
     {
@@ -10414,7 +10414,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_java_double",
-      "community": 110,
+      "community": 19,
       "norm_label": "double"
     },
     {
@@ -10424,7 +10424,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_java_map",
-      "community": 110,
+      "community": 19,
       "norm_label": "map"
     },
     {
@@ -10434,7 +10434,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_dto_searchresponse_java_object",
-      "community": 110,
+      "community": 19,
       "norm_label": "object"
     },
     {
@@ -10524,7 +10524,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_apisniffer_apisniffer_apisniffer",
-      "community": 34,
+      "community": 3,
       "norm_label": ".apisniffer()"
     },
     {
@@ -10674,7 +10674,7 @@
       "source_location": "L240",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_apisniffer_apisniffer_trim",
-      "community": 3,
+      "community": 72,
       "norm_label": ".trim()"
     },
     {
@@ -10814,7 +10814,7 @@
       "source_location": "L227",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_bulkindexer_bulkindexer_getlastrun",
-      "community": 64,
+      "community": 9,
       "norm_label": ".getlastrun()"
     },
     {
@@ -10894,7 +10894,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "executorservice",
-      "community": 3,
+      "community": 9,
       "norm_label": "executorservice"
     },
     {
@@ -10924,7 +10924,7 @@
       "source_location": "L659",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_bulkindexer_enrichsession",
-      "community": 79,
+      "community": 21,
       "norm_label": "enrichsession"
     },
     {
@@ -10934,7 +10934,7 @@
       "source_location": "L663",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_bulkindexer_enrichsession_enrichsession",
-      "community": 79,
+      "community": 21,
       "norm_label": ".enrichsession()"
     },
     {
@@ -10944,7 +10944,7 @@
       "source_location": "L664",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_bulkindexer_enrichsession_inserted",
-      "community": 79,
+      "community": 21,
       "norm_label": ".inserted()"
     },
     {
@@ -10954,7 +10954,7 @@
       "source_location": "L665",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_bulkindexer_enrichsession_merged",
-      "community": 79,
+      "community": 21,
       "norm_label": ".merged()"
     },
     {
@@ -10964,7 +10964,7 @@
       "source_location": "L669",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_bulkindexer_bulkindexer_openenrichsession",
-      "community": 79,
+      "community": 21,
       "norm_label": ".openenrichsession()"
     },
     {
@@ -10994,7 +10994,7 @@
       "source_location": "L703",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_bulkindexer_bulkindexer_enrich",
-      "community": 9,
+      "community": 21,
       "norm_label": ".enrich()"
     },
     {
@@ -11134,7 +11134,7 @@
       "source_location": "L999",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_bulkindexer_bulkindexer_laneof",
-      "community": 123,
+      "community": 9,
       "norm_label": ".laneof()"
     },
     {
@@ -11164,7 +11164,7 @@
       "source_location": "L1028",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_bulkindexer_bulkindexer_neverproduced",
-      "community": 67,
+      "community": 9,
       "norm_label": ".neverproduced()"
     },
     {
@@ -11204,7 +11204,7 @@
       "source_location": "L1118",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_bulkindexer_bulkindexer_recomputeaggregates",
-      "community": 114,
+      "community": 9,
       "norm_label": ".recomputeaggregates()"
     },
     {
@@ -11244,7 +11244,7 @@
       "source_location": "L1195",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_bulkindexer_bulkindexer_capsellers",
-      "community": 114,
+      "community": 9,
       "norm_label": ".capsellers()"
     },
     {
@@ -11514,7 +11514,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester",
-      "community": 3,
+      "community": 72,
       "norm_label": "chaldalharvester.java"
     },
     {
@@ -11524,7 +11524,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester",
-      "community": 3,
+      "community": 72,
       "norm_label": "chaldalharvester"
     },
     {
@@ -11534,7 +11534,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_java_service",
-      "community": 3,
+      "community": 72,
       "norm_label": "service"
     },
     {
@@ -11544,7 +11544,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_java_logger",
-      "community": 3,
+      "community": 72,
       "norm_label": "logger"
     },
     {
@@ -11554,7 +11554,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_java_string",
-      "community": 3,
+      "community": 72,
       "norm_label": "string"
     },
     {
@@ -11564,7 +11564,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_java_list",
-      "community": 3,
+      "community": 72,
       "norm_label": "list"
     },
     {
@@ -11574,7 +11574,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_java_objectmapper",
-      "community": 3,
+      "community": 72,
       "norm_label": "objectmapper"
     },
     {
@@ -11584,7 +11584,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester_supports",
-      "community": 3,
+      "community": 72,
       "norm_label": ".supports()"
     },
     {
@@ -11594,7 +11594,7 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester_harvest",
-      "community": 3,
+      "community": 72,
       "norm_label": ".harvest()"
     },
     {
@@ -11604,7 +11604,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_java_override",
-      "community": 3,
+      "community": 72,
       "norm_label": "override"
     },
     {
@@ -11614,7 +11614,7 @@
       "source_location": "L137",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester_call",
-      "community": 3,
+      "community": 72,
       "norm_label": ".call()"
     },
     {
@@ -11624,7 +11624,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_java_jsonnode",
-      "community": 3,
+      "community": 72,
       "norm_label": "jsonnode"
     },
     {
@@ -11634,7 +11634,7 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester_map",
-      "community": 3,
+      "community": 72,
       "norm_label": ".map()"
     },
     {
@@ -11644,7 +11644,7 @@
       "source_location": "L204",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester_firstpicture",
-      "community": 3,
+      "community": 72,
       "norm_label": ".firstpicture()"
     },
     {
@@ -11654,7 +11654,7 @@
       "source_location": "L216",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester_text",
-      "community": 3,
+      "community": 72,
       "norm_label": ".text()"
     },
     {
@@ -11664,7 +11664,7 @@
       "source_location": "L221",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester_textof",
-      "community": 3,
+      "community": 72,
       "norm_label": ".textof()"
     },
     {
@@ -11674,7 +11674,7 @@
       "source_location": "L225",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester_dbl",
-      "community": 3,
+      "community": 72,
       "norm_label": ".dbl()"
     },
     {
@@ -11684,7 +11684,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_java_double",
-      "community": 3,
+      "community": 72,
       "norm_label": "double"
     },
     {
@@ -11694,7 +11694,7 @@
       "source_location": "L234",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester_firstnonblank",
-      "community": 3,
+      "community": 72,
       "norm_label": ".firstnonblank()"
     },
     {
@@ -11704,7 +11704,7 @@
       "source_location": "L239",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester_firstpositive",
-      "community": 3,
+      "community": 72,
       "norm_label": ".firstpositive()"
     },
     {
@@ -11714,7 +11714,7 @@
       "source_location": "L244",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_chaldalharvester_chaldalharvester_sleep",
-      "community": 3,
+      "community": 72,
       "norm_label": ".sleep()"
     },
     {
@@ -11724,7 +11724,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester",
-      "community": 24,
+      "community": 50,
       "norm_label": "darazharvester.java"
     },
     {
@@ -11734,7 +11734,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester",
-      "community": 24,
+      "community": 50,
       "norm_label": "darazharvester"
     },
     {
@@ -11744,7 +11744,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_java_service",
-      "community": 24,
+      "community": 50,
       "norm_label": "service"
     },
     {
@@ -11754,7 +11754,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_java_logger",
-      "community": 24,
+      "community": 50,
       "norm_label": "logger"
     },
     {
@@ -11764,7 +11764,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_java_string",
-      "community": 24,
+      "community": 50,
       "norm_label": "string"
     },
     {
@@ -11774,7 +11774,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_java_list",
-      "community": 24,
+      "community": 50,
       "norm_label": "list"
     },
     {
@@ -11784,7 +11784,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_java_objectmapper",
-      "community": 24,
+      "community": 50,
       "norm_label": "objectmapper"
     },
     {
@@ -11794,7 +11794,7 @@
       "source_location": "L171",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_darazharvester",
-      "community": 24,
+      "community": 144,
       "norm_label": ".darazharvester()"
     },
     {
@@ -11804,7 +11804,7 @@
       "source_location": "L175",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_supports",
-      "community": 24,
+      "community": 50,
       "norm_label": ".supports()"
     },
     {
@@ -11814,7 +11814,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_java_override",
-      "community": 24,
+      "community": 50,
       "norm_label": "override"
     },
     {
@@ -11824,7 +11824,7 @@
       "source_location": "L180",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_harvest",
-      "community": 24,
+      "community": 50,
       "norm_label": ".harvest()"
     },
     {
@@ -11834,7 +11834,7 @@
       "source_location": "L207",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_harvestquery",
-      "community": 24,
+      "community": 50,
       "norm_label": ".harvestquery()"
     },
     {
@@ -11844,7 +11844,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_java_map",
-      "community": 24,
+      "community": 50,
       "norm_label": "map"
     },
     {
@@ -11854,7 +11854,7 @@
       "source_location": "L223",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_call",
-      "community": 24,
+      "community": 50,
       "norm_label": ".call()"
     },
     {
@@ -11864,7 +11864,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_java_jsonnode",
-      "community": 24,
+      "community": 50,
       "norm_label": "jsonnode"
     },
     {
@@ -11874,7 +11874,7 @@
       "source_location": "L253",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_map",
-      "community": 24,
+      "community": 50,
       "norm_label": ".map()"
     },
     {
@@ -11884,7 +11884,7 @@
       "source_location": "L289",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_absurl",
-      "community": 24,
+      "community": 50,
       "norm_label": ".absurl()"
     },
     {
@@ -11894,7 +11894,7 @@
       "source_location": "L297",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_parsedouble",
-      "community": 24,
+      "community": 50,
       "norm_label": ".parsedouble()"
     },
     {
@@ -11904,7 +11904,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_java_double",
-      "community": 24,
+      "community": 50,
       "norm_label": "double"
     },
     {
@@ -11914,7 +11914,7 @@
       "source_location": "L306",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_parsecount",
-      "community": 24,
+      "community": 50,
       "norm_label": ".parsecount()"
     },
     {
@@ -11924,7 +11924,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_java_integer",
-      "community": 24,
+      "community": 50,
       "norm_label": "integer"
     },
     {
@@ -11934,7 +11934,7 @@
       "source_location": "L314",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_parsesold",
-      "community": 24,
+      "community": 50,
       "norm_label": ".parsesold()"
     },
     {
@@ -11944,7 +11944,7 @@
       "source_location": "L329",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_clean",
-      "community": 24,
+      "community": 50,
       "norm_label": ".clean()"
     },
     {
@@ -11954,7 +11954,7 @@
       "source_location": "L335",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_text",
-      "community": 24,
+      "community": 50,
       "norm_label": ".text()"
     },
     {
@@ -11964,7 +11964,7 @@
       "source_location": "L340",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_firstnonblank",
-      "community": 24,
+      "community": 50,
       "norm_label": ".firstnonblank()"
     },
     {
@@ -11974,7 +11974,7 @@
       "source_location": "L345",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_slugify",
-      "community": 24,
+      "community": 50,
       "norm_label": ".slugify()"
     },
     {
@@ -11984,7 +11984,7 @@
       "source_location": "L350",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_darazharvester_darazharvester_sleep",
-      "community": 24,
+      "community": 50,
       "norm_label": ".sleep()"
     },
     {
@@ -11994,7 +11994,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester",
-      "community": 3,
+      "community": 116,
       "norm_label": "discoveredapiharvester.java"
     },
     {
@@ -12004,7 +12004,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester_discoveredapiharvester",
-      "community": 3,
+      "community": 116,
       "norm_label": "discoveredapiharvester"
     },
     {
@@ -12014,7 +12014,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester_java_service",
-      "community": 3,
+      "community": 116,
       "norm_label": "service"
     },
     {
@@ -12024,7 +12024,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester_java_logger",
-      "community": 3,
+      "community": 116,
       "norm_label": "logger"
     },
     {
@@ -12034,7 +12034,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester_java_string",
-      "community": 3,
+      "community": 116,
       "norm_label": "string"
     },
     {
@@ -12044,7 +12044,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester_java_list",
-      "community": 3,
+      "community": 116,
       "norm_label": "list"
     },
     {
@@ -12054,7 +12054,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester_java_pattern",
-      "community": 3,
+      "community": 116,
       "norm_label": "pattern"
     },
     {
@@ -12074,7 +12074,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester_discoveredapiharvester_supports",
-      "community": 3,
+      "community": 116,
       "norm_label": ".supports()"
     },
     {
@@ -12084,7 +12084,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester_java_override",
-      "community": 3,
+      "community": 116,
       "norm_label": "override"
     },
     {
@@ -12094,7 +12094,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester_discoveredapiharvester_harvest",
-      "community": 3,
+      "community": 116,
       "norm_label": ".harvest()"
     },
     {
@@ -12104,7 +12104,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester_discoveredapiharvester_urlstohit",
-      "community": 3,
+      "community": 116,
       "norm_label": ".urlstohit()"
     },
     {
@@ -12114,7 +12114,7 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_discoveredapiharvester_discoveredapiharvester_get",
-      "community": 3,
+      "community": 116,
       "norm_label": ".get()"
     },
     {
@@ -12284,7 +12284,7 @@
       "source_location": "L163",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_domcardharvester_domcardharvester_name",
-      "community": 22,
+      "community": 24,
       "norm_label": ".name()"
     },
     {
@@ -13124,7 +13124,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_scraperlearningservice_scraperlearningservice_scraperlearningservice",
-      "community": 112,
+      "community": 15,
       "norm_label": ".scraperlearningservice()"
     },
     {
@@ -13504,7 +13504,7 @@
       "source_location": "L131",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_sellerdepthharvester_result_tostring",
-      "community": 1,
+      "community": 18,
       "norm_label": ".tostring()"
     },
     {
@@ -13524,7 +13524,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_sellerdepthharvester_java_override",
-      "community": 1,
+      "community": 18,
       "norm_label": "override"
     },
     {
@@ -13604,7 +13604,7 @@
       "source_location": "L303",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_sellerdepthharvester_sellerdepthharvester_issamemodel",
-      "community": 21,
+      "community": 123,
       "norm_label": ".issamemodel()"
     },
     {
@@ -13884,7 +13884,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shopcatalogbootstrap_shopcatalogbootstrap_dedupeshops",
-      "community": 51,
+      "community": 74,
       "norm_label": ".dedupeshops()"
     },
     {
@@ -14024,7 +14024,7 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shopdiscoveryservice_shopdiscoveryservice_shopdiscoveryservice",
-      "community": 31,
+      "community": 37,
       "norm_label": ".shopdiscoveryservice()"
     },
     {
@@ -14224,7 +14224,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoplifecyclescheduler_shoplifecyclescheduler_shoplifecyclescheduler",
-      "community": 31,
+      "community": 37,
       "norm_label": ".shoplifecyclescheduler()"
     },
     {
@@ -14354,7 +14354,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap",
-      "community": 5,
+      "community": 110,
       "norm_label": "shoptrustbootstrap.java"
     },
     {
@@ -14364,7 +14364,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_shoptrustbootstrap",
-      "community": 5,
+      "community": 110,
       "norm_label": "shoptrustbootstrap"
     },
     {
@@ -14374,7 +14374,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_java_component",
-      "community": 5,
+      "community": 110,
       "norm_label": "component"
     },
     {
@@ -14384,7 +14384,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_java_logger",
-      "community": 5,
+      "community": 110,
       "norm_label": "logger"
     },
     {
@@ -14394,7 +14394,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_java_objectmapper",
-      "community": 5,
+      "community": 110,
       "norm_label": "objectmapper"
     },
     {
@@ -14404,7 +14404,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_shoptrustbootstrap_shoptrustbootstrap",
-      "community": 5,
+      "community": 110,
       "norm_label": ".shoptrustbootstrap()"
     },
     {
@@ -14414,7 +14414,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_shoptrustbootstrap_seed",
-      "community": 5,
+      "community": 110,
       "norm_label": ".seed()"
     },
     {
@@ -14424,7 +14424,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_java_eventlistener",
-      "community": 5,
+      "community": 110,
       "norm_label": "eventlistener"
     },
     {
@@ -14434,7 +14434,7 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_shoptrustbootstrap_load",
-      "community": 5,
+      "community": 110,
       "norm_label": ".load()"
     },
     {
@@ -14444,7 +14444,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_java_list",
-      "community": 5,
+      "community": 110,
       "norm_label": "list"
     },
     {
@@ -14454,7 +14454,7 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_trustentry",
-      "community": 5,
+      "community": 110,
       "norm_label": "trustentry"
     },
     {
@@ -14464,7 +14464,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_java_string",
-      "community": 5,
+      "community": 110,
       "norm_label": "string"
     },
     {
@@ -14474,7 +14474,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_java_integer",
-      "community": 5,
+      "community": 110,
       "norm_label": "integer"
     },
     {
@@ -14484,7 +14484,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_shoptrustbootstrap_java_boolean",
-      "community": 5,
+      "community": 110,
       "norm_label": "boolean"
     },
     {
@@ -14834,7 +14834,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester",
-      "community": 3,
+      "community": 101,
       "norm_label": "startechharvester.java"
     },
     {
@@ -14844,7 +14844,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_startechharvester",
-      "community": 3,
+      "community": 101,
       "norm_label": "startechharvester"
     },
     {
@@ -14854,7 +14854,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_java_service",
-      "community": 3,
+      "community": 101,
       "norm_label": "service"
     },
     {
@@ -14864,7 +14864,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_java_order",
-      "community": 3,
+      "community": 101,
       "norm_label": "order"
     },
     {
@@ -14874,7 +14874,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_java_logger",
-      "community": 3,
+      "community": 101,
       "norm_label": "logger"
     },
     {
@@ -14884,7 +14884,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_java_string",
-      "community": 3,
+      "community": 101,
       "norm_label": "string"
     },
     {
@@ -14894,7 +14894,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_java_set",
-      "community": 3,
+      "community": 101,
       "norm_label": "set"
     },
     {
@@ -14904,7 +14904,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_startechharvester_supports",
-      "community": 3,
+      "community": 101,
       "norm_label": ".supports()"
     },
     {
@@ -14914,7 +14914,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_java_override",
-      "community": 3,
+      "community": 101,
       "norm_label": "override"
     },
     {
@@ -14924,7 +14924,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_startechharvester_harvest",
-      "community": 3,
+      "community": 101,
       "norm_label": ".harvest()"
     },
     {
@@ -14934,7 +14934,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_java_list",
-      "community": 3,
+      "community": 101,
       "norm_label": "list"
     },
     {
@@ -14944,7 +14944,7 @@
       "source_location": "L137",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_startechharvester_locsfromsitemap",
-      "community": 3,
+      "community": 101,
       "norm_label": ".locsfromsitemap()"
     },
     {
@@ -14954,7 +14954,7 @@
       "source_location": "L150",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_startechharvester_isproducturl",
-      "community": 3,
+      "community": 101,
       "norm_label": ".isproducturl()"
     },
     {
@@ -14964,7 +14964,7 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_startechharvester_extractproduct",
-      "community": 3,
+      "community": 101,
       "norm_label": ".extractproduct()"
     },
     {
@@ -14974,7 +14974,7 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_startechharvester_meta",
-      "community": 3,
+      "community": 101,
       "norm_label": ".meta()"
     },
     {
@@ -14984,7 +14984,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_java_document",
-      "community": 3,
+      "community": 101,
       "norm_label": "document"
     },
     {
@@ -14994,7 +14994,7 @@
       "source_location": "L190",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_startechharvester_get",
-      "community": 3,
+      "community": 101,
       "norm_label": ".get()"
     },
     {
@@ -15004,7 +15004,7 @@
       "source_location": "L204",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_startechharvester_stripslash",
-      "community": 3,
+      "community": 101,
       "norm_label": ".stripslash()"
     },
     {
@@ -15014,7 +15014,7 @@
       "source_location": "L205",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_indexer_startechharvester_startechharvester_stripquery",
-      "community": 3,
+      "community": 101,
       "norm_label": ".stripquery()"
     },
     {
@@ -15904,7 +15904,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_queryintent",
-      "community": 148,
+      "community": 127,
       "norm_label": "queryintent.java"
     },
     {
@@ -15914,7 +15914,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_queryintent_queryintent",
-      "community": 148,
+      "community": 127,
       "norm_label": "queryintent"
     },
     {
@@ -15924,7 +15924,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_queryintent_java_data",
-      "community": 148,
+      "community": 127,
       "norm_label": "data"
     },
     {
@@ -15934,7 +15934,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_queryintent_java_builder",
-      "community": 148,
+      "community": 127,
       "norm_label": "builder"
     },
     {
@@ -15944,7 +15944,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_queryintent_java_allargsconstructor",
-      "community": 148,
+      "community": 127,
       "norm_label": "allargsconstructor"
     },
     {
@@ -15954,7 +15954,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_queryintent_java_noargsconstructor",
-      "community": 148,
+      "community": 127,
       "norm_label": "noargsconstructor"
     },
     {
@@ -15964,7 +15964,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_queryintent_java_string",
-      "community": 148,
+      "community": 127,
       "norm_label": "string"
     },
     {
@@ -15974,7 +15974,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_queryintent_java_list",
-      "community": 148,
+      "community": 127,
       "norm_label": "list"
     },
     {
@@ -15994,7 +15994,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_queryintent_queryintent_hascategory",
-      "community": 148,
+      "community": 127,
       "norm_label": ".hascategory()"
     },
     {
@@ -16004,7 +16004,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_queryintent_queryintent_hasanycategory",
-      "community": 148,
+      "community": 127,
       "norm_label": ".hasanycategory()"
     },
     {
@@ -16014,7 +16014,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_queryintent_java_set",
-      "community": 148,
+      "community": 127,
       "norm_label": "set"
     },
     {
@@ -16264,7 +16264,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor",
-      "community": 60,
+      "community": 111,
       "norm_label": "specextractor.java"
     },
     {
@@ -16274,7 +16274,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_specextractor",
-      "community": 60,
+      "community": 111,
       "norm_label": "specextractor"
     },
     {
@@ -16284,7 +16284,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_specextractor_specextractor",
-      "community": 60,
+      "community": 111,
       "norm_label": ".specextractor()"
     },
     {
@@ -16294,7 +16294,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_java_string",
-      "community": 60,
+      "community": 111,
       "norm_label": "string"
     },
     {
@@ -16304,7 +16304,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_java_pattern",
-      "community": 60,
+      "community": 111,
       "norm_label": "pattern"
     },
     {
@@ -16314,7 +16314,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_java_set",
-      "community": 60,
+      "community": 111,
       "norm_label": "set"
     },
     {
@@ -16324,7 +16324,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_java_integer",
-      "community": 60,
+      "community": 111,
       "norm_label": "integer"
     },
     {
@@ -16334,7 +16334,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_specextractor_extract",
-      "community": 60,
+      "community": 111,
       "norm_label": ".extract()"
     },
     {
@@ -16344,7 +16344,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_java_map",
-      "community": 60,
+      "community": 111,
       "norm_label": "map"
     },
     {
@@ -16354,7 +16354,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_specextractor_putstorage",
-      "community": 60,
+      "community": 111,
       "norm_label": ".putstorage()"
     },
     {
@@ -16364,7 +16364,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_specextractor_numericof",
-      "community": 60,
+      "community": 111,
       "norm_label": ".numericof()"
     },
     {
@@ -16374,7 +16374,7 @@
       "source_location": "L116",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_specextractor_parseint",
-      "community": 60,
+      "community": 111,
       "norm_label": ".parseint()"
     },
     {
@@ -16384,7 +16384,7 @@
       "source_location": "L120",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_intelligence_specextractor_specextractor_trimdouble",
-      "community": 60,
+      "community": 111,
       "norm_label": ".trimdouble()"
     },
     {
@@ -16864,7 +16864,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_affiliateclick",
-      "community": 182,
+      "community": 33,
       "norm_label": "affiliateclick.java"
     },
     {
@@ -16874,7 +16874,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_affiliateclick_affiliateclick",
-      "community": 182,
+      "community": 33,
       "norm_label": "affiliateclick"
     },
     {
@@ -16884,7 +16884,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_affiliateclick_java_data",
-      "community": 182,
+      "community": 33,
       "norm_label": "data"
     },
     {
@@ -16894,7 +16894,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_affiliateclick_java_noargsconstructor",
-      "community": 182,
+      "community": 33,
       "norm_label": "noargsconstructor"
     },
     {
@@ -16904,7 +16904,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_affiliateclick_java_allargsconstructor",
-      "community": 182,
+      "community": 33,
       "norm_label": "allargsconstructor"
     },
     {
@@ -16914,7 +16914,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_affiliateclick_java_builder",
-      "community": 182,
+      "community": 33,
       "norm_label": "builder"
     },
     {
@@ -16924,7 +16924,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_affiliateclick_java_document",
-      "community": 182,
+      "community": 33,
       "norm_label": "document"
     },
     {
@@ -16934,7 +16934,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_affiliateclick_java_compoundindex",
-      "community": 182,
+      "community": 33,
       "norm_label": "compoundindex"
     },
     {
@@ -16944,7 +16944,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_affiliateclick_java_string",
-      "community": 182,
+      "community": 33,
       "norm_label": "string"
     },
     {
@@ -16954,7 +16954,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_affiliateclick_java_instant",
-      "community": 182,
+      "community": 33,
       "norm_label": "instant"
     },
     {
@@ -17084,7 +17084,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_auditlogentry",
-      "community": 144,
+      "community": 26,
       "norm_label": "auditlogentry.java"
     },
     {
@@ -17094,7 +17094,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_auditlogentry_auditlogentry",
-      "community": 144,
+      "community": 26,
       "norm_label": "auditlogentry"
     },
     {
@@ -17104,7 +17104,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_auditlogentry_java_data",
-      "community": 144,
+      "community": 26,
       "norm_label": "data"
     },
     {
@@ -17114,7 +17114,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_auditlogentry_java_noargsconstructor",
-      "community": 144,
+      "community": 26,
       "norm_label": "noargsconstructor"
     },
     {
@@ -17124,7 +17124,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_auditlogentry_java_allargsconstructor",
-      "community": 144,
+      "community": 26,
       "norm_label": "allargsconstructor"
     },
     {
@@ -17134,7 +17134,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_auditlogentry_java_builder",
-      "community": 144,
+      "community": 26,
       "norm_label": "builder"
     },
     {
@@ -17144,7 +17144,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_auditlogentry_java_document",
-      "community": 144,
+      "community": 26,
       "norm_label": "document"
     },
     {
@@ -17154,7 +17154,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_auditlogentry_java_string",
-      "community": 144,
+      "community": 26,
       "norm_label": "string"
     },
     {
@@ -17164,7 +17164,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_auditlogentry_java_integer",
-      "community": 144,
+      "community": 26,
       "norm_label": "integer"
     },
     {
@@ -17174,7 +17174,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_auditlogentry_java_instant",
-      "community": 144,
+      "community": 26,
       "norm_label": "instant"
     },
     {
@@ -17354,7 +17354,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller",
-      "community": 60,
+      "community": 93,
       "norm_label": "marketplaceseller.java"
     },
     {
@@ -17364,7 +17364,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller_marketplaceseller",
-      "community": 60,
+      "community": 93,
       "norm_label": "marketplaceseller"
     },
     {
@@ -17374,7 +17374,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller_java_data",
-      "community": 60,
+      "community": 93,
       "norm_label": "data"
     },
     {
@@ -17384,7 +17384,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller_java_noargsconstructor",
-      "community": 60,
+      "community": 93,
       "norm_label": "noargsconstructor"
     },
     {
@@ -17394,7 +17394,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller_java_allargsconstructor",
-      "community": 60,
+      "community": 93,
       "norm_label": "allargsconstructor"
     },
     {
@@ -17404,7 +17404,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller_java_builder",
-      "community": 60,
+      "community": 93,
       "norm_label": "builder"
     },
     {
@@ -17414,7 +17414,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller_java_document",
-      "community": 60,
+      "community": 93,
       "norm_label": "document"
     },
     {
@@ -17424,7 +17424,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller_java_string",
-      "community": 60,
+      "community": 93,
       "norm_label": "string"
     },
     {
@@ -17434,7 +17434,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller_java_integer",
-      "community": 60,
+      "community": 93,
       "norm_label": "integer"
     },
     {
@@ -17444,7 +17444,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller_java_double",
-      "community": 60,
+      "community": 93,
       "norm_label": "double"
     },
     {
@@ -17454,7 +17454,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller_java_long",
-      "community": 60,
+      "community": 93,
       "norm_label": "long"
     },
     {
@@ -17464,7 +17464,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_marketplaceseller_java_localdatetime",
-      "community": 60,
+      "community": 93,
       "norm_label": "localdatetime"
     },
     {
@@ -17534,7 +17534,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_pendingoffer",
-      "community": 93,
+      "community": 42,
       "norm_label": "pendingoffer.java"
     },
     {
@@ -17544,7 +17544,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_pendingoffer_pendingoffer",
-      "community": 93,
+      "community": 42,
       "norm_label": "pendingoffer"
     },
     {
@@ -17554,7 +17554,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_pendingoffer_java_data",
-      "community": 93,
+      "community": 42,
       "norm_label": "data"
     },
     {
@@ -17564,7 +17564,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_pendingoffer_java_noargsconstructor",
-      "community": 93,
+      "community": 42,
       "norm_label": "noargsconstructor"
     },
     {
@@ -17574,7 +17574,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_pendingoffer_java_allargsconstructor",
-      "community": 93,
+      "community": 42,
       "norm_label": "allargsconstructor"
     },
     {
@@ -17584,7 +17584,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_pendingoffer_java_builder",
-      "community": 93,
+      "community": 42,
       "norm_label": "builder"
     },
     {
@@ -17594,7 +17594,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_pendingoffer_java_document",
-      "community": 93,
+      "community": 42,
       "norm_label": "document"
     },
     {
@@ -17604,7 +17604,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_pendingoffer_java_string",
-      "community": 93,
+      "community": 42,
       "norm_label": "string"
     },
     {
@@ -17614,7 +17614,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_pendingoffer_java_double",
-      "community": 93,
+      "community": 42,
       "norm_label": "double"
     },
     {
@@ -17624,7 +17624,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_pendingoffer_java_localdatetime",
-      "community": 93,
+      "community": 42,
       "norm_label": "localdatetime"
     },
     {
@@ -18224,7 +18224,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_requestlog",
-      "community": 116,
+      "community": 26,
       "norm_label": "requestlog.java"
     },
     {
@@ -18234,7 +18234,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_requestlog_requestlog",
-      "community": 116,
+      "community": 26,
       "norm_label": "requestlog"
     },
     {
@@ -18244,7 +18244,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_requestlog_java_data",
-      "community": 116,
+      "community": 26,
       "norm_label": "data"
     },
     {
@@ -18254,7 +18254,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_requestlog_java_noargsconstructor",
-      "community": 116,
+      "community": 26,
       "norm_label": "noargsconstructor"
     },
     {
@@ -18264,7 +18264,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_requestlog_java_allargsconstructor",
-      "community": 116,
+      "community": 26,
       "norm_label": "allargsconstructor"
     },
     {
@@ -18274,7 +18274,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_requestlog_java_builder",
-      "community": 116,
+      "community": 26,
       "norm_label": "builder"
     },
     {
@@ -18284,7 +18284,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_requestlog_java_document",
-      "community": 116,
+      "community": 26,
       "norm_label": "document"
     },
     {
@@ -18294,7 +18294,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_requestlog_java_string",
-      "community": 116,
+      "community": 26,
       "norm_label": "string"
     },
     {
@@ -18304,7 +18304,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_requestlog_java_integer",
-      "community": 116,
+      "community": 26,
       "norm_label": "integer"
     },
     {
@@ -18314,7 +18314,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_requestlog_java_long",
-      "community": 116,
+      "community": 26,
       "norm_label": "long"
     },
     {
@@ -18324,7 +18324,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_requestlog_java_instant",
-      "community": 116,
+      "community": 26,
       "norm_label": "instant"
     },
     {
@@ -19524,7 +19524,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust",
-      "community": 5,
+      "community": 122,
       "norm_label": "shoptrust.java"
     },
     {
@@ -19534,7 +19534,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust_shoptrust",
-      "community": 5,
+      "community": 122,
       "norm_label": "shoptrust"
     },
     {
@@ -19544,7 +19544,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust_java_data",
-      "community": 5,
+      "community": 122,
       "norm_label": "data"
     },
     {
@@ -19554,7 +19554,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust_java_noargsconstructor",
-      "community": 5,
+      "community": 122,
       "norm_label": "noargsconstructor"
     },
     {
@@ -19564,7 +19564,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust_java_allargsconstructor",
-      "community": 5,
+      "community": 122,
       "norm_label": "allargsconstructor"
     },
     {
@@ -19574,7 +19574,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust_java_builder",
-      "community": 5,
+      "community": 122,
       "norm_label": "builder"
     },
     {
@@ -19584,7 +19584,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust_java_document",
-      "community": 5,
+      "community": 122,
       "norm_label": "document"
     },
     {
@@ -19594,7 +19594,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust_java_string",
-      "community": 5,
+      "community": 122,
       "norm_label": "string"
     },
     {
@@ -19604,7 +19604,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust_java_integer",
-      "community": 5,
+      "community": 122,
       "norm_label": "integer"
     },
     {
@@ -19614,7 +19614,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust_java_boolean",
-      "community": 5,
+      "community": 122,
       "norm_label": "boolean"
     },
     {
@@ -19624,7 +19624,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust_java_double",
-      "community": 5,
+      "community": 122,
       "norm_label": "double"
     },
     {
@@ -19634,7 +19634,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_model_shoptrust_java_localdatetime",
-      "community": 5,
+      "community": 122,
       "norm_label": "localdatetime"
     },
     {
@@ -19994,7 +19994,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_affiliateclickrepository",
-      "community": 182,
+      "community": 33,
       "norm_label": "affiliateclickrepository.java"
     },
     {
@@ -20004,7 +20004,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_affiliateclickrepository_affiliateclickrepository",
-      "community": 182,
+      "community": 33,
       "norm_label": "affiliateclickrepository"
     },
     {
@@ -20024,7 +20024,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_affiliateclickrepository_java_string",
-      "community": 182,
+      "community": 33,
       "norm_label": "string"
     },
     {
@@ -20034,7 +20034,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_affiliateclickrepository_affiliateclickrepository_countbysiteslugandtsafter",
-      "community": 182,
+      "community": 33,
       "norm_label": ".countbysiteslugandtsafter()"
     },
     {
@@ -20044,7 +20044,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_affiliateclickrepository_java_instant",
-      "community": 182,
+      "community": 33,
       "norm_label": "instant"
     },
     {
@@ -20054,7 +20054,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_affiliateclickrepository_affiliateclickrepository_countbyproductidandtsafter",
-      "community": 182,
+      "community": 33,
       "norm_label": ".countbyproductidandtsafter()"
     },
     {
@@ -20064,7 +20064,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_affiliateclickrepository_affiliateclickrepository_countbytsafter",
-      "community": 182,
+      "community": 33,
       "norm_label": ".countbytsafter()"
     },
     {
@@ -20074,7 +20074,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_affiliateclickrepository_affiliateclickrepository_existsbyanonidandproductid",
-      "community": 182,
+      "community": 33,
       "norm_label": ".existsbyanonidandproductid()"
     },
     {
@@ -20084,7 +20084,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_affiliateclickrepository_affiliateclickrepository_existsbyanonidandproductidandsiteslug",
-      "community": 182,
+      "community": 33,
       "norm_label": ".existsbyanonidandproductidandsiteslug()"
     },
     {
@@ -20094,7 +20094,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_analyticseventrepository",
-      "community": 68,
+      "community": 28,
       "norm_label": "analyticseventrepository.java"
     },
     {
@@ -20104,7 +20104,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_analyticseventrepository_analyticseventrepository",
-      "community": 68,
+      "community": 28,
       "norm_label": "analyticseventrepository"
     },
     {
@@ -20114,7 +20114,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_analyticseventrepository_java_string",
-      "community": 68,
+      "community": 28,
       "norm_label": "string"
     },
     {
@@ -20134,7 +20134,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_analyticseventrepository_java_instant",
-      "community": 68,
+      "community": 28,
       "norm_label": "instant"
     },
     {
@@ -20144,7 +20144,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_analyticseventrepository_java_list",
-      "community": 68,
+      "community": 28,
       "norm_label": "list"
     },
     {
@@ -20154,7 +20154,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_analyticseventrepository_analyticseventrepository_countbytypeandtsafter",
-      "community": 68,
+      "community": 28,
       "norm_label": ".countbytypeandtsafter()"
     },
     {
@@ -20164,7 +20164,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_auditlogrepository",
-      "community": 144,
+      "community": 26,
       "norm_label": "auditlogrepository.java"
     },
     {
@@ -20174,7 +20174,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_auditlogrepository_auditlogrepository",
-      "community": 147,
+      "community": 26,
       "norm_label": "auditlogrepository"
     },
     {
@@ -20184,7 +20184,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_auditlogrepository_java_string",
-      "community": 147,
+      "community": 26,
       "norm_label": "string"
     },
     {
@@ -20194,7 +20194,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_auditlogrepository_auditlogrepository_findallbyorderbytsdesc",
-      "community": 144,
+      "community": 26,
       "norm_label": ".findallbyorderbytsdesc()"
     },
     {
@@ -20204,7 +20204,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_auditlogrepository_java_pageable",
-      "community": 144,
+      "community": 26,
       "norm_label": "pageable"
     },
     {
@@ -20214,7 +20214,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_auditlogrepository_java_list",
-      "community": 144,
+      "community": 26,
       "norm_label": "list"
     },
     {
@@ -20324,7 +20324,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_marketplacesellerrepository",
-      "community": 60,
+      "community": 93,
       "norm_label": "marketplacesellerrepository.java"
     },
     {
@@ -20334,7 +20334,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_marketplacesellerrepository_marketplacesellerrepository",
-      "community": 60,
+      "community": 93,
       "norm_label": "marketplacesellerrepository"
     },
     {
@@ -20344,7 +20344,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_marketplacesellerrepository_java_string",
-      "community": 60,
+      "community": 93,
       "norm_label": "string"
     },
     {
@@ -20354,7 +20354,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_marketplacesellerrepository_java_repository",
-      "community": 60,
+      "community": 93,
       "norm_label": "repository"
     },
     {
@@ -20364,7 +20364,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_marketplacesellerrepository_marketplacesellerrepository_findbysellerid",
-      "community": 60,
+      "community": 93,
       "norm_label": ".findbysellerid()"
     },
     {
@@ -20374,7 +20374,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_marketplacesellerrepository_java_optional",
-      "community": 60,
+      "community": 93,
       "norm_label": "optional"
     },
     {
@@ -20384,7 +20384,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_marketplacesellerrepository_marketplacesellerrepository_findbyselleridin",
-      "community": 60,
+      "community": 93,
       "norm_label": ".findbyselleridin()"
     },
     {
@@ -20394,7 +20394,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_marketplacesellerrepository_java_collection",
-      "community": 60,
+      "community": 93,
       "norm_label": "collection"
     },
     {
@@ -20404,7 +20404,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_marketplacesellerrepository_java_list",
-      "community": 60,
+      "community": 93,
       "norm_label": "list"
     },
     {
@@ -20494,7 +20494,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_pendingofferrepository",
-      "community": 93,
+      "community": 42,
       "norm_label": "pendingofferrepository.java"
     },
     {
@@ -20504,7 +20504,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_pendingofferrepository_pendingofferrepository",
-      "community": 93,
+      "community": 42,
       "norm_label": "pendingofferrepository"
     },
     {
@@ -20514,7 +20514,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_pendingofferrepository_java_string",
-      "community": 93,
+      "community": 42,
       "norm_label": "string"
     },
     {
@@ -20524,7 +20524,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_pendingofferrepository_pendingofferrepository_findbystatusorderbysubmittedatdesc",
-      "community": 93,
+      "community": 42,
       "norm_label": ".findbystatusorderbysubmittedatdesc()"
     },
     {
@@ -20534,7 +20534,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_pendingofferrepository_java_list",
-      "community": 93,
+      "community": 42,
       "norm_label": "list"
     },
     {
@@ -20544,7 +20544,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_pendingofferrepository_pendingofferrepository_existsbyproductidandurlandstatus",
-      "community": 93,
+      "community": 42,
       "norm_label": ".existsbyproductidandurlandstatus()"
     },
     {
@@ -20564,7 +20564,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_pendingshoprepository_pendingshoprepository",
-      "community": 31,
+      "community": 37,
       "norm_label": "pendingshoprepository"
     },
     {
@@ -21104,7 +21104,7 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_productrepository_slugview_getslug",
-      "community": 16,
+      "community": 9,
       "norm_label": ".getslug()"
     },
     {
@@ -21254,7 +21254,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_requestlogrepository",
-      "community": 116,
+      "community": 26,
       "norm_label": "requestlogrepository.java"
     },
     {
@@ -21284,7 +21284,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_requestlogrepository_requestlogrepository_findallbyorderbytsdesc",
-      "community": 116,
+      "community": 26,
       "norm_label": ".findallbyorderbytsdesc()"
     },
     {
@@ -21294,7 +21294,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_requestlogrepository_java_pageable",
-      "community": 116,
+      "community": 26,
       "norm_label": "pageable"
     },
     {
@@ -21304,7 +21304,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_requestlogrepository_java_list",
-      "community": 116,
+      "community": 26,
       "norm_label": "list"
     },
     {
@@ -22014,7 +22014,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shopdiagnosticrepository",
-      "community": 112,
+      "community": 102,
       "norm_label": "shopdiagnosticrepository.java"
     },
     {
@@ -22024,7 +22024,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shopdiagnosticrepository_shopdiagnosticrepository",
-      "community": 112,
+      "community": 102,
       "norm_label": "shopdiagnosticrepository"
     },
     {
@@ -22034,7 +22034,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shopdiagnosticrepository_java_string",
-      "community": 112,
+      "community": 102,
       "norm_label": "string"
     },
     {
@@ -22044,7 +22044,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shopdiagnosticrepository_shopdiagnosticrepository_findtopbyshopslugorderbytsdesc",
-      "community": 112,
+      "community": 102,
       "norm_label": ".findtopbyshopslugorderbytsdesc()"
     },
     {
@@ -22054,7 +22054,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shopdiagnosticrepository_java_optional",
-      "community": 112,
+      "community": 102,
       "norm_label": "optional"
     },
     {
@@ -22064,7 +22064,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shopdiagnosticrepository_shopdiagnosticrepository_findbyshopslugorderbytsdesc",
-      "community": 112,
+      "community": 102,
       "norm_label": ".findbyshopslugorderbytsdesc()"
     },
     {
@@ -22074,7 +22074,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shopdiagnosticrepository_java_pageable",
-      "community": 112,
+      "community": 102,
       "norm_label": "pageable"
     },
     {
@@ -22084,7 +22084,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shopdiagnosticrepository_java_list",
-      "community": 112,
+      "community": 102,
       "norm_label": "list"
     },
     {
@@ -22094,7 +22094,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoprepository",
-      "community": 74,
+      "community": 37,
       "norm_label": "shoprepository.java"
     },
     {
@@ -22104,7 +22104,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoprepository_shoprepository",
-      "community": 74,
+      "community": 37,
       "norm_label": "shoprepository"
     },
     {
@@ -22114,7 +22114,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoprepository_java_string",
-      "community": 74,
+      "community": 37,
       "norm_label": "string"
     },
     {
@@ -22124,7 +22124,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoprepository_shoprepository_findbyslug",
-      "community": 74,
+      "community": 37,
       "norm_label": ".findbyslug()"
     },
     {
@@ -22134,7 +22134,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoprepository_java_optional",
-      "community": 74,
+      "community": 37,
       "norm_label": "optional"
     },
     {
@@ -22144,7 +22144,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoprepository_shoprepository_findallbyslug",
-      "community": 74,
+      "community": 0,
       "norm_label": ".findallbyslug()"
     },
     {
@@ -22154,7 +22154,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoprepository_java_list",
-      "community": 74,
+      "community": 37,
       "norm_label": "list"
     },
     {
@@ -22164,7 +22164,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoprepository_shoprepository_findbystatus",
-      "community": 74,
+      "community": 37,
       "norm_label": ".findbystatus()"
     },
     {
@@ -22174,7 +22174,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoprepository_shoprepository_findbycategoriescontaining",
-      "community": 74,
+      "community": 37,
       "norm_label": ".findbycategoriescontaining()"
     },
     {
@@ -22184,7 +22184,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoptrustrepository",
-      "community": 5,
+      "community": 148,
       "norm_label": "shoptrustrepository.java"
     },
     {
@@ -22194,7 +22194,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoptrustrepository_shoptrustrepository",
-      "community": 5,
+      "community": 148,
       "norm_label": "shoptrustrepository"
     },
     {
@@ -22204,7 +22204,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoptrustrepository_java_string",
-      "community": 5,
+      "community": 148,
       "norm_label": "string"
     },
     {
@@ -22214,7 +22214,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoptrustrepository_java_repository",
-      "community": 5,
+      "community": 148,
       "norm_label": "repository"
     },
     {
@@ -22224,7 +22224,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoptrustrepository_shoptrustrepository_findbyshopslug",
-      "community": 5,
+      "community": 148,
       "norm_label": ".findbyshopslug()"
     },
     {
@@ -22234,7 +22234,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoptrustrepository_java_optional",
-      "community": 5,
+      "community": 148,
       "norm_label": "optional"
     },
     {
@@ -22244,7 +22244,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoptrustrepository_shoptrustrepository_findbyshopslugin",
-      "community": 5,
+      "community": 148,
       "norm_label": ".findbyshopslugin()"
     },
     {
@@ -22254,7 +22254,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoptrustrepository_java_collection",
-      "community": 5,
+      "community": 148,
       "norm_label": "collection"
     },
     {
@@ -22264,7 +22264,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_repository_shoptrustrepository_java_list",
-      "community": 5,
+      "community": 148,
       "norm_label": "list"
     },
     {
@@ -22464,7 +22464,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper",
-      "community": 111,
+      "community": 78,
       "norm_label": "basescraper.java"
     },
     {
@@ -22474,7 +22474,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper_basescraper",
-      "community": 111,
+      "community": 78,
       "norm_label": "basescraper"
     },
     {
@@ -22484,7 +22484,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper_java_logger",
-      "community": 111,
+      "community": 78,
       "norm_label": "logger"
     },
     {
@@ -22494,7 +22494,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper_java_list",
-      "community": 111,
+      "community": 78,
       "norm_label": "list"
     },
     {
@@ -22504,7 +22504,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper_java_string",
-      "community": 111,
+      "community": 78,
       "norm_label": "string"
     },
     {
@@ -22514,7 +22514,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper_java_concurrenthashmap",
-      "community": 111,
+      "community": 78,
       "norm_label": "concurrenthashmap"
     },
     {
@@ -22524,7 +22524,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper_java_atomiclong",
-      "community": 111,
+      "community": 78,
       "norm_label": "atomiclong"
     },
     {
@@ -22534,7 +22534,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper_basescraper_fetch",
-      "community": 111,
+      "community": 78,
       "norm_label": ".fetch()"
     },
     {
@@ -22544,7 +22544,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper_java_document",
-      "community": 111,
+      "community": 78,
       "norm_label": "document"
     },
     {
@@ -22554,7 +22554,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper_basescraper_connect",
-      "community": 111,
+      "community": 78,
       "norm_label": ".connect()"
     },
     {
@@ -22564,7 +22564,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "connection",
-      "community": 111,
+      "community": 78,
       "norm_label": "connection"
     },
     {
@@ -22574,7 +22574,7 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper_basescraper_applyproxy",
-      "community": 111,
+      "community": 78,
       "norm_label": ".applyproxy()"
     },
     {
@@ -22594,7 +22594,7 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_basescraper_basescraper_throttlehost",
-      "community": 111,
+      "community": 78,
       "norm_label": ".throttlehost()"
     },
     {
@@ -22704,7 +22704,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_browserfetcher_browserfetcher_isavailable",
-      "community": 97,
+      "community": 3,
       "norm_label": ".isavailable()"
     },
     {
@@ -23274,7 +23274,7 @@
       "source_location": "L386",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_genericproductextractor_genericproductextractor_isvalid",
-      "community": 105,
+      "community": 40,
       "norm_label": ".isvalid()"
     },
     {
@@ -23364,7 +23364,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_scrapedproduct",
-      "community": 105,
+      "community": 46,
       "norm_label": "scrapedproduct.java"
     },
     {
@@ -23374,7 +23374,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_scrapedproduct_scrapedproduct",
-      "community": 105,
+      "community": 46,
       "norm_label": "scrapedproduct"
     },
     {
@@ -23384,7 +23384,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_scrapedproduct_java_data",
-      "community": 105,
+      "community": 46,
       "norm_label": "data"
     },
     {
@@ -23394,7 +23394,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_scrapedproduct_java_noargsconstructor",
-      "community": 105,
+      "community": 46,
       "norm_label": "noargsconstructor"
     },
     {
@@ -23404,7 +23404,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_scrapedproduct_java_allargsconstructor",
-      "community": 105,
+      "community": 46,
       "norm_label": "allargsconstructor"
     },
     {
@@ -23414,7 +23414,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_scrapedproduct_java_builder",
-      "community": 105,
+      "community": 46,
       "norm_label": "builder"
     },
     {
@@ -23424,7 +23424,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_scrapedproduct_java_string",
-      "community": 105,
+      "community": 46,
       "norm_label": "string"
     },
     {
@@ -23434,7 +23434,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_scrapedproduct_java_double",
-      "community": 105,
+      "community": 46,
       "norm_label": "double"
     },
     {
@@ -23444,7 +23444,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_scrapedproduct_java_integer",
-      "community": 105,
+      "community": 46,
       "norm_label": "integer"
     },
     {
@@ -23454,7 +23454,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_scraper_scrapedproduct_java_boolean",
-      "community": 105,
+      "community": 46,
       "norm_label": "boolean"
     },
     {
@@ -25394,7 +25394,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice",
-      "community": 69,
+      "community": 19,
       "norm_label": "analyticsservice.java"
     },
     {
@@ -25404,7 +25404,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice",
-      "community": 69,
+      "community": 19,
       "norm_label": "analyticsservice"
     },
     {
@@ -25414,7 +25414,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_java_service",
-      "community": 69,
+      "community": 19,
       "norm_label": "service"
     },
     {
@@ -25424,7 +25424,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_java_logger",
-      "community": 69,
+      "community": 19,
       "norm_label": "logger"
     },
     {
@@ -25434,7 +25434,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice_analyticsservice",
-      "community": 68,
+      "community": 28,
       "norm_label": ".analyticsservice()"
     },
     {
@@ -25444,7 +25444,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice_recordsearch",
-      "community": 69,
+      "community": 19,
       "norm_label": ".recordsearch()"
     },
     {
@@ -25454,7 +25454,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_java_string",
-      "community": 69,
+      "community": 19,
       "norm_label": "string"
     },
     {
@@ -25464,7 +25464,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "async",
-      "community": 69,
+      "community": 19,
       "norm_label": "async"
     },
     {
@@ -25474,7 +25474,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_java_long",
-      "community": 69,
+      "community": 19,
       "norm_label": "long"
     },
     {
@@ -25484,7 +25484,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_java_list",
-      "community": 69,
+      "community": 19,
       "norm_label": "list"
     },
     {
@@ -25494,7 +25494,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice_recordview",
-      "community": 69,
+      "community": 19,
       "norm_label": ".recordview()"
     },
     {
@@ -25504,7 +25504,7 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice_recordclick",
-      "community": 69,
+      "community": 19,
       "norm_label": ".recordclick()"
     },
     {
@@ -25514,7 +25514,7 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice_recordsuggestclick",
-      "community": 69,
+      "community": 19,
       "norm_label": ".recordsuggestclick()"
     },
     {
@@ -25524,7 +25524,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice_recordpageview",
-      "community": 69,
+      "community": 19,
       "norm_label": ".recordpageview()"
     },
     {
@@ -25534,7 +25534,7 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice_recordaccountactivity",
-      "community": 69,
+      "community": 19,
       "norm_label": ".recordaccountactivity()"
     },
     {
@@ -25544,7 +25544,7 @@
       "source_location": "L163",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice_save",
-      "community": 69,
+      "community": 19,
       "norm_label": ".save()"
     },
     {
@@ -25554,7 +25554,7 @@
       "source_location": "L170",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice_rawip",
-      "community": 69,
+      "community": 19,
       "norm_label": ".rawip()"
     },
     {
@@ -25564,7 +25564,7 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice_safe",
-      "community": 69,
+      "community": 19,
       "norm_label": ".safe()"
     },
     {
@@ -25574,7 +25574,7 @@
       "source_location": "L180",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_analyticsservice_analyticsservice_safe256",
-      "community": 69,
+      "community": 19,
       "norm_label": ".safe256()"
     },
     {
@@ -26264,7 +26264,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "linkedhashmap",
-      "community": 60,
+      "community": 28,
       "norm_label": "linkedhashmap"
     },
     {
@@ -27134,7 +27134,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_emailnotifier_emailnotifier_emailnotifier",
-      "community": 59,
+      "community": 121,
       "norm_label": ".emailnotifier()"
     },
     {
@@ -27234,7 +27234,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_feedsyncservice_feedsyncservice_feedsyncservice",
-      "community": 13,
+      "community": 37,
       "norm_label": ".feedsyncservice()"
     },
     {
@@ -27314,7 +27314,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_feedsyncservice_feedsyncservice_syncone",
-      "community": 10,
+      "community": 21,
       "norm_label": ".syncone()"
     },
     {
@@ -27624,7 +27624,7 @@
       "source_location": "L115",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_headlinestatsservice_headlinestatsservice_avgmultisellerspread",
-      "community": 16,
+      "community": 68,
       "norm_label": ".avgmultisellerspread()"
     },
     {
@@ -27824,7 +27824,7 @@
       "source_location": "L257",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_hotdropsservice_hotdropsservice_visiblelowest",
-      "community": 39,
+      "community": 193,
       "norm_label": ".visiblelowest()"
     },
     {
@@ -27834,7 +27834,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_hotdropsservice_java_set",
-      "community": 39,
+      "community": 193,
       "norm_label": "set"
     },
     {
@@ -27844,7 +27844,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_hotdropsservice_java_double",
-      "community": 39,
+      "community": 193,
       "norm_label": "double"
     },
     {
@@ -27934,7 +27934,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice",
-      "community": 50,
+      "community": 95,
       "norm_label": "indexnowservice.java"
     },
     {
@@ -27944,7 +27944,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_indexnowservice",
-      "community": 50,
+      "community": 95,
       "norm_label": "indexnowservice"
     },
     {
@@ -27954,7 +27954,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_java_service",
-      "community": 50,
+      "community": 95,
       "norm_label": "service"
     },
     {
@@ -27964,7 +27964,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_java_logger",
-      "community": 50,
+      "community": 95,
       "norm_label": "logger"
     },
     {
@@ -27974,7 +27974,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_java_string",
-      "community": 50,
+      "community": 95,
       "norm_label": "string"
     },
     {
@@ -27984,7 +27984,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_java_objectmapper",
-      "community": 50,
+      "community": 95,
       "norm_label": "objectmapper"
     },
     {
@@ -27994,7 +27994,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_java_queue",
-      "community": 50,
+      "community": 95,
       "norm_label": "queue"
     },
     {
@@ -28004,7 +28004,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_java_httpclient",
-      "community": 50,
+      "community": 95,
       "norm_label": "httpclient"
     },
     {
@@ -28014,7 +28014,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_indexnowservice_submit",
-      "community": 50,
+      "community": 95,
       "norm_label": ".submit()"
     },
     {
@@ -28024,7 +28024,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_indexnowservice_flush",
-      "community": 50,
+      "community": 95,
       "norm_label": ".flush()"
     },
     {
@@ -28034,7 +28034,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_java_scheduled",
-      "community": 50,
+      "community": 95,
       "norm_label": "scheduled"
     },
     {
@@ -28044,7 +28044,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_indexnowservice_post",
-      "community": 50,
+      "community": 95,
       "norm_label": ".post()"
     },
     {
@@ -28054,7 +28054,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_indexnowservice_java_list",
-      "community": 50,
+      "community": 95,
       "norm_label": "list"
     },
     {
@@ -28194,7 +28194,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_livestatsservice_livestatsservice_livestatsservice",
-      "community": 180,
+      "community": 28,
       "norm_label": ".livestatsservice()"
     },
     {
@@ -28274,7 +28274,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice",
-      "community": 60,
+      "community": 99,
       "norm_label": "marketplacesellerservice.java"
     },
     {
@@ -28284,7 +28284,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_marketplacesellerservice",
-      "community": 60,
+      "community": 99,
       "norm_label": "marketplacesellerservice"
     },
     {
@@ -28294,7 +28294,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_java_service",
-      "community": 60,
+      "community": 99,
       "norm_label": "service"
     },
     {
@@ -28304,7 +28304,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_java_logger",
-      "community": 60,
+      "community": 99,
       "norm_label": "logger"
     },
     {
@@ -28314,7 +28314,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_java_mongotemplate",
-      "community": 60,
+      "community": 99,
       "norm_label": "mongotemplate"
     },
     {
@@ -28324,7 +28324,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_marketplacesellerservice_marketplacesellerservice",
-      "community": 60,
+      "community": 99,
       "norm_label": ".marketplacesellerservice()"
     },
     {
@@ -28334,7 +28334,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_marketplacesellerservice_computescore",
-      "community": 60,
+      "community": 99,
       "norm_label": ".computescore()"
     },
     {
@@ -28344,7 +28344,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_java_double",
-      "community": 60,
+      "community": 99,
       "norm_label": "double"
     },
     {
@@ -28354,7 +28354,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_java_integer",
-      "community": 60,
+      "community": 99,
       "norm_label": "integer"
     },
     {
@@ -28364,7 +28364,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_java_long",
-      "community": 60,
+      "community": 99,
       "norm_label": "long"
     },
     {
@@ -28374,7 +28374,7 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_marketplacesellerservice_recompute",
-      "community": 60,
+      "community": 99,
       "norm_label": ".recompute()"
     },
     {
@@ -28384,7 +28384,7 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_marketplacesellerservice_viewforsellerids",
-      "community": 60,
+      "community": 99,
       "norm_label": ".viewforsellerids()"
     },
     {
@@ -28394,7 +28394,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_java_collection",
-      "community": 60,
+      "community": 99,
       "norm_label": "collection"
     },
     {
@@ -28404,7 +28404,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_java_string",
-      "community": 60,
+      "community": 99,
       "norm_label": "string"
     },
     {
@@ -28414,7 +28414,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_java_map",
-      "community": 60,
+      "community": 99,
       "norm_label": "map"
     },
     {
@@ -28424,7 +28424,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_java_object",
-      "community": 60,
+      "community": 99,
       "norm_label": "object"
     },
     {
@@ -28434,7 +28434,7 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_marketplacesellerservice_view",
-      "community": 60,
+      "community": 99,
       "norm_label": ".view()"
     },
     {
@@ -28444,7 +28444,7 @@
       "source_location": "L148",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_marketplacesellerservice_scheduledrecompute",
-      "community": 60,
+      "community": 99,
       "norm_label": ".scheduledrecompute()"
     },
     {
@@ -28454,7 +28454,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_java_scheduled",
-      "community": 60,
+      "community": 99,
       "norm_label": "scheduled"
     },
     {
@@ -28464,7 +28464,7 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_marketplacesellerservice_num",
-      "community": 60,
+      "community": 99,
       "norm_label": ".num()"
     },
     {
@@ -28474,7 +28474,7 @@
       "source_location": "L157",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_marketplacesellerservice_marketplacesellerservice_lng",
-      "community": 60,
+      "community": 99,
       "norm_label": ".lng()"
     },
     {
@@ -28724,7 +28724,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_operatorstatsservice_operatorstatsservice_operatorstatsservice",
-      "community": 68,
+      "community": 28,
       "norm_label": ".operatorstatsservice()"
     },
     {
@@ -29934,7 +29934,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice",
-      "community": 153,
+      "community": 26,
       "norm_label": "requestlogservice.java"
     },
     {
@@ -29944,7 +29944,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_requestlogservice",
-      "community": 153,
+      "community": 26,
       "norm_label": "requestlogservice"
     },
     {
@@ -29954,7 +29954,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_java_service",
-      "community": 153,
+      "community": 26,
       "norm_label": "service"
     },
     {
@@ -29964,7 +29964,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_java_logger",
-      "community": 153,
+      "community": 26,
       "norm_label": "logger"
     },
     {
@@ -29974,7 +29974,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_java_mongotemplate",
-      "community": 153,
+      "community": 26,
       "norm_label": "mongotemplate"
     },
     {
@@ -29984,7 +29984,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_java_queue",
-      "community": 153,
+      "community": 26,
       "norm_label": "queue"
     },
     {
@@ -29994,7 +29994,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_java_atomicinteger",
-      "community": 153,
+      "community": 26,
       "norm_label": "atomicinteger"
     },
     {
@@ -30004,7 +30004,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_java_atomiclong",
-      "community": 153,
+      "community": 26,
       "norm_label": "atomiclong"
     },
     {
@@ -30014,7 +30014,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_requestlogservice_requestlogservice",
-      "community": 153,
+      "community": 26,
       "norm_label": ".requestlogservice()"
     },
     {
@@ -30024,7 +30024,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_requestlogservice_enqueue",
-      "community": 99,
+      "community": 26,
       "norm_label": ".enqueue()"
     },
     {
@@ -30034,7 +30034,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_requestlogservice_flush",
-      "community": 153,
+      "community": 26,
       "norm_label": ".flush()"
     },
     {
@@ -30044,7 +30044,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_java_scheduled",
-      "community": 153,
+      "community": 26,
       "norm_label": "scheduled"
     },
     {
@@ -30054,7 +30054,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_requestlogservice_drainonshutdown",
-      "community": 153,
+      "community": 26,
       "norm_label": ".drainonshutdown()"
     },
     {
@@ -30064,7 +30064,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_requestlogservice_java_predestroy",
-      "community": 153,
+      "community": 26,
       "norm_label": "predestroy"
     },
     {
@@ -30324,7 +30324,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathimessengerservice",
-      "community": 48,
+      "community": 147,
       "norm_label": "saathimessengerservice.java"
     },
     {
@@ -30334,7 +30334,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathimessengerservice_saathimessengerservice",
-      "community": 48,
+      "community": 147,
       "norm_label": "saathimessengerservice"
     },
     {
@@ -30344,7 +30344,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathimessengerservice_java_service",
-      "community": 48,
+      "community": 147,
       "norm_label": "service"
     },
     {
@@ -30354,7 +30354,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathimessengerservice_java_logger",
-      "community": 48,
+      "community": 147,
       "norm_label": "logger"
     },
     {
@@ -30364,7 +30364,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathimessengerservice_java_objectmapper",
-      "community": 48,
+      "community": 147,
       "norm_label": "objectmapper"
     },
     {
@@ -30374,7 +30374,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathimessengerservice_java_string",
-      "community": 48,
+      "community": 147,
       "norm_label": "string"
     },
     {
@@ -30384,7 +30384,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathimessengerservice_java_httpclient",
-      "community": 48,
+      "community": 147,
       "norm_label": "httpclient"
     },
     {
@@ -30394,7 +30394,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathimessengerservice_saathimessengerservice_validateandgetpagename",
-      "community": 48,
+      "community": 147,
       "norm_label": ".validateandgetpagename()"
     },
     {
@@ -30404,7 +30404,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathimessengerservice_saathimessengerservice_sendreply",
-      "community": 50,
+      "community": 95,
       "norm_label": ".sendreply()"
     },
     {
@@ -30414,7 +30414,7 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathimessengerservice_saathimessengerservice_buildreply",
-      "community": 48,
+      "community": 147,
       "norm_label": ".buildreply()"
     },
     {
@@ -30424,7 +30424,7 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathimessengerservice_saathimessengerservice_fmt",
-      "community": 48,
+      "community": 147,
       "norm_label": ".fmt()"
     },
     {
@@ -30434,7 +30434,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice",
-      "community": 85,
+      "community": 45,
       "norm_label": "saathiservice.java"
     },
     {
@@ -30454,7 +30454,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice_java_service",
-      "community": 85,
+      "community": 45,
       "norm_label": "service"
     },
     {
@@ -30464,7 +30464,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice_java_logger",
-      "community": 85,
+      "community": 45,
       "norm_label": "logger"
     },
     {
@@ -30474,7 +30474,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice_java_pattern",
-      "community": 85,
+      "community": 45,
       "norm_label": "pattern"
     },
     {
@@ -30554,7 +30554,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice_java_optional",
-      "community": 2,
+      "community": 85,
       "norm_label": "optional"
     },
     {
@@ -30564,7 +30564,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice_saathiservice_findbyslug",
-      "community": 16,
+      "community": 85,
       "norm_label": ".findbyslug()"
     },
     {
@@ -30574,7 +30574,7 @@
       "source_location": "L131",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice_saathiservice_update",
-      "community": 85,
+      "community": 18,
       "norm_label": ".update()"
     },
     {
@@ -30654,7 +30654,7 @@
       "source_location": "L221",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice_saathiservice_liveassist",
-      "community": 9,
+      "community": 45,
       "norm_label": ".liveassist()"
     },
     {
@@ -30714,7 +30714,7 @@
       "source_location": "L366",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice_saathiservice_upsertsellerrow",
-      "community": 16,
+      "community": 85,
       "norm_label": ".upsertsellerrow()"
     },
     {
@@ -30724,7 +30724,7 @@
       "source_location": "L389",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice_saathiservice_removesellerrow",
-      "community": 16,
+      "community": 85,
       "norm_label": ".removesellerrow()"
     },
     {
@@ -30754,7 +30754,7 @@
       "source_location": "L421",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice_liveassistresult",
-      "community": 85,
+      "community": 45,
       "norm_label": "liveassistresult"
     },
     {
@@ -30764,7 +30764,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_saathiservice_java_data",
-      "community": 85,
+      "community": 45,
       "norm_label": "data"
     },
     {
@@ -31074,7 +31074,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shopapprovalservice",
-      "community": 31,
+      "community": 13,
       "norm_label": "shopapprovalservice.java"
     },
     {
@@ -31084,7 +31084,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shopapprovalservice_shopapprovalservice",
-      "community": 31,
+      "community": 13,
       "norm_label": "shopapprovalservice"
     },
     {
@@ -31094,7 +31094,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shopapprovalservice_java_service",
-      "community": 31,
+      "community": 13,
       "norm_label": "service"
     },
     {
@@ -31104,7 +31104,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shopapprovalservice_java_logger",
-      "community": 31,
+      "community": 13,
       "norm_label": "logger"
     },
     {
@@ -31114,7 +31114,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shopapprovalservice_shopapprovalservice_shopapprovalservice",
-      "community": 31,
+      "community": 37,
       "norm_label": ".shopapprovalservice()"
     },
     {
@@ -31124,7 +31124,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shopapprovalservice_result",
-      "community": 31,
+      "community": 13,
       "norm_label": "result"
     },
     {
@@ -31134,7 +31134,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shopapprovalservice_shopapprovalservice_approve",
-      "community": 31,
+      "community": 13,
       "norm_label": ".approve()"
     },
     {
@@ -31144,7 +31144,7 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shopapprovalservice_shopapprovalservice_approvepending",
-      "community": 31,
+      "community": 13,
       "norm_label": ".approvepending()"
     },
     {
@@ -31154,7 +31154,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shopapprovalservice_shopapprovalservice_markapproved",
-      "community": 31,
+      "community": 13,
       "norm_label": ".markapproved()"
     },
     {
@@ -31164,7 +31164,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shopapprovalservice_shopapprovalservice_slugify",
-      "community": 31,
+      "community": 13,
       "norm_label": ".slugify()"
     },
     {
@@ -31174,7 +31174,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shopapprovalservice_java_string",
-      "community": 31,
+      "community": 13,
       "norm_label": "string"
     },
     {
@@ -31184,7 +31184,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shophealthservice",
-      "community": 100,
+      "community": 67,
       "norm_label": "shophealthservice.java"
     },
     {
@@ -31194,7 +31194,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shophealthservice_shophealthservice",
-      "community": 100,
+      "community": 67,
       "norm_label": "shophealthservice"
     },
     {
@@ -31204,7 +31204,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shophealthservice_java_service",
-      "community": 100,
+      "community": 67,
       "norm_label": "service"
     },
     {
@@ -31214,7 +31214,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shophealthservice_java_logger",
-      "community": 100,
+      "community": 67,
       "norm_label": "logger"
     },
     {
@@ -31224,7 +31224,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shophealthservice_shophealthservice_shophealthservice",
-      "community": 100,
+      "community": 67,
       "norm_label": ".shophealthservice()"
     },
     {
@@ -31234,7 +31234,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shophealthservice_shophealthservice_recordrun",
-      "community": 100,
+      "community": 67,
       "norm_label": ".recordrun()"
     },
     {
@@ -31244,7 +31244,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shophealthservice_java_string",
-      "community": 100,
+      "community": 67,
       "norm_label": "string"
     },
     {
@@ -31254,7 +31254,7 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shophealthservice_shophealthservice_shopsneedingretry",
-      "community": 100,
+      "community": 67,
       "norm_label": ".shopsneedingretry()"
     },
     {
@@ -31264,7 +31264,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_shophealthservice_java_list",
-      "community": 100,
+      "community": 67,
       "norm_label": "list"
     },
     {
@@ -31924,7 +31924,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_worldcupservice",
-      "community": 184,
+      "community": 109,
       "norm_label": "worldcupservice.java"
     },
     {
@@ -31934,7 +31934,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_worldcupservice_worldcupservice",
-      "community": 184,
+      "community": 109,
       "norm_label": "worldcupservice"
     },
     {
@@ -31944,7 +31944,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_worldcupservice_java_service",
-      "community": 184,
+      "community": 109,
       "norm_label": "service"
     },
     {
@@ -31954,7 +31954,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_worldcupservice_java_logger",
-      "community": 184,
+      "community": 109,
       "norm_label": "logger"
     },
     {
@@ -31964,7 +31964,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_worldcupservice_java_string",
-      "community": 184,
+      "community": 109,
       "norm_label": "string"
     },
     {
@@ -31974,7 +31974,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_worldcupservice_worldcupservice_worldcupservice",
-      "community": 184,
+      "community": 109,
       "norm_label": ".worldcupservice()"
     },
     {
@@ -31984,7 +31984,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_worldcupservice_worldcupservice_get",
-      "community": 184,
+      "community": 109,
       "norm_label": ".get()"
     },
     {
@@ -31994,7 +31994,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_worldcupservice_java_list",
-      "community": 184,
+      "community": 109,
       "norm_label": "list"
     },
     {
@@ -32004,7 +32004,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_worldcupservice_java_map",
-      "community": 184,
+      "community": 109,
       "norm_label": "map"
     },
     {
@@ -32014,7 +32014,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_service_worldcupservice_java_object",
-      "community": 184,
+      "community": 109,
       "norm_label": "object"
     },
     {
@@ -32024,7 +32024,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_util_clientip",
-      "community": 150,
+      "community": 19,
       "norm_label": "clientip.java"
     },
     {
@@ -32034,7 +32034,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_util_clientip_clientip",
-      "community": 150,
+      "community": 0,
       "norm_label": "clientip"
     },
     {
@@ -32044,7 +32044,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_util_clientip_clientip_clientip",
-      "community": 150,
+      "community": 0,
       "norm_label": ".clientip()"
     },
     {
@@ -32054,7 +32054,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_util_clientip_clientip_of",
-      "community": 150,
+      "community": 0,
       "norm_label": ".of()"
     },
     {
@@ -32064,7 +32064,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_util_clientip_java_httpservletrequest",
-      "community": 150,
+      "community": 19,
       "norm_label": "httpservletrequest"
     },
     {
@@ -32074,7 +32074,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_util_clientip_java_string",
-      "community": 150,
+      "community": 0,
       "norm_label": "string"
     },
     {
@@ -32084,7 +32084,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_main_java_com_damkemon_dam_kemon_util_clientip_clientip_hash",
-      "community": 150,
+      "community": 0,
       "norm_label": ".hash()"
     },
     {
@@ -32284,7 +32284,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_config_ratelimitertest",
-      "community": 189,
+      "community": 20,
       "norm_label": "ratelimitertest.java"
     },
     {
@@ -32294,7 +32294,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_config_ratelimitertest_ratelimitertest",
-      "community": 189,
+      "community": 20,
       "norm_label": "ratelimitertest"
     },
     {
@@ -32304,7 +32304,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_config_ratelimitertest_ratelimitertest_capacityandrefillmustbepositive",
-      "community": 189,
+      "community": 20,
       "norm_label": ".capacityandrefillmustbepositive()"
     },
     {
@@ -32314,7 +32314,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_config_ratelimitertest_java_test",
-      "community": 189,
+      "community": 20,
       "norm_label": "test"
     },
     {
@@ -32324,7 +32324,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_config_ratelimitertest_ratelimitertest_allowsburstuptocapacitythenblocks",
-      "community": 189,
+      "community": 20,
       "norm_label": ".allowsburstuptocapacitythenblocks()"
     },
     {
@@ -32334,7 +32334,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_config_ratelimitertest_ratelimitertest_perkeybucketsareindependent",
-      "community": 189,
+      "community": 20,
       "norm_label": ".perkeybucketsareindependent()"
     },
     {
@@ -32344,7 +32344,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_config_ratelimitertest_ratelimitertest_refillsovertime",
-      "community": 189,
+      "community": 20,
       "norm_label": ".refillsovertime()"
     },
     {
@@ -32634,7 +32634,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_offerscontrollertest",
-      "community": 41,
+      "community": 42,
       "norm_label": "offerscontrollertest.java"
     },
     {
@@ -32644,7 +32644,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_offerscontrollertest_offerscontrollertest",
-      "community": 41,
+      "community": 42,
       "norm_label": "offerscontrollertest"
     },
     {
@@ -32654,7 +32654,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_offerscontrollertest_offerscontrollertest_productwith",
-      "community": 41,
+      "community": 42,
       "norm_label": ".productwith()"
     },
     {
@@ -32664,7 +32664,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_offerscontrollertest_offerscontrollertest_approveaddsofferassitepriceandrecomputeslowest",
-      "community": 41,
+      "community": 42,
       "norm_label": ".approveaddsofferassitepriceandrecomputeslowest()"
     },
     {
@@ -32674,7 +32674,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_offerscontrollertest_java_test",
-      "community": 41,
+      "community": 42,
       "norm_label": "test"
     },
     {
@@ -32684,7 +32684,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_offerscontrollertest_offerscontrollertest_submitrejectsnonpositiveprice",
-      "community": 41,
+      "community": 42,
       "norm_label": ".submitrejectsnonpositiveprice()"
     },
     {
@@ -32824,7 +32824,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_searchcontrollertest",
-      "community": 181,
+      "community": 19,
       "norm_label": "searchcontrollertest.java"
     },
     {
@@ -32834,7 +32834,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_searchcontrollertest_searchcontrollertest",
-      "community": 181,
+      "community": 19,
       "norm_label": "searchcontrollertest"
     },
     {
@@ -32844,7 +32844,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_searchcontrollertest_searchcontrollertest_searchdelegatestocatalogandrecordsanalytics",
-      "community": 181,
+      "community": 19,
       "norm_label": ".searchdelegatestocatalogandrecordsanalytics()"
     },
     {
@@ -32854,7 +32854,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_searchcontrollertest_java_test",
-      "community": 181,
+      "community": 19,
       "norm_label": "test"
     },
     {
@@ -32864,7 +32864,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_searchcontrollertest_searchcontrollertest_searchusesxforwardedforwhenpresent",
-      "community": 181,
+      "community": 19,
       "norm_label": ".searchusesxforwardedforwhenpresent()"
     },
     {
@@ -32874,7 +32874,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_sharepreviewcontrollertest",
-      "community": 8,
+      "community": 150,
       "norm_label": "sharepreviewcontrollertest.java"
     },
     {
@@ -32884,7 +32884,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_sharepreviewcontrollertest_sharepreviewcontrollertest",
-      "community": 8,
+      "community": 150,
       "norm_label": "sharepreviewcontrollertest"
     },
     {
@@ -32894,7 +32894,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_sharepreviewcontrollertest_java_string",
-      "community": 8,
+      "community": 150,
       "norm_label": "string"
     },
     {
@@ -32904,7 +32904,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_sharepreviewcontrollertest_sharepreviewcontrollertest_product",
-      "community": 8,
+      "community": 150,
       "norm_label": ".product()"
     },
     {
@@ -32914,7 +32914,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_sharepreviewcontrollertest_sharepreviewcontrollertest_rendersescapedogtagswithpriceandimage",
-      "community": 8,
+      "community": 150,
       "norm_label": ".rendersescapedogtagswithpriceandimage()"
     },
     {
@@ -32924,7 +32924,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_sharepreviewcontrollertest_java_test",
-      "community": 8,
+      "community": 150,
       "norm_label": "test"
     },
     {
@@ -32934,7 +32934,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_sharepreviewcontrollertest_sharepreviewcontrollertest_missingimagefallsbacktobrandedogpngandmissingslugtoid",
-      "community": 8,
+      "community": 150,
       "norm_label": ".missingimagefallsbacktobrandedogpngandmissingslugtoid()"
     },
     {
@@ -32944,7 +32944,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_controller_sharepreviewcontrollertest_sharepreviewcontrollertest_nullpricestillrendersvaliddescription",
-      "community": 8,
+      "community": 150,
       "norm_label": ".nullpricestillrendersvaliddescription()"
     },
     {
@@ -33184,7 +33184,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_indexer_sellerdepthharvestertest",
-      "community": 21,
+      "community": 123,
       "norm_label": "sellerdepthharvestertest.java"
     },
     {
@@ -33194,7 +33194,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_indexer_sellerdepthharvestertest_sellerdepthharvestertest",
-      "community": 21,
+      "community": 123,
       "norm_label": "sellerdepthharvestertest"
     },
     {
@@ -33204,7 +33204,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_indexer_sellerdepthharvestertest_sellerdepthharvestertest_acceptsthesamemodelacrossshopnamingvariance",
-      "community": 21,
+      "community": 123,
       "norm_label": ".acceptsthesamemodelacrossshopnamingvariance()"
     },
     {
@@ -33214,7 +33214,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_indexer_sellerdepthharvestertest_java_test",
-      "community": 21,
+      "community": 123,
       "norm_label": "test"
     },
     {
@@ -33224,7 +33224,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_indexer_sellerdepthharvestertest_sellerdepthharvestertest_rejectsaccessoriesforthequeriedmodel",
-      "community": 21,
+      "community": 123,
       "norm_label": ".rejectsaccessoriesforthequeriedmodel()"
     },
     {
@@ -33234,7 +33234,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_indexer_sellerdepthharvestertest_sellerdepthharvestertest_relevancefilterdropsnavlinksandkeepsrealresults",
-      "community": 21,
+      "community": 123,
       "norm_label": ".relevancefilterdropsnavlinksandkeepsrealresults()"
     },
     {
@@ -33244,7 +33244,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_indexer_sellerdepthharvestertest_sellerdepthharvestertest_relevancefiltermatchesphonemodeltokens",
-      "community": 21,
+      "community": 123,
       "norm_label": ".relevancefiltermatchesphonemodeltokens()"
     },
     {
@@ -33254,7 +33254,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_indexer_sellerdepthharvestertest_sellerdepthharvestertest_remergenoisecollapsesbutvariantsstaydistinct",
-      "community": 21,
+      "community": 123,
       "norm_label": ".remergenoisecollapsesbutvariantsstaydistinct()"
     },
     {
@@ -33264,7 +33264,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_indexer_sellerdepthharvestertest_sellerdepthharvestertest_coarsekeygroupsfragmentsandseparatesmodels",
-      "community": 21,
+      "community": 123,
       "norm_label": ".coarsekeygroupsfragmentsandseparatesmodels()"
     },
     {
@@ -33274,7 +33274,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_indexer_sellerdepthharvestertest_sellerdepthharvestertest_rejectssiblinganddifferentmodels",
-      "community": 21,
+      "community": 123,
       "norm_label": ".rejectssiblinganddifferentmodels()"
     },
     {
@@ -34434,7 +34434,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_service_indexnowservicetest",
-      "community": 50,
+      "community": 95,
       "norm_label": "indexnowservicetest.java"
     },
     {
@@ -34444,7 +34444,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_service_indexnowservicetest_indexnowservicetest",
-      "community": 50,
+      "community": 95,
       "norm_label": "indexnowservicetest"
     },
     {
@@ -34454,7 +34454,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_service_indexnowservicetest_indexnowservicetest_flushdedupesbuildsurlsanddrainsqueue",
-      "community": 50,
+      "community": 95,
       "norm_label": ".flushdedupesbuildsurlsanddrainsqueue()"
     },
     {
@@ -34464,7 +34464,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_service_indexnowservicetest_java_test",
-      "community": 50,
+      "community": 95,
       "norm_label": "test"
     },
     {
@@ -34474,7 +34474,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_test_java_com_damkemon_dam_kemon_service_indexnowservicetest_indexnowservicetest_submitisnoopwhendisabled",
-      "community": 50,
+      "community": 95,
       "norm_label": ".submitisnoopwhendisabled()"
     },
     {
@@ -36418,7 +36418,7 @@
       "contributor": null,
       "community": 172,
       "norm_label": ".claude/claude.md graphify trigger",
-      "id": "claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_trigger"
+      "id": "claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_claude_trigger"
     },
     {
       "label": "graphify Skill",
@@ -36533,7 +36533,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 18,
+      "community": 153,
       "norm_label": "graphify update/cluster-only reference",
       "id": "_claude_skills_graphify_references_update"
     },
@@ -138321,7 +138321,7 @@
       "source_location": "L24",
       "weight": 1.0,
       "source": "src_main_java_com_damkemon_dam_kemon_service_productservice",
-      "target": "_claude_skills_graphify_references_update",
+      "target": "claude_skills_graphify_references_update",
       "confidence_score": 1.0
     },
     {
@@ -152573,5 +152573,5 @@
       "source_file": "src/main/resources/application.yml"
     }
   ],
-  "built_at_commit": "f38260af277c9906952b4b3e08dd9d71bbec7715"
+  "built_at_commit": "3543aa0d5829afcb2e3dd60b053b03964f539159"
 }

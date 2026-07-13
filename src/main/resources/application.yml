@@ -182,8 +182,8 @@ admin:
 # Admin browser -> this backend -> crawler droplet. The token stays server-side;
 # reuse the existing admin key until a dedicated token is configured.
 crawler-control:
-  enabled: ${CRAWLER_CONTROL_ENABLED:true}
-  url: ${CRAWLER_CONTROL_URL:http://188.166.224.53:8090}
+  enabled: true
+  url: http://188.166.224.53:8090
   token: ${ADMIN_API_KEY:}
   timeout: ${CRAWLER_CONTROL_TIMEOUT:5s}
 
