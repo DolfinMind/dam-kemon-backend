@@ -575,7 +575,7 @@ public class BulkIndexer {
                     // (currency unit confusion, leading zeros, etc).
                     if (sp.getPrice() < 10) return;
 
-                    if (persistOrMerge(sp, url, shop, lsh, inserted, merged)) {
+                    if (persistOrMerge(sp, url, shop, lsh, inserted, merged, false)) {
                         localOk.incrementAndGet();
                     }
                 } catch (Exception e) {
@@ -668,6 +668,32 @@ public class BulkIndexer {
     /** Open an enrichment session (warms the dedup index once). */
     public EnrichSession openEnrichSession() { return new EnrichSession(); }
 
+    /** Result for the bounded HTTP ingestion path. */
+    public record FastIngestResult(int submitted, int accepted, int inserted,
+                                   int merged, int outOfScope) {}
+
+    /**
+     * Persist one small HTTP batch without warming the full-catalog LSH. Exact URL
+     * and deterministic match-key lookups still merge against the existing catalog;
+     * the empty LSH only catches fuzzy duplicates within this batch.
+     */
+    public FastIngestResult enrichFast(Shop shop, List<ScrapedProduct> offers) {
+        if (shop == null || offers == null || offers.isEmpty())
+            return new FastIngestResult(0, 0, 0, 0, 0);
+        MinHashLSH lsh = new MinHashLSH();
+        AtomicInteger inserted = new AtomicInteger();
+        AtomicInteger merged = new AtomicInteger();
+        int accepted = 0;
+        int outOfScope = 0;
+        for (ScrapedProduct offer : offers) {
+            String url = offer.getProductUrl();
+            if (persistOrMerge(offer, url, shop, lsh, inserted, merged, true)) accepted++;
+            else outOfScope++;
+        }
+        return new FastIngestResult(offers.size(), accepted, inserted.get(),
+                merged.get(), outOfScope);
+    }
+
     /**
      * Merge a batch of matched offers for one shop into the catalog within an
      * open {@link EnrichSession}. New products are inserted (catalog breadth);
@@ -708,7 +734,7 @@ public class BulkIndexer {
             if (sp == null || sp.getName() == null || sp.getPrice() == null || sp.getPrice() < 10) continue;
             String url = sp.getProductUrl() != null ? sp.getProductUrl() : shop.getBaseUrl();
             try {
-                if (persistOrMerge(sp, url, shop, lsh, inserted, merged)) ok++;
+                if (persistOrMerge(sp, url, shop, lsh, inserted, merged, false)) ok++;
                 else dropped++;
             } catch (Exception e) {
                 log.debug("Indexer: shop '{}' API persist failed: {}", shop.getSlug(), e.getMessage());
@@ -727,7 +753,8 @@ public class BulkIndexer {
                                                 Shop shop,
                                                 MinHashLSH lsh,
                                                 AtomicInteger inserted,
-                                                AtomicInteger merged) {
+                                                AtomicInteger merged,
+                                                boolean strict) {
         SitePrice price = SitePrice.builder()
                 .siteName(shop.getName())
                 .siteSlug(shop.getSlug())
@@ -750,11 +777,13 @@ public class BulkIndexer {
 
         // 1. Exact URL match — a re-crawl of a known listing just refreshes that
         //    seller's offer in place.
-        Optional<Product> byUrl = safeFindByUrl(url);
+        Optional<Product> byUrl = strict
+                ? productRepository.findByPriceUrl(url)
+                : safeFindByUrl(url);
         if (byUrl.isPresent()) {
             Product existing = byUrl.get();
             existing.getPrices().removeIf(p -> Objects.equals(p.getProductUrl(), url));
-            mergeOffer(existing, price, sp, key, lsh, merged);
+            mergeOffer(existing, price, sp, key, lsh, merged, strict);
             return true;
         }
 
@@ -764,11 +793,13 @@ public class BulkIndexer {
         //    "Honor 400 (Official)" and "Honor 400" share a key and group;
         //    "GTR 3 Pro" and "GTR 4" don't.
         if (key != null) {
-            Optional<Product> byKey = safeFindByKey(key);
+            Optional<Product> byKey = strict
+                    ? productRepository.findFirstByMatchKey(key)
+                    : safeFindByKey(key);
             if (byKey.isPresent()) {
                 Product existing = byKey.get();
                 dropSupersededOffer(existing, price, shop);
-                mergeOffer(existing, price, sp, key, lsh, merged);
+                mergeOffer(existing, price, sp, key, lsh, merged, strict);
                 return true;
             }
         }
@@ -784,7 +815,7 @@ public class BulkIndexer {
             if (existing != null && sameProduct(existing.getName(), sp.getName())
                     && priceCompatible(existing, sp.getPrice())) {
                 dropSupersededOffer(existing, price, shop);
-                mergeOffer(existing, price, sp, key, lsh, merged);
+                mergeOffer(existing, price, sp, key, lsh, merged, strict);
                 return true;
             }
         }
@@ -810,7 +841,7 @@ public class BulkIndexer {
                 .updatedAt(LocalDateTime.now())
                 .build();
         recomputeAggregates(p);
-        Product saved = safeSave(p);
+        Product saved = strict ? productRepository.save(p) : safeSave(p);
         if (saved != null && saved.getId() != null) {
             lsh.add(saved.getId(), normName, null);
             indexNow.submit(saved.getSlug());
@@ -835,7 +866,8 @@ public class BulkIndexer {
      *  missing descriptive fields, backfill the matchKey, recompute aggregates,
      *  and re-index in the LSH. Caller has already removed any superseded offer. */
     private void mergeOffer(Product existing, SitePrice price, ScrapedProduct sp,
-                            String key, MinHashLSH lsh, AtomicInteger merged) {
+                            String key, MinHashLSH lsh, AtomicInteger merged,
+                            boolean strict) {
         existing.getPrices().add(price);
         capSellers(existing);
         applyDescriptiveFieldsIfMissing(existing, sp);
@@ -844,7 +876,7 @@ public class BulkIndexer {
         recomputeAggregates(existing);
         existing.setLastScraped(LocalDateTime.now());
         existing.setUpdatedAt(LocalDateTime.now());
-        Product saved = safeSave(existing);
+        Product saved = strict ? productRepository.save(existing) : safeSave(existing);
         if (saved != null && saved.getId() != null) {
             lsh.add(saved.getId(), normaliseForMatching(saved.getName()), null);
             indexNow.submit(saved.getSlug());

@@ -31,6 +31,7 @@ import java.util.Map;
 public class AdminIngestController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminIngestController.class);
+    private static final int MAX_OFFERS = 250;
 
     private final BulkIndexer indexer;
     private final ShopRepository shops;
@@ -53,9 +54,25 @@ public class AdminIngestController {
         if (request == null || request.batches() == null || request.batches().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "no batches"));
         }
-        BulkIndexer.EnrichSession session = indexer.openEnrichSession();
+        int submitted = request.batches().stream()
+                .filter(java.util.Objects::nonNull)
+                .map(IngestBatch::offers)
+                .filter(java.util.Objects::nonNull)
+                .mapToInt(List::size)
+                .sum();
+        if (submitted > MAX_OFFERS) {
+            return ResponseEntity.status(413).body(Map.of(
+                    "error", "too many offers",
+                    "maxOffers", MAX_OFFERS,
+                    "submitted", submitted));
+        }
+
         Map<String, Object> perShop = new LinkedHashMap<>();
         List<String> unknownShops = new ArrayList<>();
+        int inserted = 0;
+        int merged = 0;
+        int outOfScope = 0;
+        int invalid = 0;
         for (IngestBatch batch : request.batches()) {
             if (batch == null || batch.shopSlug() == null || batch.offers() == null) continue;
             Shop shop = shops.findBySlug(batch.shopSlug().trim()).orElse(null);
@@ -64,8 +81,15 @@ public class AdminIngestController {
                 continue;
             }
             List<ScrapedProduct> scraped = new ArrayList<>();
+            int shopInvalid = 0;
             for (IngestOffer o : batch.offers()) {
-                if (o == null || o.name() == null || o.price() == null) continue;
+                if (o == null || o.name() == null || o.name().isBlank()
+                        || o.productUrl() == null || o.productUrl().isBlank()
+                        || o.price() == null || o.price() < 10) {
+                    invalid++;
+                    shopInvalid++;
+                    continue;
+                }
                 scraped.add(ScrapedProduct.builder()
                         .name(o.name().trim())
                         .price(o.price())
@@ -77,16 +101,29 @@ public class AdminIngestController {
                         .sellerId(o.sellerId())
                         .build());
             }
-            int persisted = indexer.enrich(session, shop, scraped);
-            perShop.put(shop.getSlug(), Map.of("submitted", scraped.size(), "persisted", persisted));
+            BulkIndexer.FastIngestResult result = indexer.enrichFast(shop, scraped);
+            inserted += result.inserted();
+            merged += result.merged();
+            outOfScope += result.outOfScope();
+            perShop.put(shop.getSlug(), Map.of(
+                    "submitted", batch.offers().size(),
+                    "accepted", result.accepted(),
+                    "inserted", result.inserted(),
+                    "merged", result.merged(),
+                    "outOfScope", result.outOfScope(),
+                    "invalid", shopInvalid));
         }
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("inserted", session.inserted());
-        out.put("merged", session.merged());
+        out.put("submitted", submitted);
+        out.put("accepted", inserted + merged);
+        out.put("inserted", inserted);
+        out.put("merged", merged);
+        out.put("outOfScope", outOfScope);
+        out.put("invalid", invalid);
         out.put("shops", perShop);
         if (!unknownShops.isEmpty()) out.put("unknownShops", unknownShops);
         log.info("ManualIngest: {} inserted, {} merged across {} shops{}",
-                session.inserted(), session.merged(), perShop.size(),
+                inserted, merged, perShop.size(),
                 unknownShops.isEmpty() ? "" : " (unknown: " + unknownShops + ")");
         return ResponseEntity.ok(out);
     }
