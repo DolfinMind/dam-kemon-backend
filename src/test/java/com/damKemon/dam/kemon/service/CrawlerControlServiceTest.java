@@ -80,9 +80,9 @@ class CrawlerControlServiceTest {
     }
 
     @Test
-    void disabledOrMissingConfigurationReturnsServiceUnavailable() {
+    void missingConfigurationReturnsServiceUnavailable() {
         CrawlerControlService service = new CrawlerControlService(
-                false, "", "", Duration.ofSeconds(1));
+                "", "", Duration.ofSeconds(1));
 
         ResponseStatusException error = assertThrows(
                 ResponseStatusException.class, service::status);
@@ -93,7 +93,6 @@ class CrawlerControlServiceTest {
     @Test
     void malformedTokenConfigurationReturnsServiceUnavailable() {
         CrawlerControlService service = new CrawlerControlService(
-                true,
                 "http://127.0.0.1:" + server.getAddress().getPort(),
                 "a".repeat(32) + "\n",
                 Duration.ofSeconds(1));
@@ -106,7 +105,6 @@ class CrawlerControlServiceTest {
 
     private CrawlerControlService configuredService() {
         return new CrawlerControlService(
-                true,
                 "http://127.0.0.1:" + server.getAddress().getPort(),
                 TOKEN,
                 Duration.ofSeconds(2));

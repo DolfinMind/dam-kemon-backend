@@ -2,6 +2,7 @@ package com.damKemon.dam.kemon.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,8 +22,9 @@ public class CrawlerControlService {
 
     private static final Logger log = LoggerFactory.getLogger(CrawlerControlService.class);
     private static final Set<String> ACTIONS = Set.of("start", "stop", "restart");
+    private static final String CRAWLER_URL = "http://188.166.224.53:8090";
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
 
-    private final boolean enabled;
     private final URI baseUrl;
     private final String token;
     private final Duration timeout;
@@ -30,12 +32,12 @@ public class CrawlerControlService {
 
     public record RemoteResponse(int status, String body) {}
 
-    public CrawlerControlService(
-            @Value("${crawler-control.enabled:false}") boolean enabled,
-            @Value("${crawler-control.url:}") String baseUrl,
-            @Value("${crawler-control.token:}") String token,
-            @Value("${crawler-control.timeout:5s}") Duration timeout) {
-        this.enabled = enabled;
+    @Autowired
+    public CrawlerControlService(@Value("${admin.api-key:}") String token) {
+        this(CRAWLER_URL, token, REQUEST_TIMEOUT);
+    }
+
+    CrawlerControlService(String baseUrl, String token, Duration timeout) {
         this.baseUrl = parseBaseUrl(baseUrl);
         this.token = token == null ? "" : token;
         this.timeout = timeout;
@@ -67,7 +69,7 @@ public class CrawlerControlService {
     }
 
     private RemoteResponse request(String method, String path) {
-        if (!enabled || baseUrl == null || token.length() < 32) {
+        if (baseUrl == null || token.length() < 32) {
             throw new ResponseStatusException(
                     HttpStatus.SERVICE_UNAVAILABLE, "crawler control is not configured");
         }

@@ -1235,8 +1235,8 @@
     "semantic_hash": "1f6a073916d642ecd7044ec63c6393c5"
   },
   "src/main/resources/application.yml": {
-    "mtime": 1783950442.4438996,
-    "ast_hash": "7efa94a723b4975205be135e9f9ce586",
+    "mtime": 1783950834.1873255,
+    "ast_hash": "94c25939356ad6987a89463b44627e06",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/ShopVisibilityService.java": {
@@ -1345,8 +1345,8 @@
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/CrawlerControlService.java": {
-    "mtime": 1783949327.030033,
-    "ast_hash": "d421da7a063e96baa01dbd9ba63ad9b5",
+    "mtime": 1783950843.4637032,
+    "ast_hash": "1c968fff550ee0859f6fc448e02ec63e",
     "semantic_hash": ""
   },
   "src/test/java/com/damKemon/dam/kemon/config/AdminGateFilterTest.java": {
@@ -1380,8 +1380,8 @@
     "semantic_hash": ""
   },
   "src/test/java/com/damKemon/dam/kemon/service/CrawlerControlServiceTest.java": {
-    "mtime": 1783949327.0317004,
-    "ast_hash": "8f66ac639acd82bd553ff7e643081beb",
+    "mtime": 1783950847.687941,
+    "ast_hash": "044cc17aa7024c8fd98ce4d968e8c489",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-07-13-loopback-ingest-without-admin-key.md": {
