@@ -13,8 +13,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -49,7 +51,13 @@ class CatalogSearchTypoRecallTest {
         QueryExpander expander = mock(QueryExpander.class);
         AtlasSearchService atlas = mock(AtlasSearchService.class);
 
-        when(repo.findAll()).thenReturn(catalog);
+        when(repo.findAllSearchDocuments()).thenReturn(catalog);
+        when(repo.findAllById(any())).thenAnswer(invocation -> {
+            Iterable<String> requested = invocation.getArgument(0);
+            Set<String> ids = new HashSet<>();
+            requested.forEach(ids::add);
+            return catalog.stream().filter(p -> ids.contains(p.getId())).toList();
+        });
         // $text can't do typos (no token "oramio" is indexed) — recall is purely the
         // trigram index, exactly as in prod with Atlas off.
         when(repo.textSearch(anyString(), any(Pageable.class))).thenReturn(List.of());

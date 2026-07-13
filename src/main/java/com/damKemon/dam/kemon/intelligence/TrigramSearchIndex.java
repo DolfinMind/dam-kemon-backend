@@ -4,16 +4,17 @@ import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
-import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -36,12 +37,15 @@ import java.util.concurrent.atomic.AtomicReference;
  * half-built index.
  */
 @Service
-public class TrigramSearchIndex {
+public class TrigramSearchIndex implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(TrigramSearchIndex.class);
 
     private final ProductRepository productRepository;
     private final AtomicReference<TrigramIndex> indexRef = new AtomicReference<>(new TrigramIndex());
+    private volatile boolean ready;
+    private volatile Instant lastSuccess;
+    private volatile String lastFailure;
 
     @Value("${search.trigram.enabled:true}")
     private boolean enabled;
@@ -50,20 +54,10 @@ public class TrigramSearchIndex {
         this.productRepository = productRepository;
     }
 
-    /**
-     * Build once after the web node is ready, OFF the boot thread, so readiness
-     * isn't blocked by a full {@code findAll()} over the catalog (minutes at 58k+
-     * over Atlas). Search degrades gracefully to non-fuzzy until the index lands
-     * (empty index → {@link #topK} returns nothing). Mirrors
-     * {@link com.damKemon.dam.kemon.service.HotDropsService#rebuildOnStartup}.
-     */
-    @EventListener(ApplicationReadyEvent.class)
-    public void buildOnStartup() {
-        if (!enabled) return;
-        CompletableFuture.runAsync(() -> {
-            try { rebuild(); }
-            catch (Exception e) { log.warn("Trigram initial build failed: {}", e.getMessage()); }
-        });
+    /** Build the lightweight index before Spring reports the application ready. */
+    @Override
+    public void run(ApplicationArguments args) {
+        if (enabled) rebuild();
     }
 
     /** Index refresh. Every 6h by default: the catalog only changes on the nightly
@@ -78,28 +72,33 @@ public class TrigramSearchIndex {
     }
 
     /** Public entry point. Safe to call from admin endpoints after a reindex. */
-    public void rebuild() {
+    public synchronized void rebuild() {
         long t0 = System.nanoTime();
         TrigramIndex next = new TrigramIndex();
-        int n = 0;
         try {
-            for (Product p : productRepository.findAll()) {
+            List<Product> rows = productRepository.findAllSearchDocuments();
+            for (Product p : rows) {
                 if (p.getId() == null || p.getName() == null) continue;
-                // Index name + brand tokens so "apple iphone" still hits "iPhone 15 Pro"
                 String indexable = p.getName();
                 if (p.getBrands() != null && !p.getBrands().isEmpty()) {
                     indexable = indexable + " " + String.join(" ", p.getBrands());
                 }
-                next.add(p.getId(), indexable, p);
-                n++;
+                next.add(p.getId(), indexable, p.getId());
             }
-        } catch (DataAccessException e) {
+            if (next.size() == 0 && (!rows.isEmpty() || productRepository.count() > 0)) {
+                throw new IllegalStateException("catalog is non-empty but trigram index is empty");
+            }
+        } catch (RuntimeException e) {
+            lastFailure = e.getClass().getSimpleName();
             log.warn("Trigram rebuild aborted, keeping previous index: {}", e.getMessage());
             return;
         }
         indexRef.set(next);
+        ready = true;
+        lastSuccess = Instant.now();
+        lastFailure = null;
         long ms = (System.nanoTime() - t0) / 1_000_000;
-        log.info("Trigram index rebuilt — {} products in {} ms", n, ms);
+        log.info("Trigram index rebuilt — {} products in {} ms", next.size(), ms);
     }
 
     /** Top-K fuzzy matches above the given threshold, ranked by trigram-Jaccard. */
@@ -116,4 +115,16 @@ public class TrigramSearchIndex {
     public int size() { return indexRef.get().size(); }
 
     public boolean isEnabled() { return enabled; }
+
+    public boolean isReady() { return !enabled || ready; }
+
+    public Map<String, Object> status() {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("enabled", enabled);
+        out.put("ready", isReady());
+        out.put("size", size());
+        if (lastSuccess != null) out.put("lastSuccess", lastSuccess.toString());
+        if (lastFailure != null) out.put("lastFailure", lastFailure);
+        return out;
+    }
 }

@@ -64,6 +64,10 @@ public interface ProductRepository extends MongoRepository<Product, String> {
     @Query(value = "{}", fields = "{ 'name' : 1 }")
     List<NameView> findAllNameViews();
 
+    /** Lightweight search-index projection; never load per-shop price arrays. */
+    @Query(value = "{}", fields = "{ '_id' : 1, 'name' : 1, 'brands' : 1 }")
+    List<Product> findAllSearchDocuments();
+
     /**
      * Known products in the given categories that still carry fewer than
      * {@code maxSellers} offers — the catalog rows the {@link com.damKemon.dam.kemon.indexer.SellerDepthHarvester}

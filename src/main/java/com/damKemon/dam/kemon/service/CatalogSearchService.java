@@ -17,7 +17,9 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -199,6 +201,10 @@ public class CatalogSearchService {
     )
     public SearchResponse search(String query, int page, int size, boolean includeAccessories,
                                  Map<String, String> specFilters) {
+        if (!trigram.isReady()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Search is temporarily unavailable");
+        }
         final int pageIdx = Math.max(0, page);
         final int pageLen = size <= 0 ? pageSize : Math.min(size, maxPageSize);
         String bengaliFixed = expander.normalizeBengali(query == null ? "" : query);
@@ -445,12 +451,10 @@ public class CatalogSearchService {
 
         if (dedup.size() < limit && trigram.isEnabled()) {
             List<TrigramIndex.Hit> fuzzy = trigram.topK(prefix, limit * 2, TRIGRAM_MIN);
-            for (TrigramIndex.Hit h : fuzzy) {
-                if (h.payload() instanceof Product p) {
-                    if (shopVisibility.fullyHidden(p)) continue;
-                    addSuggestion(dedup, p);
-                    if (dedup.size() >= limit) break;
-                }
+            for (Product p : loadFuzzyProducts(fuzzy)) {
+                if (shopVisibility.fullyHidden(p)) continue;
+                addSuggestion(dedup, p);
+                if (dedup.size() >= limit) break;
             }
         }
         return new ArrayList<>(dedup.values());
@@ -489,11 +493,11 @@ public class CatalogSearchService {
         // signal that lets a short typo like "labtop" pull in "…VivoBook…Laptop",
         // whose Jaccard is far below TRIGRAM_MIN. The gate downstream then keeps only
         // the ones whose distinctive word truly fuzzy-matches, so this stays precise.
-        for (TrigramIndex.Hit h : fuzzy) {
-            if ((h.score() >= TRIGRAM_MIN || h.coverage() >= COVER_MIN)
-                    && h.payload() instanceof Product p && p.getId() != null) {
-                merged.putIfAbsent(p.getId(), p);
-            }
+        List<TrigramIndex.Hit> qualifying = fuzzy.stream()
+                .filter(h -> h.score() >= TRIGRAM_MIN || h.coverage() >= COVER_MIN)
+                .toList();
+        for (Product p : loadFuzzyProducts(qualifying)) {
+            if (p.getId() != null) merged.putIfAbsent(p.getId(), p);
         }
 
         // Mongo $text (uses the name/description text index — NOT a collection scan).
@@ -515,6 +519,21 @@ public class CatalogSearchService {
         // Recall is trigram + $text only now, matching what /suggest already proved
         // fast and accurate in prod.
         return new ArrayList<>(merged.values());
+    }
+
+    private List<Product> loadFuzzyProducts(List<TrigramIndex.Hit> hits) {
+        List<String> ids = hits.stream().map(TrigramIndex.Hit::id).distinct().toList();
+        if (ids.isEmpty()) return List.of();
+        Map<String, Product> byId = new LinkedHashMap<>();
+        for (Product p : productRepository.findAllById(ids)) {
+            if (p.getId() != null) byId.put(p.getId(), p);
+        }
+        List<Product> out = new ArrayList<>(ids.size());
+        for (String id : ids) {
+            Product p = byId.get(id);
+            if (p != null) out.add(p);
+        }
+        return out;
     }
 
     private Product pickSponsor(QueryIntent intent) {

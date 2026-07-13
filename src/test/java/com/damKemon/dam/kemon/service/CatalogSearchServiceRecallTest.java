@@ -65,6 +65,7 @@ class CatalogSearchServiceRecallTest {
                 new LinkedHashSet<>((Collection<String>) i.getArgument(0)));
 
         when(trigram.isEnabled()).thenReturn(false);
+        when(trigram.isReady()).thenReturn(true);
         when(atlas.isEnabled()).thenReturn(false);
 
         CatalogSearchService svc = new CatalogSearchService(repo, classifier, expander, trigram, atlas,
