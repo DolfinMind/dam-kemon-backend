@@ -179,13 +179,12 @@ admin:
   api-key: ${ADMIN_API_KEY:}
 
 # ───── Remote Python crawler control ─────
-# Admin browser -> this backend -> public HTTPS control API. The shared token
-# stays server-side. Keep disabled until URL + the same 32+ char token used on
-# the crawler droplet are configured.
+# Admin browser -> this backend -> crawler droplet. The token stays server-side;
+# reuse the existing admin key until a dedicated token is configured.
 crawler-control:
-  enabled: ${CRAWLER_CONTROL_ENABLED:false}
-  url: ${CRAWLER_CONTROL_URL:}
-  token: ${CRAWLER_CONTROL_TOKEN:}
+  enabled: ${CRAWLER_CONTROL_ENABLED:true}
+  url: ${CRAWLER_CONTROL_URL:http://188.166.224.53:8090}
+  token: ${CRAWLER_CONTROL_TOKEN:${ADMIN_API_KEY:}}
   timeout: ${CRAWLER_CONTROL_TIMEOUT:5s}
 
 # ───── Full-funnel analytics / request logging ─────
