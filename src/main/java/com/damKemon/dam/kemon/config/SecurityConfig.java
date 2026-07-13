@@ -28,7 +28,9 @@ import java.util.List;
  * Public endpoints stay open. {@code /api/admin/**} is gated behind either
  * a valid admin JWT (issued by the magic-link flow to users with role
  * {@code admin}) OR the legacy {@code X-Admin-Key} header. Either is
- * accepted so existing curl-based operator scripts continue to work.
+ * accepted so existing curl-based operator scripts continue to work. The
+ * catalog ingest route also accepts a direct, unforwarded loopback request
+ * from the colocated crawler.
  */
 @Configuration
 @EnableWebSecurity
@@ -153,6 +155,7 @@ public class SecurityConfig {
      * Gate every request to /api/admin/** behind either:
      *   - a valid {@code X-Admin-Key} header matching {@code ADMIN_API_KEY}, OR
      *   - an admin-role JWT (set on the request by {@link JwtAuthFilter}).
+     * The exact catalog ingest path additionally permits direct loopback calls.
      *
      * No-op when {@code adminApiKey} is blank AND no JWT is present (dev mode).
      */
@@ -173,6 +176,11 @@ public class SecurityConfig {
             boolean gated = path != null
                     && (path.startsWith("/api/admin/") || path.startsWith("/api/scrape"));
             if (!gated) {
+                chain.doFilter(req, res);
+                return;
+            }
+
+            if (isDirectLoopbackIngest(req, path)) {
                 chain.doFilter(req, res);
                 return;
             }
@@ -199,6 +207,18 @@ public class SecurityConfig {
 
             // Dev mode: no key set, no JWT — let it through but it's logged on boot.
             chain.doFilter(req, res);
+        }
+
+        private static boolean isDirectLoopbackIngest(HttpServletRequest req, String path) {
+            String remote = req.getRemoteAddr();
+            boolean loopback = "127.0.0.1".equals(remote)
+                    || "::1".equals(remote)
+                    || "0:0:0:0:0:0:0:1".equals(remote);
+            return "/api/admin/catalog/ingest".equals(path)
+                    && loopback
+                    && req.getHeader("Forwarded") == null
+                    && req.getHeader("X-Forwarded-For") == null
+                    && req.getHeader("X-Real-IP") == null;
         }
 
         private static boolean constantTimeEquals(String a, String b) {
