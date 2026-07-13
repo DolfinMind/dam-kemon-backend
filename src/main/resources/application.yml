@@ -184,7 +184,7 @@ admin:
 crawler-control:
   enabled: ${CRAWLER_CONTROL_ENABLED:true}
   url: ${CRAWLER_CONTROL_URL:http://188.166.224.53:8090}
-  token: ${CRAWLER_CONTROL_TOKEN:${ADMIN_API_KEY:}}
+  token: ${ADMIN_API_KEY:}
   timeout: ${CRAWLER_CONTROL_TIMEOUT:5s}
 
 # ───── Full-funnel analytics / request logging ─────
