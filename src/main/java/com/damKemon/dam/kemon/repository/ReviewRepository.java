@@ -2,6 +2,7 @@ package com.damKemon.dam.kemon.repository;
 
 import com.damKemon.dam.kemon.model.Review;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -31,4 +32,8 @@ public interface ReviewRepository extends MongoRepository<Review, String> {
 
     /** Moderation queue — flagged/hidden reviews for the admin view. */
     List<Review> findByStatusOrderByReviewDateDesc(String status);
+
+    /** Real reviews only; Mongo's null match includes legacy rows with no field. */
+    @Query(value = "{ 'seedBatch': null }", count = true)
+    long countPublicReviews();
 }

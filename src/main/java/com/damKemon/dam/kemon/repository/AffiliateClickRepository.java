@@ -4,12 +4,14 @@ import com.damKemon.dam.kemon.model.AffiliateClick;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.time.Instant;
+import java.util.List;
 
 public interface AffiliateClickRepository extends MongoRepository<AffiliateClick, String> {
     long countBySiteSlugAndTsAfter(String siteSlug, Instant after);
     long countByProductIdAndTsAfter(String productId, Instant after);
     /** All outbound clicks since {@code after} — powers "saved this month". */
     long countByTsAfter(Instant after);
+    List<AffiliateClick> findByTsAfter(Instant after);
 
     /** Verified-buyer check: did this browser click out to buy this product? */
     boolean existsByAnonIdAndProductId(String anonId, String productId);

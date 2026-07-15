@@ -22,7 +22,6 @@ public class CrawlerControlService {
 
     private static final Logger log = LoggerFactory.getLogger(CrawlerControlService.class);
     private static final Set<String> ACTIONS = Set.of("start", "stop", "restart");
-    private static final String CRAWLER_URL = "http://188.166.224.53:8090";
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
 
     private final URI baseUrl;
@@ -33,8 +32,9 @@ public class CrawlerControlService {
     public record RemoteResponse(int status, String body) {}
 
     @Autowired
-    public CrawlerControlService(@Value("${admin.api-key:}") String token) {
-        this(CRAWLER_URL, token, REQUEST_TIMEOUT);
+    public CrawlerControlService(@Value("${crawler.control-url:}") String baseUrl,
+                                 @Value("${crawler.control-token:}") String token) {
+        this(baseUrl, token, REQUEST_TIMEOUT);
     }
 
     CrawlerControlService(String baseUrl, String token, Duration timeout) {

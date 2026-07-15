@@ -27,11 +27,15 @@ class SharePreviewControllerTest {
     @Test
     void rendersEscapedOgTagsWithPriceAndImage() {
         String html = SharePreviewController.render(product(), BASE);
-        assertTrue(html.contains("og:title\" content=\"Samsung Galaxy S24 Ultra 12/256GB &quot;Titanium&quot; &amp; more\""));
+        assertTrue(html.contains("og:title\" content=\"Samsung Galaxy S24 Ultra 12/256GB &quot;Titanium&quot; &amp; more"));
         assertTrue(html.contains("og:image\" content=\"https://shop.example/img/s24.jpg\""));
         assertTrue(html.contains("৳124,999"));
         assertTrue(html.contains("from 2 sellers"));
         assertTrue(html.contains("og:url\" content=\"" + BASE + "/product/samsung-galaxy-s24-ultra\""));
+        assertTrue(html.contains("rel=\"canonical\" href=\"" + BASE + "/product/samsung-galaxy-s24-ultra\""));
+        assertTrue(html.contains("\"@type\":\"Product\""));
+        assertTrue(html.contains("\"lowPrice\":124999"));
+        assertFalse(html.contains("http-equiv=\"refresh\""));
         assertFalse(html.contains("Titanium\" &"), "raw quote must not survive into markup");
     }
 
@@ -51,7 +55,16 @@ class SharePreviewControllerTest {
         Product p = product();
         p.setLowestPrice(null);
         String html = SharePreviewController.render(p, BASE);
-        assertTrue(html.contains("og:description\" content=\"Compare prices from shops across Bangladesh"));
-        assertFalse(html.contains("৳"));
+        assertTrue(html.contains("og:description\" content=\"Compare prices from shops across Bangladesh and pick the best deal.\""));
+        assertFalse(html.contains("\"offers\":"));
+    }
+
+    @Test
+    void removesScrapedPriceSuffixFromTitle() {
+        Product p = product();
+        p.setName("Samsung Galaxy S24 Price in Bangladesh 2026");
+        String html = SharePreviewController.render(p, BASE);
+        assertTrue(html.contains("<title>Samsung Galaxy S24 Price in Bangladesh — from ৳124,999 | Damkemon</title>"));
+        assertFalse(html.contains("Price in Bangladesh 2026 Price in Bangladesh"));
     }
 }

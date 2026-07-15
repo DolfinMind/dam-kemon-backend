@@ -7,6 +7,7 @@ import com.damKemon.dam.kemon.repository.AffiliateClickRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.service.AffiliateService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Cookie;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -73,7 +74,7 @@ public class AffiliateController {
                     .category(p.getCategory())
                     .productName(p.getName())
                     .userId(asString(req.getAttribute("authUserId")))
-                    .anonId(req.getHeader("X-Anon-Id"))
+                    .anonId(anonIdFrom(req.getCookies(), req.getHeader("X-Anon-Id")))
                     .clickId(clickId)
                     .fromQuery(fromQuery)
                     .referer(req.getHeader("Referer"))
@@ -89,6 +90,7 @@ public class AffiliateController {
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, outbound)
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .header("X-Robots-Tag", "noindex, nofollow")
                 .build();
     }
 
@@ -121,6 +123,22 @@ public class AffiliateController {
     }
 
     private static String asString(Object v) { return v == null ? null : v.toString(); }
+
+    static String anonIdFrom(Cookie[] cookies, String headerValue) {
+        String value = null;
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("dk_anon_id".equals(cookie.getName())) {
+                    value = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        if (value == null || value.isBlank()) value = headerValue;
+        if (value == null) return null;
+        value = value.trim();
+        return value.length() > 64 ? value.substring(0, 64) : value;
+    }
 
     private static String clientIp(HttpServletRequest req) {
         String fwd = req.getHeader("X-Forwarded-For");

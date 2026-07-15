@@ -33,6 +33,12 @@ class QueryClassifierFocusTest {
     }
 
     @Test
+    void applianceObjectOverridesPhoneBrandAffinity() {
+        assertEquals(ProductCategory.APPLIANCE,
+                classifier.classify("Xiaomi Smart Air Purifier 4 Compact").primaryCategory());
+    }
+
+    @Test
     void sameBrandAudioStaysInScope() {
         ProductCategory cat = classifier
                 .classify("Oraimo FreePods 4 True Wireless Earbuds")

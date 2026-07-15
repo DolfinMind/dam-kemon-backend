@@ -2,7 +2,6 @@ package com.damKemon.dam.kemon.indexer;
 
 import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.repository.ProductRepository;
-import com.damKemon.dam.kemon.service.ShopApprovalService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,8 +20,8 @@ import org.springframework.stereotype.Component;
  *
  * <p>On the API ("web") node this is a no-op: the API never crawls.
  *
- * <p>Order mirrors the old in-JVM nightly: discover new shops, auto-approve a
- * slice, full crawl, retry the failures, consolidate duplicate rows, then the
+ * <p>Order mirrors the old in-JVM nightly: discover and probe new shops, full
+ * crawl, retry the failures, consolidate duplicate rows, then the
  * cross-shop seller-depth fanout. Each stage is isolated so one failure can't
  * abort the rest. The price-history snapshot + hot-drops rebuild deliberately
  * stay on the web node — that's where their cron + in-memory state live.
@@ -33,16 +32,12 @@ public class IndexerRunner implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(IndexerRunner.class);
 
     private final AppRole appRole;
-    private final ShopDiscoveryService discovery;
-    private final ShopApprovalService approval;
+    private final ShopLifecycleScheduler shopLifecycle;
     private final BulkIndexer indexer;
     private final CatalogRemergeService remerge;
     private final SellerDepthHarvester sellerDepth;
     private final ProductRepository products;
     private final ConfigurableApplicationContext ctx;
-
-    @Value("${app.worker.approve-per-run:50}")
-    private int approvePerRun;
 
     /** Exit the JVM when the pipeline finishes (the oneshot-timer model). Set
      *  false to keep a long-lived worker alive (e.g. for local debugging). */
@@ -50,16 +45,14 @@ public class IndexerRunner implements ApplicationRunner {
     private boolean exitAfterRun;
 
     public IndexerRunner(AppRole appRole,
-                         ShopDiscoveryService discovery,
-                         ShopApprovalService approval,
+                         ShopLifecycleScheduler shopLifecycle,
                          BulkIndexer indexer,
                          CatalogRemergeService remerge,
                          SellerDepthHarvester sellerDepth,
                          ProductRepository products,
                          ConfigurableApplicationContext ctx) {
         this.appRole = appRole;
-        this.discovery = discovery;
-        this.approval = approval;
+        this.shopLifecycle = shopLifecycle;
         this.indexer = indexer;
         this.remerge = remerge;
         this.sellerDepth = sellerDepth;
@@ -75,8 +68,7 @@ public class IndexerRunner implements ApplicationRunner {
         long before = safeCount();
         log.info("Worker pipeline starting — catalog at {} products", before);
 
-        stage("shop-discovery",  discovery::discover);
-        stage("auto-approve",    () -> approval.approvePending(approvePerRun));
+        stage("shop-lifecycle",  shopLifecycle::runOnce);
         stage("full-index",      indexer::runAll);
         stage("retry-pass",      indexer::runRetry);
         stage("catalog-remerge", () -> remerge.remerge(false));

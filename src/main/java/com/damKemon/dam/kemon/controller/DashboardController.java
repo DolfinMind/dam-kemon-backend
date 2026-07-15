@@ -59,7 +59,7 @@ public class DashboardController {
         // scan. price_history has millions of rows, so count() there was 7-11s on
         // every cache miss (Redis is best-effort, so misses are common).
         long totalProducts    = safe(() -> mongoTemplate.estimatedCount(Product.class));
-        long totalReviews     = safe(() -> mongoTemplate.estimatedCount(com.damKemon.dam.kemon.model.Review.class));
+        long totalReviews     = safe(reviewRepository::countPublicReviews);
         long totalPricePoints = safe(() -> mongoTemplate.estimatedCount(com.damKemon.dam.kemon.model.PriceHistory.class));
 
         List<String> recentSearches = safeList(() -> scrapingJobRepository.findTop10ByOrderByStartedAtDesc().stream()

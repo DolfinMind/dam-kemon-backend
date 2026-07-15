@@ -117,6 +117,10 @@ public class BulkIndexer {
     @Value("${indexer.run-budget-minutes:25}")
     private long runBudgetMinutes;
 
+    /** One broken/slow shop must not consume the entire rotating run budget. */
+    @Value("${indexer.max-minutes-per-shop:5}")
+    private long maxMinutesPerShop;
+
     /** Breadth mode: read rendered DOM cards FIRST for shops that have never
      *  produced (instead of grinding a dead sitemap), to get the long tail of
      *  0-product shops showing fast. Off by default (prod's small box can't
@@ -477,6 +481,8 @@ public class BulkIndexer {
                           MinHashLSH lsh,
                           AtomicInteger inserted,
                           AtomicInteger merged) {
+        final long shopDeadline = System.currentTimeMillis()
+                + Math.max(1, maxMinutesPerShop) * 60_000L;
         // API-harvested shops (Chaldal, Daraz) skip URL discovery + per-page
         // extraction entirely — their catalog comes from a JSON endpoint. Isolated
         // to shops a harvester claims, so every other shop's path is unchanged.
@@ -484,6 +490,7 @@ public class BulkIndexer {
             if (h.supports(shop)) {
                 int got = harvestApi(shop, h.harvest(shop), lsh, inserted, merged);
                 if (got > 0) return got;
+                if (System.currentTimeMillis() >= shopDeadline) return 0;
                 break; // harvester claimed the shop but got nothing → fall through to the normal pipeline
             }
         }
@@ -507,12 +514,14 @@ public class BulkIndexer {
                 log.debug("Indexer: DOM-card (first) failed for '{}': {}", shop.getSlug(), e.getMessage());
             }
         }
+        if (System.currentTimeMillis() >= shopDeadline) return 0;
 
         boolean js = Boolean.TRUE.equals(shop.getRequiresJs());
         List<String> urls = new ArrayList<>();
         if (shop.getSitemapUrl() != null && !shop.getSitemapUrl().isBlank()) {
             urls = sitemapCrawler.crawl(shop.getSitemapUrl());
         }
+        if (System.currentTimeMillis() >= shopDeadline) return 0;
         // Fallback 0: auto-discover the sitemap (robots.txt + common paths) when
         // the configured one is missing or came back empty (Yoast/WP/Magento
         // shops that 404 on /sitemap.xml but expose /sitemap_index.xml etc.).
@@ -522,6 +531,7 @@ public class BulkIndexer {
                 log.info("Indexer: shop '{}' sitemap auto-discovered ({} URLs)", shop.getSlug(), urls.size());
             }
         }
+        if (System.currentTimeMillis() >= shopDeadline) return 0;
         // Fallback 1: crawl homepage + category pages for shops without a
         // useful sitemap (BD-Shop, Pickaboo, Othoba, Walton, etc).
         // For SPA shops, use Playwright to render the homepage.
@@ -560,12 +570,15 @@ public class BulkIndexer {
         List<java.util.concurrent.CompletableFuture<Void>> futures = new ArrayList<>(total);
         for (String url : targetUrls) {
             futures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
+                long remaining = shopDeadline - System.currentTimeMillis();
+                if (remaining <= 0) return;
                 Semaphore lock = hostLocks.computeIfAbsent(hostOf(url),
                         h -> new Semaphore(perHostParallelism));
-                if (!lock.tryAcquire()) {
-                    try { lock.acquire(); } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt(); return;
-                    }
+                try {
+                    if (!lock.tryAcquire(remaining, TimeUnit.MILLISECONDS)) return;
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
                 }
                 try {
                     ProductExtractor extractor = extractors.pickForShop(url, shop);
@@ -592,16 +605,24 @@ public class BulkIndexer {
         try {
             // Bound the total wait to a sensible upper limit so a misbehaving
             // shop can't stall the entire nightly run.
-            long maxWaitMs = Math.min(perExtractTimeoutMs * (long) total, 30L * 60_000L);
+            long remainingMs = Math.max(1, shopDeadline - System.currentTimeMillis());
+            long maxWaitMs = Math.min(Math.min(perExtractTimeoutMs * (long) total, 30L * 60_000L), remainingMs);
             java.util.concurrent.CompletableFuture.allOf(futures.toArray(new java.util.concurrent.CompletableFuture[0]))
                     .get(maxWaitMs, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             log.warn("Indexer: shop '{}' partial ({}): {}", shop.getSlug(), e.getClass().getSimpleName(), e.getMessage());
+            futures.forEach(f -> f.cancel(true));
+        }
+
+        boolean shopTimedOut = System.currentTimeMillis() >= shopDeadline;
+        if (shopTimedOut) {
+            log.warn("Indexer: shop '{}' hit its {}-minute deadline; moving to the next shop",
+                    shop.getSlug(), maxMinutesPerShop);
         }
 
         // Self-healing for a 0-yield shop — but spend the per-run browser budget
         // so a nightly pass can't queue dozens of serial Playwright renders.
-        if (localOk.get() == 0) {
+        if (localOk.get() == 0 && !shopTimedOut) {
             boolean browserBudget = jsRenderBudget.getAndDecrement() > 0;
 
             // Magical last resort: render the shop, auto-discover the JSON product
@@ -755,6 +776,13 @@ public class BulkIndexer {
                                                 AtomicInteger inserted,
                                                 AtomicInteger merged,
                                                 boolean strict) {
+        var intent = classifier.classify(sp.getName());
+        // Apply the focus gate before URL/match-key merges too. Previously an
+        // out-of-scope appliance could keep refreshing a stale product that had
+        // once been mislabeled as a smartphone.
+        if (categoryFocus.isEnabled() && !categoryFocus.isAllowed(intent.primaryCategory())) {
+            return false;
+        }
         SitePrice price = SitePrice.builder()
                 .siteName(shop.getName())
                 .siteSlug(shop.getSlug())
@@ -821,13 +849,6 @@ public class BulkIndexer {
         }
 
         // 4. Brand-new product
-        var intent = classifier.classify(sp.getName());
-        // Category focus: Damkemon indexes computing + mobile only. An out-of-scope
-        // item (TV, grocery, fashion…) is dropped here so it never enters the
-        // catalog. Merges into EXISTING in-scope products above are unaffected.
-        if (categoryFocus.isEnabled() && !categoryFocus.isAllowed(intent.primaryCategory())) {
-            return false;
-        }
         Product p = Product.builder()
                 .name(sp.getName())
                 .slug(slugify(sp.getName()))

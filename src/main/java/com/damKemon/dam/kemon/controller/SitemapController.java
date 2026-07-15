@@ -1,6 +1,7 @@
 package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.repository.ProductRepository;
+import com.damKemon.dam.kemon.service.CategoryFocusService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -13,6 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Serves {@code /sitemap.xml} and {@code /robots.txt} at the API root so a
@@ -31,24 +35,28 @@ public class SitemapController {
     private static final int CHUNK = 10_000;
 
     private final ProductRepository productRepository;
+    private final CategoryFocusService categoryFocus;
 
     // Default to the public domain, NOT localhost: prod never set AUTH_WEB_URL,
     // which shipped a sitemap full of http://localhost:5173 URLs to Google.
     @Value("${auth.web-url:https://damkemon.com}")
     private String webUrl;
 
-    public SitemapController(ProductRepository productRepository) {
+    public SitemapController(ProductRepository productRepository, CategoryFocusService categoryFocus) {
         this.productRepository = productRepository;
+        this.categoryFocus = categoryFocus;
     }
 
-    @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
+    @GetMapping(value = {"/sitemap.xml", "/api/seo/sitemap.xml"}, produces = MediaType.APPLICATION_XML_VALUE)
     public ResponseEntity<String> sitemap(@RequestParam(value = "page", required = false) Integer page) {
         String base = webUrl.replaceAll("/$", "");
         String today = LocalDate.now().format(DateTimeFormatter.ISO_DATE);
 
         long total = 0;
         try {
-            total = productRepository.count();
+            total = categoryFocus.isEnabled()
+                    ? productRepository.countByCategoryIn(categoryFocus.allowedLabels())
+                    : productRepository.count();
         } catch (DataAccessException ignored) { /* index with just page 0 is fine */ }
         int pages = Math.max(1, (int) ((total + CHUNK - 1) / CHUNK));
 
@@ -75,23 +83,30 @@ public class SitemapController {
 
         if (page == 0) {
             appendUrl(sb, base + "/", today, "daily", "1.0");
+            appendUrl(sb, base + "/browse", today, "daily", "0.8");
+            for (String category : List.of(
+                    "smartphones", "laptops", "desktops & pc", "monitors",
+                    "headphones & audio", "accessories")) {
+                appendUrl(sb, base + "/category/" + urlPath(category), today, "daily", "0.8");
+            }
             appendUrl(sb, base + "/guides", today, "weekly", "0.8");
             appendUrl(sb, base + "/guides/why-one-search-beats-ten-browser-tabs", today, "weekly", "0.6");
-            appendUrl(sb, base + "/guides/buying-from-unknown-seller-use-protect", today, "weekly", "0.6");
+            appendUrl(sb, base + "/guides/buying-from-unknown-seller-check-risk", today, "weekly", "0.6");
             appendUrl(sb, base + "/guides/how-trust-score-spots-fake-low-prices", today, "weekly", "0.6");
-            appendUrl(sb, base + "/sellers", today, "weekly", "0.5");
             appendUrl(sb, base + "/trending", today, "daily", "0.6");
             appendUrl(sb, base + "/drops", today, "daily", "0.6");
-            appendUrl(sb, base + "/compare", today, "monthly", "0.3");
-            appendUrl(sb, base + "/submit-shop", today, "monthly", "0.3");
         }
 
         try {
             // id+slug projection, one CHUNK per request — never loads the whole
             // products collection (with its prices arrays) into heap. Sorted by
             // id so pagination is stable across chunk fetches.
-            for (ProductRepository.SlugView p : productRepository.findAllSlugViews(
-                    PageRequest.of(page, CHUNK, Sort.by("id")))) {
+            Set<String> categories = categoryFocus.allowedLabels();
+            List<ProductRepository.SlugView> products = categoryFocus.isEnabled()
+                    ? productRepository.findSlugViewsByCategoryIn(
+                            categories, PageRequest.of(page, CHUNK, Sort.by("id")))
+                    : productRepository.findAllSlugViews(PageRequest.of(page, CHUNK, Sort.by("id")));
+            for (ProductRepository.SlugView p : products) {
                 String slug = (p.getSlug() == null || p.getSlug().isBlank()) ? p.getId() : p.getSlug();
                 if (slug == null) continue;
                 appendUrl(sb, base + "/product/" + escape(slug), today, "daily", "0.7");
@@ -120,6 +135,9 @@ public class SitemapController {
         sb.append("User-agent: *\n");
         sb.append("Allow: /\n");
         sb.append("Disallow: /admin\n");
+        sb.append("Disallow: /account\n");
+        sb.append("Allow: /api/r/\n");
+        sb.append("Disallow: /api/\n");
         sb.append("Disallow: /api/admin/\n");
         sb.append("\n");
         sb.append("Sitemap: ").append(base).append("/sitemap.xml\n");
@@ -141,5 +159,9 @@ public class SitemapController {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+    }
+
+    private static String urlPath(String value) {
+        return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 }

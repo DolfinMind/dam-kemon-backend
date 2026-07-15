@@ -1,8 +1,10 @@
 package com.damKemon.dam.kemon.service;
 
 import com.damKemon.dam.kemon.model.AnalyticsEvent;
+import com.damKemon.dam.kemon.model.AffiliateClick;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.repository.AnalyticsEventRepository;
+import com.damKemon.dam.kemon.repository.AffiliateClickRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
@@ -30,10 +32,13 @@ import java.util.Set;
 public class OperatorStatsService {
 
     private final AnalyticsEventRepository events;
+    private final AffiliateClickRepository affiliateClicks;
     private final ProductRepository products;
 
-    public OperatorStatsService(AnalyticsEventRepository events, ProductRepository products) {
+    public OperatorStatsService(AnalyticsEventRepository events, AffiliateClickRepository affiliateClicks,
+                                ProductRepository products) {
         this.events = events;
+        this.affiliateClicks = affiliateClicks;
         this.products = products;
     }
 
@@ -89,8 +94,8 @@ public class OperatorStatsService {
 
             // Map productId -> {set of siteSlugs} so we can attribute views
             // to every shop that listed the product.
-            for (AnalyticsEvent e : events.findByTypeAndTsAfter("click", week)) {
-                String slug = e.getSellerSlug();
+            for (AffiliateClick click : affiliateClicks.findByTsAfter(week)) {
+                String slug = click.getSiteSlug();
                 if (slug == null) continue;
                 per.computeIfAbsent(slug, k -> new int[]{0, 0})[0]++;
             }
@@ -200,7 +205,7 @@ public class OperatorStatsService {
         try {
             Instant week = Instant.now().minus(7, ChronoUnit.DAYS);
             Map<String, Integer> views = countBy(events.findByTypeAndTsAfter("view", week), AnalyticsEvent::getProductId);
-            Map<String, Integer> clicks = countBy(events.findByTypeAndTsAfter("click", week), AnalyticsEvent::getProductId);
+            Map<String, Integer> clicks = countAffiliateProducts(affiliateClicks.findByTsAfter(week));
             out.put("topViewed", hydrate(views, limit));
             out.put("topClicked", hydrate(clicks, limit));
         } catch (DataAccessException e) {
@@ -237,6 +242,14 @@ public class OperatorStatsService {
             String k = key.apply(e);
             if (k == null) continue;
             out.merge(k, 1, Integer::sum);
+        }
+        return out;
+    }
+
+    private static Map<String, Integer> countAffiliateProducts(List<AffiliateClick> clicks) {
+        Map<String, Integer> out = new LinkedHashMap<>();
+        for (AffiliateClick click : clicks) {
+            if (click.getProductId() != null) out.merge(click.getProductId(), 1, Integer::sum);
         }
         return out;
     }

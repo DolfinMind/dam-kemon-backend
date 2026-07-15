@@ -71,9 +71,13 @@ public class CatalogRemergeService {
     public void scheduled() {
         if (appRole.isWeb()) return;
         if (!scheduledEnabled) return;
-        log.info("Remerge: scheduled nightly consolidation firing");
+        log.info("Remerge: scheduled nightly catalog repair firing");
         try { remerge(false); }
-        catch (Exception e) { log.error("Remerge: scheduled run crashed", e); }
+        catch (Exception e) { log.error("Remerge: scheduled consolidation crashed", e); }
+        // Consolidation can expose historic cross-product offers. Repair them
+        // every night instead of leaving the existing purge as a manual-only tool.
+        try { purgeMismatchedOffers(false); }
+        catch (Exception e) { log.error("Remerge: scheduled offer purge crashed", e); }
     }
 
     public Map<String, Object> remerge(boolean dryRun) {

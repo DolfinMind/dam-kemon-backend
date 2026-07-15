@@ -2,7 +2,6 @@ package com.damKemon.dam.kemon.indexer;
 
 import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.repository.ProductRepository;
-import com.damKemon.dam.kemon.service.ShopApprovalService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,8 +27,7 @@ public class IndexingScheduler {
 
     private final BulkIndexer indexer;
     private final ProductRepository products;
-    private final ShopDiscoveryService discovery;
-    private final ShopApprovalService approval;
+    private final ShopLifecycleScheduler shopLifecycle;
     private final AppRole appRole;
 
     @Value("${indexer.scheduled:true}")
@@ -37,13 +35,11 @@ public class IndexingScheduler {
 
     public IndexingScheduler(BulkIndexer indexer,
                              ProductRepository products,
-                             ShopDiscoveryService discovery,
-                             ShopApprovalService approval,
+                             ShopLifecycleScheduler shopLifecycle,
                              AppRole appRole) {
         this.indexer = indexer;
         this.products = products;
-        this.discovery = discovery;
-        this.approval = approval;
+        this.shopLifecycle = shopLifecycle;
         this.appRole = appRole;
     }
 
@@ -99,14 +95,6 @@ public class IndexingScheduler {
     /** After this many flat cycles, treat the catalog as plateaued and back off. */
     @Value("${indexer.catchup-max-stagnant:3}")
     private int maxStagnantCycles;
-
-    /** Auto-promote discovered shops to active each pass (skips manual review). */
-    @Value("${indexer.catchup-auto-approve:true}")
-    private boolean autoApprove;
-
-    /** Cap on how many pending shops to approve per pass. */
-    @Value("${indexer.catchup-approve-per-cycle:25}")
-    private int approvePerCycle;
 
     private long lastCount = -1;
     private int stagnantCycles = 0;
@@ -166,23 +154,12 @@ public class IndexingScheduler {
             log.info("Catch-up: {}/{} products — running a full pass.", count, targetProducts);
         }
 
-        // Grow the shop set before crawling: discover candidates, then (if
-        // enabled) auto-approve them so this pass actually indexes new shops.
-        // This is what pushes past the current-shops ceiling toward the target.
+        // Grow the shop set before crawling, but only activate candidates whose
+        // sitemap/homepage probe demonstrates a real product catalog.
         try {
-            discovery.discover();
+            shopLifecycle.runOnce();
         } catch (Exception e) {
-            log.warn("Catch-up: discovery failed: {}", e.getMessage());
-        }
-        if (autoApprove) {
-            try {
-                int approved = approval.approvePending(approvePerCycle);
-                if (approved > 0) {
-                    log.info("Catch-up: auto-approved {} new shop(s) to crawl this pass.", approved);
-                }
-            } catch (Exception e) {
-                log.warn("Catch-up: auto-approve failed: {}", e.getMessage());
-            }
+            log.warn("Catch-up: shop lifecycle failed: {}", e.getMessage());
         }
 
         try {

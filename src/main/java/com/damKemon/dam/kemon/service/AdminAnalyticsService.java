@@ -132,7 +132,7 @@ public class AdminAnalyticsService {
             out.put("searchesToday", mongo.count(query(human(where("type").is("search").and("ts").gte(dayStart))), EVENTS));
             out.put("pageViewsToday", mongo.count(query(human(where("type").is("pageview").and("ts").gte(dayStart))), EVENTS));
             out.put("productViewsToday", mongo.count(query(human(where("type").is("view").and("ts").gte(dayStart))), EVENTS));
-            out.put("clicksToday", mongo.count(query(human(where("type").is("click").and("ts").gte(dayStart))), EVENTS));
+            out.put("clicksToday", mongo.count(query(human(where("ts").gte(dayStart))), CLICKS));
             out.put("visitorsToday", distinctVisitors(EVENTS, human(where("ts").gte(dayStart))));
             out.put("ipsToday", distinctField(REQUESTS, human(where("ts").gte(dayStart)), "ip"));
             out.put("requestsLastHour", mongo.count(query(human(where("ts").gte(hourAgo))), REQUESTS));
