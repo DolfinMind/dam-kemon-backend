@@ -95,9 +95,10 @@ category-focus:
   enabled: ${CATEGORY_FOCUS_ENABLED:true}
   cleanup-cron: ${CATEGORY_FOCUS_CLEANUP_CRON:0 0 6 * * SUN}
   # HEADPHONE = earbuds/headphones/speakers, kept as mobile accessories.
-  # Keep the public catalog tight around computing and mobile categories where
-  # shoppers can compare the same item across several Bangladesh stores.
-  allowed: ${CATEGORY_FOCUS_ALLOWED:SMARTPHONE,LAPTOP,DESKTOP,MONITOR,STORAGE,NETWORKING,PRINTER,HEADPHONE,ACCESSORY}
+  # Widened to the full consumer-electronics set (all model-numbered, so matchKey
+  # stays accurate + merges clean). Generic categories (fashion/grocery/etc.) stay
+  # OUT — their non-model names cause wrong merges.
+  allowed: ${CATEGORY_FOCUS_ALLOWED:SMARTPHONE,TABLET,LAPTOP,DESKTOP,MONITOR,STORAGE,NETWORKING,PRINTER,HEADPHONE,ACCESSORY,CAMERA,SMARTWATCH,GAMING,TV,SECURITY,POWER_BACKUP}
 
 # ───── Nightly catalog re-merge (duplicate-product consolidation) ─────
 # Consolidates near-duplicate product rows so their sellers stack onto one

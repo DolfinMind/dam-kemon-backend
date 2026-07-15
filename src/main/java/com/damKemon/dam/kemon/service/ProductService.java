@@ -349,11 +349,14 @@ public class ProductService {
     private boolean isPubliclyVisible(Product p) {
         if (!categoryFocus.isEnabled()) return true;
         if (!categoryFocus.isAllowedLabel(p.getCategory())) return false;
-        ProductCategory primary = classifier.classify(p.getName()).primaryCategory();
-        if (primary != null && primary != ProductCategory.GENERAL) {
-            if (!categoryFocus.isAllowed(primary)) return false;
+        List<ProductCategory> classified = classifier.classify(p.getName()).getCategories();
+        List<ProductCategory> decisive = classified == null ? List.of() : classified.stream()
+                .filter(c -> c != null && c != ProductCategory.GENERAL)
+                .toList();
+        if (!decisive.isEmpty()) {
+            if (decisive.stream().noneMatch(categoryFocus::isAllowed)) return false;
             String stored = p.getCategory() == null ? "" : p.getCategory().trim();
-            if (!primary.getLabel().equalsIgnoreCase(stored)) return false;
+            if (decisive.stream().noneMatch(c -> c.getLabel().equalsIgnoreCase(stored))) return false;
         }
         if (CatalogSearchService.isAccessoryProduct(p)
                 && ("smartphones".equalsIgnoreCase(p.getCategory())

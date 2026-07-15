@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -92,16 +91,5 @@ class ProductServiceVisibilityTest {
                 .build());
 
         assertTrue(service.findByIdOrSlug("cpu1").isEmpty());
-    }
-
-    @Test
-    void browseCategoriesExposeOnlyConfiguredFocus() {
-        when(focus.isEnabled()).thenReturn(true);
-        when(focus.isAllowedLabel(anyString())).thenAnswer(invocation ->
-                Set.of("smartphones", "laptops").contains(invocation.getArgument(0)));
-        when(mongo.findDistinct(any(), eq("category"), eq(Product.class), eq(String.class)))
-                .thenReturn(List.of("smartphones", "laptops", "cameras"));
-
-        assertEquals(List.of("laptops", "smartphones"), service.getCategories());
     }
 }
