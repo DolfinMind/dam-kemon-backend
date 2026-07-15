@@ -52,6 +52,9 @@ public class QueryClassifier {
      *  → smartphones), never enough to beat a real object word. */
     private static final Set<String> CONTEXT_WORDS = Set.of(
             "galaxy","note","ultra","mobile","mobiles","mobail","audio",
+            // CPU families describe both laptops and standalone desktop parts.
+            // An explicit object word such as "processor" must decide the latter.
+            "core i3","core i5","core i7","ryzen 5","ryzen 7",
             // "android" is an OS, not a form factor — set-top boxes, car players,
             // TV boxes and projectors all say it. Weight 1 still wins for a bare
             // "android" query but never beats a real object word.

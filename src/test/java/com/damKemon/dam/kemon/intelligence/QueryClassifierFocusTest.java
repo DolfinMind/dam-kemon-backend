@@ -77,6 +77,16 @@ class QueryClassifierFocusTest {
     }
 
     @Test
+    void standaloneRyzenProcessorIsDesktopNotLaptop() {
+        assertEquals(ProductCategory.DESKTOP, classifier
+                .classify("AMD Ryzen 7 9800X3D 8 Cores 16 Threads Gaming Processor")
+                .primaryCategory());
+        assertEquals(ProductCategory.DESKTOP, classifier
+                .classify("AMD Ryzen 5 3600 Desktop Processor")
+                .primaryCategory());
+    }
+
+    @Test
     void plainQueriesStillClassifyAsPhones() {
         // The context-word demotion must not break the two most common searches.
         assertEquals(ProductCategory.SMARTPHONE,
