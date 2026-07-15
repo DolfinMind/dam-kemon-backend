@@ -2,6 +2,8 @@ package com.damKemon.dam.kemon.service;
 
 import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.intelligence.QueryClassifier;
+import com.damKemon.dam.kemon.intelligence.ProductCategory;
+import com.damKemon.dam.kemon.intelligence.QueryIntent;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.SitePrice;
 import com.damKemon.dam.kemon.repository.AffiliateClickRepository;
@@ -71,5 +73,23 @@ class ProductServiceVisibilityTest {
         assertTrue(service.getAllProducts(null, page).isEmpty());
         verify(products).findByCategoryIn(allowed, page);
         verify(products, never()).findAll(page);
+    }
+
+    @Test
+    void inferredDesktopProcessorCannotLeakIntoLaptopCategory() {
+        Product processor = new Product();
+        processor.setId("cpu1");
+        processor.setName("AMD Ryzen 7 9800X3D 8 Cores 16 Threads Gaming Processor");
+        processor.setCategory("laptops");
+        processor.setPrices(List.of(SitePrice.builder().price(52_000.0).build()));
+        when(products.findById("cpu1")).thenReturn(Optional.of(processor));
+        when(focus.isEnabled()).thenReturn(true);
+        when(focus.isAllowedLabel("laptops")).thenReturn(true);
+        when(focus.isAllowed(ProductCategory.DESKTOP)).thenReturn(true);
+        when(classifier.classify(processor.getName())).thenReturn(QueryIntent.builder()
+                .categories(List.of(ProductCategory.DESKTOP))
+                .build());
+
+        assertTrue(service.findByIdOrSlug("cpu1").isEmpty());
     }
 }

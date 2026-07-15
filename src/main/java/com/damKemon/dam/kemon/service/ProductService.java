@@ -206,6 +206,7 @@ public class ProductService {
             return cats.stream()
                     .filter(c -> c != null && !c.isBlank())
                     .map(c -> c.trim().toLowerCase())
+                    .filter(c -> !categoryFocus.isEnabled() || categoryFocus.isAllowedLabel(c))
                     .distinct()
                     .sorted()
                     .toList();
@@ -294,8 +295,7 @@ public class ProductService {
     /** Keep stale misclassification and obvious accessory-as-device rows off the
      * landing page immediately; the weekly focus cleanup repairs them in Mongo. */
     private boolean isHomepageQuality(Product p) {
-        ProductCategory fresh = classifier.classify(p.getName()).primaryCategory();
-        if (fresh != null && fresh != ProductCategory.GENERAL && !categoryFocus.isAllowed(fresh)) return false;
+        if (!isPubliclyVisible(p)) return false;
         String category = p.getCategory() == null ? "" : p.getCategory().toLowerCase();
         if ((category.contains("smartphone") || category.contains("laptop") || category.contains("tablet"))
                 && CatalogSearchService.isAccessoryProduct(p)) return false;
@@ -349,8 +349,15 @@ public class ProductService {
     private boolean isPubliclyVisible(Product p) {
         if (!categoryFocus.isEnabled()) return true;
         if (!categoryFocus.isAllowedLabel(p.getCategory())) return false;
-        ProductCategory fresh = classifier.classify(p.getName()).primaryCategory();
-        if (fresh != null && fresh != ProductCategory.GENERAL && !categoryFocus.isAllowed(fresh)) return false;
+        List<ProductCategory> classified = classifier.classify(p.getName()).getCategories();
+        List<ProductCategory> decisive = classified == null ? List.of() : classified.stream()
+                .filter(c -> c != null && c != ProductCategory.GENERAL)
+                .toList();
+        if (!decisive.isEmpty()) {
+            if (decisive.stream().noneMatch(categoryFocus::isAllowed)) return false;
+            String stored = p.getCategory() == null ? "" : p.getCategory().trim();
+            if (decisive.stream().noneMatch(c -> c.getLabel().equalsIgnoreCase(stored))) return false;
+        }
         if (CatalogSearchService.isAccessoryProduct(p)
                 && ("smartphones".equalsIgnoreCase(p.getCategory())
                     || "laptops".equalsIgnoreCase(p.getCategory()))) return false;
