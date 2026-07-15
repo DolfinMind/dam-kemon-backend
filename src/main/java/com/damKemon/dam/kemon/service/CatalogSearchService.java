@@ -87,6 +87,20 @@ public class CatalogSearchService {
           // query, but real products when the query itself carries one of these words.
           + "|earphone|earphones|earbuds|earpods|airpods|headset|headphones|neckband|powerbank)\\b");
 
+    /** Secondary-market inventory should not outrank a new product unless the
+     * shopper explicitly asks for that condition. */
+    private static final Pattern SECONDARY_CONDITION = Pattern.compile(
+            "\\b(used|refurbished|refurb|renewed|reconditioned|pre[-\\s]?owned|second[-\\s]?hand|open[-\\s]?box)\\b",
+            Pattern.CASE_INSENSITIVE);
+
+    /** Device-query impostors observed in production that lack an accessory
+     * noun: compatibility-title listings, dummy display phones and vague
+     * magnetic mounts. These must not survive an "iphone 14" device search. */
+    private static final Pattern NON_DEVICE_LISTING = Pattern.compile(
+            "^\\s*(for|compatible\\s+with)\\b"
+          + "|\\b(dummy|non[-\\s]?working|mock(?:up)?|display\\s+(?:model|dummy)|magnetic\\s+attraction)\\b",
+            Pattern.CASE_INSENSITIVE);
+
     /** Upper-bound price phrases — deliberately NO bare "max" (collides with "Pro Max"). */
     private static final Pattern PRICE_MAX = Pattern.compile(
             "\\b(?:under|below|within|upto|up to|less than|at most|cheaper than|maximum of)\\s*"
@@ -582,8 +596,8 @@ public class CatalogSearchService {
         return catLower != null && p.getCategory() != null && catLower.equals(p.getCategory().toLowerCase());
     }
 
-    private static double hybridScore(Product p, List<String> queryTokens,
-                                      Set<String> expandedTokens, Set<String> brands, String catLower) {
+    static double hybridScore(Product p, List<String> queryTokens,
+                              Set<String> expandedTokens, Set<String> brands, String catLower) {
         if (p == null || p.getName() == null) return 0;
         String lname = p.getName().toLowerCase();
         double tokenCov = coverage(lname, queryTokens);
@@ -600,6 +614,8 @@ public class CatalogSearchService {
                 && !ACCESSORY.matcher(String.join(" ", queryTokens)).find()) {
             accessoryPenalty = 0.30;
         }
+        double conditionPenalty = SECONDARY_CONDITION.matcher(lname).find()
+                && !SECONDARY_CONDITION.matcher(String.join(" ", queryTokens)).find() ? 0.35 : 0;
         double catBoost = (catLower != null && p.getCategory() != null
                 && catLower.equals(p.getCategory().toLowerCase())) ? 0.25 : 0;
         // Popularity: multi-seller products are the ones people actually buy — this
@@ -613,7 +629,7 @@ public class CatalogSearchService {
                 .anyMatch(sp -> !Boolean.FALSE.equals(sp.getInStock()));
         double stockFavor = anyLive ? 0.10 : 0;
         return 0.55 * tokenCov + 0.25 * expandedCov + 0.15 * brandHit + 0.05 * priceFavor
-                - accessoryPenalty + catBoost + 0.06 * popular + stockFavor;
+                - accessoryPenalty - conditionPenalty + catBoost + 0.06 * popular + stockFavor;
     }
 
     private static double coverage(String name, List<String> tokens) {
@@ -686,6 +702,7 @@ public class CatalogSearchService {
      *  (case/cover/protector/glass…) or an accessory category. */
     static boolean isAccessoryProduct(Product p) {
         if (p == null || p.getName() == null) return false;
+        if (NON_DEVICE_LISTING.matcher(p.getName()).find()) return true;
         if (ACCESSORY.matcher(p.getName().toLowerCase()).find()) return true;
         String c = p.getCategory();
         return c != null && c.toLowerCase().contains("accessor");

@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.service;
 
+import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.intelligence.ProductCategory;
 import com.damKemon.dam.kemon.intelligence.QueryClassifier;
 import com.damKemon.dam.kemon.model.PriceHistory;
@@ -23,6 +24,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -45,6 +47,7 @@ public class ProductService {
     private final QueryClassifier classifier;
     private final CategoryFocusService categoryFocus;
     private final ShopVisibilityService shopVisibility;
+    private final AppRole appRole;
 
     public ProductService(ProductRepository productRepository,
                           ReviewRepository reviewRepository,
@@ -54,7 +57,8 @@ public class ProductService {
                           AffiliateClickRepository affiliateClicks,
                           QueryClassifier classifier,
                           CategoryFocusService categoryFocus,
-                          ShopVisibilityService shopVisibility) {
+                          ShopVisibilityService shopVisibility,
+                          AppRole appRole) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.priceHistoryRepository = priceHistoryRepository;
@@ -64,15 +68,16 @@ public class ProductService {
         this.classifier = classifier;
         this.categoryFocus = categoryFocus;
         this.shopVisibility = shopVisibility;
+        this.appRole = appRole;
     }
 
     /**
      * Bring the catalog down to the allowed category focus (computing + mobile).
      * Heap-safe: streams the catalog in id-ordered pages reading only name+category,
      * decides per product, then applies in batches. A product already in an allowed
-     * category is kept; one that isn't is re-classified by name and kept if it now
-     * resolves in-scope (rescues mislabeled phones/laptops in the 'general' bucket),
-     * otherwise deleted. {@code dryRun} reports the counts without changing anything.
+     * category is checked against a fresh name classification too, so an appliance
+     * historically mislabeled as a smartphone is removed. Ambiguous GENERAL names
+     * keep their existing allowed category. {@code dryRun} reports without writes.
      */
     public Map<String, Object> focusCleanup(boolean dryRun) {
         if (!categoryFocus.isEnabled()) {
@@ -93,13 +98,22 @@ public class ProductService {
                 if (rows.isEmpty()) break;
                 for (Product p : rows) {
                     scanned++;
-                    if (categoryFocus.isAllowedLabel(p.getCategory())) { kept++; continue; }
                     String name = p.getName();
                     ProductCategory nc = (name == null || name.isBlank())
                             ? null : classifier.classify(name).primaryCategory();
+                    boolean currentAllowed = categoryFocus.isAllowedLabel(p.getCategory());
+                    if (currentAllowed && (nc == null || nc == ProductCategory.GENERAL)) {
+                        kept++;
+                        continue;
+                    }
                     if (nc != null && categoryFocus.isAllowed(nc)) {
-                        updates.put(p.getId(), nc.getLabel().toLowerCase());
-                        reclassified++;
+                        String label = nc.getLabel().toLowerCase();
+                        if (!label.equalsIgnoreCase(p.getCategory())) {
+                            updates.put(p.getId(), label);
+                            reclassified++;
+                        } else {
+                            kept++;
+                        }
                     } else {
                         deleteIds.add(p.getId());
                         if (sampleDeletes.size() < 25 && name != null) {
@@ -146,6 +160,13 @@ public class ProductService {
         out.put("allowed", categoryFocus.allowed().stream().map(ProductCategory::getLabel).toList());
         out.put("sampleDeletes", sampleDeletes);
         return out;
+    }
+
+    /** Repair category drift after repeated crawls without running on both JVMs. */
+    @Scheduled(cron = "${category-focus.cleanup-cron:0 0 6 * * SUN}")
+    public void scheduledFocusCleanup() {
+        if (!appRole.isWorker() || !categoryFocus.isEnabled()) return;
+        focusCleanup(false);
     }
 
     /**
@@ -205,15 +226,29 @@ public class ProductService {
             // @Indexed on `category`, so it scanned the whole catalog (~1s+ per
             // Browse page). Categories are always stored lower-case at index time,
             // so a plain indexed equality is both correct and O(log n).
-            Page<Product> page = (category != null && !category.isBlank())
-                    ? productRepository.findByCategory(category.trim().toLowerCase(), pageable)
-                    : productRepository.findAll(pageable);
-            // Hidden-shop offers stripped per served page (fresh repo instances,
-            // never saved back). ponytail: fully-hidden rows still occupy page
-            // slots with an empty price list — acceptable until shops are
-            // hidden in bulk, then move the filter into the Mongo query.
-            page.forEach(shopVisibility::stripInPlace);
-            return page;
+            String normalized = category == null ? "" : category.trim().toLowerCase();
+            Page<Product> page;
+            if (categoryFocus.isEnabled()) {
+                if (!normalized.isBlank() && !categoryFocus.isAllowedLabel(normalized)) {
+                    return new PageImpl<>(Collections.emptyList(), pageable, 0);
+                }
+                page = normalized.isBlank()
+                        ? productRepository.findByCategoryIn(categoryFocus.allowedLabels(), pageable)
+                        : productRepository.findByCategory(normalized, pageable);
+            } else {
+                page = normalized.isBlank()
+                        ? productRepository.findAll(pageable)
+                        : productRepository.findByCategory(normalized, pageable);
+            }
+            // Strip hidden shops and legacy misclassified rows immediately;
+            // the scheduled cleanup later removes them from Mongo. ponytail:
+            // filtered rows can leave a short page until that cleanup lands.
+            List<Product> visible = new ArrayList<>(page.getNumberOfElements());
+            for (Product product : page) {
+                shopVisibility.stripInPlace(product);
+                if (isPubliclyVisible(product)) visible.add(product);
+            }
+            return new PageImpl<>(visible, pageable, page.getTotalElements());
         } catch (DataAccessException e) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
@@ -244,6 +279,7 @@ public class ProductService {
                 shopVisibility.stripInPlace(p);
                 if (p.getPrices() == null || p.getPrices().size() < minSellers) continue;
                 if (p.getLowestPrice() == null || p.getImageUrl() == null) continue;
+                if (!isHomepageQuality(p)) continue;
                 keep.add(p);
             }
             // Stable sort: ties keep the Mongo rank order.
@@ -253,6 +289,17 @@ public class ProductService {
             // Landing page must render without this rail rather than 500.
             return List.of();
         }
+    }
+
+    /** Keep stale misclassification and obvious accessory-as-device rows off the
+     * landing page immediately; the weekly focus cleanup repairs them in Mongo. */
+    private boolean isHomepageQuality(Product p) {
+        ProductCategory fresh = classifier.classify(p.getName()).primaryCategory();
+        if (fresh != null && fresh != ProductCategory.GENERAL && !categoryFocus.isAllowed(fresh)) return false;
+        String category = p.getCategory() == null ? "" : p.getCategory().toLowerCase();
+        if ((category.contains("smartphone") || category.contains("laptop") || category.contains("tablet"))
+                && CatalogSearchService.isAccessoryProduct(p)) return false;
+        return !category.contains("smartphone") || p.getLowestPrice() >= 1_000;
     }
 
     /** Bulk lookup preserving the caller's order. Missing ids are skipped. */
@@ -293,7 +340,21 @@ public class ProductService {
         }
         found.ifPresent(ProductService::dedupeOffers);
         found.ifPresent(shopVisibility::stripInPlace);
-        return found;
+        return found.filter(this::isPubliclyVisible);
+    }
+
+    /** Immediate public barrier for legacy catalog pollution. The scheduled
+     * cleanup removes these rows later; until then they must not reach browse,
+     * product pages, crawler previews, or merchant redirects. */
+    private boolean isPubliclyVisible(Product p) {
+        if (!categoryFocus.isEnabled()) return true;
+        if (!categoryFocus.isAllowedLabel(p.getCategory())) return false;
+        ProductCategory fresh = classifier.classify(p.getName()).primaryCategory();
+        if (fresh != null && fresh != ProductCategory.GENERAL && !categoryFocus.isAllowed(fresh)) return false;
+        if (CatalogSearchService.isAccessoryProduct(p)
+                && ("smartphones".equalsIgnoreCase(p.getCategory())
+                    || "laptops".equalsIgnoreCase(p.getCategory()))) return false;
+        return p.getPrices() != null && !p.getPrices().isEmpty();
     }
 
     /** Drop duplicate offers from a product's price list so a comparison set never
@@ -377,6 +438,7 @@ public class ProductService {
                     // Legacy/scraped rows have null status — keep those visible.
                     .filter(r -> !"flagged".equals(r.getStatus()) && !"hidden".equals(r.getStatus()))
                     .filter(r -> !"delivery_report".equals(r.getSource()))
+                    .filter(r -> r.getSeedBatch() == null || r.getSeedBatch().isBlank())
                     .toList();
         } catch (DataAccessException e) {
             return Collections.emptyList();

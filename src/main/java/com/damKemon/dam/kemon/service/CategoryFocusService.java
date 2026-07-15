@@ -65,6 +65,8 @@ public class CategoryFocusService {
 
     public Set<ProductCategory> allowed() { return allowed; }
 
+    public Set<String> allowedLabels() { return Set.copyOf(allowedLabels); }
+
     public boolean isAllowed(ProductCategory c) { return c != null && allowed.contains(c); }
 
     /** Case-insensitive check against a stored {@code Product.category} label. */

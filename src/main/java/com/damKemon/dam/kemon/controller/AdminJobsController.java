@@ -92,8 +92,8 @@ public class AdminJobsController {
                         "Re-harvests Daraz only with deep paging — more distinct sellers per product"),
                 jobRow("seller-depth", "Seller-depth fanout", "0 0 2 * * *",
                         "Searches the same canonical tech models across every tech shop — stacks more sellers per product + adds new products"),
-                jobRow("catalog-remerge", "Catalog re-merge", "0 30 4 * * *",
-                        "Consolidates duplicate product rows so their sellers stack onto one product — the biggest sellers-per-product lever"),
+                jobRow("catalog-remerge", "Catalog repair", "0 30 4 * * *",
+                        "Consolidates duplicate rows, then removes mismatched and corrupt seller offers"),
                 jobRow("revive-tech", "Revive dormant tech shops", "manual",
                         "Re-crawls dormant tech/mobile shops (run with browser on) to add sellers per product"),
                 jobRow("deep-components", "Deep-crawl component shops", "manual",
@@ -121,7 +121,10 @@ public class AdminJobsController {
                     case "seller-sync" -> sellerDirectory.syncOnce();
                     case "daraz-deep" -> indexer.runOne("daraz");
                     case "seller-depth" -> sellerDepth.run();
-                    case "catalog-remerge" -> remergeService.remerge(false);
+                    case "catalog-remerge" -> {
+                        remergeService.remerge(false);
+                        remergeService.purgeMismatchedOffers(false);
+                    }
                     case "deep-components" -> indexer.runShops(java.util.List.of(
                             // the big PC/component retailers — all sell the same GPUs/RAM/
                             // monitors/SSDs, so deep-crawling them stacks sellers per SKU

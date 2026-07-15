@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -85,4 +86,12 @@ public class Review {
     /** Moderation state: "published" | "flagged" | "hidden". */
     @Builder.Default
     private String status = "published";
+
+    /**
+     * Internal marker left by the pre-launch synthetic-review seeder. Seeded
+     * rows are retained only so the exact rollback remains possible; public
+     * product pages and totals must never present them as customer evidence.
+     */
+    @JsonIgnore
+    private String seedBatch;
 }

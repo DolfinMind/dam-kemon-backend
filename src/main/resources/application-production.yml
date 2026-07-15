@@ -37,10 +37,6 @@ indexer:
   catchup-initial-delay-ms: 600000   # first pass ~10 min after boot (not a tight loop if a run is heavy)
   catchup-min-progress: 50           # < this many new products/pass = "no progress"
   catchup-max-stagnant: 3            # flat cycles before backing off to probe-only
-  catchup-auto-approve: true         # promote discovered shops automatically — was false, so discovery
-                                     # found candidates that NEVER got crawled; the catch-up kept
-                                     # re-scraping the same drained shop set and the count plateaued.
-  catchup-approve-per-cycle: 25      # max pending shops approved per pass
 
 # Marketplace harvesters were pinned at ~500/shop — daraz & chaldal are the two
 # biggest single sources, so those caps were a hard ceiling on the catalog.

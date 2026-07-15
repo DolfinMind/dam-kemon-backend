@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface ProductRepository extends MongoRepository<Product, String> {
@@ -19,6 +20,8 @@ public interface ProductRepository extends MongoRepository<Product, String> {
      *  hot paths — the IgnoreCase variant below is a case-insensitive $regex that
      *  can't use the category index, so it scans the whole catalog. */
     Page<Product> findByCategory(String category, Pageable pageable);
+    Page<Product> findByCategoryIn(Set<String> categories, Pageable pageable);
+    long countByCategoryIn(Set<String> categories);
     /** Paginated, case-insensitive category browse — kept for legacy mixed-case
      *  data. Do NOT use on hot paths; unindexed regex scan. */
     Page<Product> findByCategoryIgnoreCase(String category, Pageable pageable);
@@ -89,6 +92,9 @@ public interface ProductRepository extends MongoRepository<Product, String> {
      *  into heap (which OOM-crashed the app once the catalog grew large). */
     @Query(value = "{}", fields = "{ 'slug' : 1 }")
     List<SlugView> findAllSlugViews(Pageable pageable);
+
+    @Query(value = "{ 'category': { $in: ?0 } }", fields = "{ 'slug' : 1 }")
+    List<SlugView> findSlugViewsByCategoryIn(Set<String> categories, Pageable pageable);
 
     interface SlugView {
         String getId();

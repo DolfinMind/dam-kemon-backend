@@ -3,7 +3,6 @@ package com.damKemon.dam.kemon.controller;
 import com.damKemon.dam.kemon.model.PriceHistory;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.Review;
-import com.damKemon.dam.kemon.model.SitePrice;
 import com.damKemon.dam.kemon.service.ProductService;
 import com.damKemon.dam.kemon.service.ShowcaseService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -78,7 +77,6 @@ public class ProductController {
     @GetMapping("/{idOrSlug}")
     public ResponseEntity<Product> getProductById(@PathVariable String idOrSlug, HttpServletRequest req) {
         return productService.findByIdOrSlug(idOrSlug)
-                .map(p -> anon(req) ? gateForAnonymous(p) : p)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -117,53 +115,6 @@ public class ProductController {
     /** Signed-in state, as stamped by JwtAuthFilter. */
     private static boolean anon(HttpServletRequest req) {
         return req.getAttribute("authUserId") == null;
-    }
-
-    private static final int ANON_VISIBLE_OFFERS = 4;
-
-    /**
-     * Signed-out teaser of the offer list: the four cheapest distinct sellers,
-     * with the single cheapest offer's identity stripped — its price stays
-     * visible (and true, so SEO titles/rich results stay honest), but WHICH
-     * shop sells at it is the signup carrot. {@code totalSellerCount} carries
-     * the real distinct-seller count for the "12 shops" header.
-     * Safe to trim in place: findByIdOrSlug is uncached, the entity is
-     * request-local and never saved on this path.
-     * ponytail: list/search payloads still carry full prices[] for anonymous
-     * callers — strip there too if bulk scraping of those becomes real.
-     */
-    private static Product gateForAnonymous(Product p) {
-        List<SitePrice> all = p.getPrices() == null ? List.of() : p.getPrices();
-        // Cheapest first, one row per seller — mirrors the UI's dedupe key.
-        List<SitePrice> distinct = new java.util.ArrayList<>();
-        java.util.Set<String> seen = new java.util.HashSet<>();
-        all.stream()
-                .sorted(java.util.Comparator.comparing(SitePrice::getPrice,
-                        java.util.Comparator.nullsLast(Double::compareTo)))
-                .forEach(sp -> {
-                    String key = sp.getSellerId() != null ? sp.getSellerId()
-                            : (sp.getSiteSlug() != null ? sp.getSiteSlug() : String.valueOf(sp.getSiteName()))
-                              + "|" + (sp.getSellerName() == null ? "" : sp.getSellerName());
-                    if (seen.add(key)) distinct.add(sp);
-                });
-        p.setTotalSellerCount(distinct.size());
-        List<SitePrice> visible = new java.util.ArrayList<>(
-                distinct.subList(0, Math.min(ANON_VISIBLE_OFFERS, distinct.size())));
-        if (!visible.isEmpty() && visible.get(0).getPrice() != null) {
-            SitePrice best = visible.get(0);
-            visible.set(0, SitePrice.builder()
-                    .price(best.getPrice())
-                    .originalPrice(best.getOriginalPrice())
-                    .currency(best.getCurrency())
-                    .inStock(best.getInStock())
-                    .rating(best.getRating())
-                    .reviewCount(best.getReviewCount())
-                    .soldCount(best.getSoldCount())
-                    .locked(true)
-                    .build());
-        }
-        p.setPrices(visible);
-        return p;
     }
 
     /**

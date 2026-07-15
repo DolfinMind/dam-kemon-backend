@@ -254,7 +254,7 @@ public class AssistantService {
             if (cs.getSiteName() != null) sb.append(" at ").append(cs.getSiteName());
             sb.append(". ");
         }
-        // Smartest buy = highest trust among shown.
+        // Highlight the strongest available seller score among the shown offers.
         String bestSlug = null; int bestScore = -1; String bestShop = null;
         for (Product p : top) {
             String slug = cheapestSlug(p);
@@ -265,7 +265,7 @@ public class AssistantService {
         if (bestSlug != null && bestScore >= 0) {
             Map<String, Object> t = tv.get(bestSlug);
             String dt = deliveryText(t);
-            sb.append("Most trusted: ").append(bestShop != null ? bestShop : bestSlug)
+            sb.append("Strongest available seller signals: ").append(bestShop != null ? bestShop : bestSlug)
               .append(" (").append(bestScore).append("/100");
             if (dt != null) sb.append(", ").append(dt);
             sb.append(").");
@@ -300,7 +300,8 @@ public class AssistantService {
         // Lead with the specific facet the buyer asked about, if any.
         String lead = facetLead(shop, t, norm);
         if (lead != null) sb.append(lead).append(" ");
-        sb.append(shop.name).append(" has a Damkemon trust score of ").append(score).append("/100 — ").append(tier).append(". ");
+        sb.append(shop.name).append(" has a Damkemon seller score of ").append(score).append("/100 — ").append(tier)
+          .append(" available signals. This is a comparison aid, not a purchase guarantee. ");
         String auth = authLabel((String) t.get("authenticity"));
         if (auth != null) sb.append(auth).append(". ");
         String dt = deliveryText(t);
@@ -321,7 +322,7 @@ public class AssistantService {
         Map<String, Object> out = base("greeting");
         out.put("reply", "নমস্কার! I'm দরদাম, your Damkemon shopping assistant. "
                 + "Ask me things like \"best phone under ৳30,000\", \"cheapest MacBook\", or \"is Daraz trustworthy?\" "
-                + "— I'll weigh price, seller trust and delivery for you.");
+                + "— I'll compare price, available seller signals and typical delivery for you.");
         out.put("products", List.of());
         out.put("suggestions", List.of("Best phone under ৳30,000", "Cheapest laptop", "Is Daraz trustworthy?"));
         return out;
@@ -469,20 +470,20 @@ public class AssistantService {
     private static int asInt(Object o) { return o instanceof Number n ? n.intValue() : -1; }
 
     private static String tier(int s) {
-        if (s >= 85) return "excellent";
-        if (s >= 72) return "trusted";
-        if (s >= 60) return "good";
-        if (s >= 45) return "fair";
-        return "use caution";
+        if (s >= 85) return "very strong";
+        if (s >= 72) return "strong";
+        if (s >= 60) return "moderate";
+        if (s >= 45) return "limited";
+        return "weak";
     }
 
     private static String authLabel(String a) {
         if (a == null) return null;
         return switch (a) {
-            case "authorized" -> "Authorized seller (official warranty)";
-            case "official_store" -> "Official brand store";
-            case "reseller" -> "Verified reseller";
-            case "marketplace" -> "Marketplace (genuineness varies by seller)";
+            case "authorized" -> "Listed as an authorized seller; confirm warranty for the offer";
+            case "official_store" -> "Listed brand storefront";
+            case "reseller" -> "Independent reseller";
+            case "marketplace" -> "Marketplace listing (seller and item vary)";
             default -> null;
         };
     }

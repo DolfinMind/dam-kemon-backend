@@ -71,6 +71,9 @@ indexer:
   per-extract-timeout-ms: ${INDEXER_PER_EXTRACT_TIMEOUT_MS:15000}
   per-host-parallelism: ${INDEXER_PER_HOST_PARALLELISM:2}
   global-parallelism: ${INDEXER_GLOBAL_PARALLELISM:24}
+  # Never let one retailer consume the full rotating run (the old 30-minute
+  # per-shop wait routinely overran the 25-minute total budget).
+  max-minutes-per-shop: ${INDEXER_MAX_MINUTES_PER_SHOP:5}
   user-agent: "${INDEXER_USER_AGENT:Mozilla/5.0 DamKemon/1.0 (+contact hello@damkemon.com)}"
 
 # ───── Daraz marketplace harvest (the per-product seller depth lever) ─────
@@ -90,6 +93,7 @@ daraz:
 # and accessories.
 category-focus:
   enabled: ${CATEGORY_FOCUS_ENABLED:true}
+  cleanup-cron: ${CATEGORY_FOCUS_CLEANUP_CRON:0 0 6 * * SUN}
   # HEADPHONE = earbuds/headphones/speakers, kept as mobile accessories.
   # Widened to the full consumer-electronics set (all model-numbered, so matchKey
   # stays accurate + merges clean). Generic categories (fashion/grocery/etc.) stay
@@ -178,6 +182,12 @@ cors:
 admin:
   api-key: ${ADMIN_API_KEY:}
 
+# Remote Python crawler bridge. Its credential is deliberately separate from
+# the public admin API key so rotating either side does not break the other.
+crawler:
+  control-url: ${CRAWLER_CONTROL_URL:http://188.166.224.53:8090}
+  control-token: ${CRAWLER_CONTROL_TOKEN:}
+
 
 # ───── Full-funnel analytics / request logging ─────
 # Every /api request is logged into request_log (the "every step" access log),
@@ -202,8 +212,8 @@ ratelimit:
 # Override both env vars in staging+prod. The password is BCrypt-hashed at
 # boot before anything reaches Mongo, never stored raw.
 owner:
-  username: "${OWNER_USERNAME:ssm@2026}"
-  password: "${OWNER_PASSWORD:$Sm7406.2025}"
+  username: "${OWNER_USERNAME:}"
+  password: "${OWNER_PASSWORD:}"
   email: "${OWNER_EMAIL:}"
 
 # ───── JWT session signing + Google sign-in ─────

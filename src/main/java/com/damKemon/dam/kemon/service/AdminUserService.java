@@ -6,6 +6,7 @@ import com.damKemon.dam.kemon.model.User;
 import com.damKemon.dam.kemon.repository.UserRepository;
 import com.mongodb.client.MongoCollection;
 import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -194,17 +195,25 @@ public class AdminUserService {
     private Set<String> distinct(String collection, String field, Document filter) {
         // ponytail: $group aggregation, not the distinct command — distinct caps its result
         // at 16MB BSON and fails once anonId cardinality grows past it (prod traffic did).
-        // Streaming cursor + allowDiskUse has no such cap; the instanceof guard skips any
-        // legacy non-string value instead of throwing a decode error. Upgrade path: if even
+        // Streaming cursor + allowDiskUse has no such cap. Mongo stores user _id values as
+        // ObjectIds while analytics stores userId as a string, so normalize both forms.
+        // Upgrade path: if even
         // the union set gets huge, count via $group+$count for the fields we only size().
         Set<String> values = new HashSet<>();
         List<Document> pipeline = List.of(
                 new Document("$match", filter),
                 new Document("$group", new Document("_id", "$" + field)));
         for (Document doc : collection(collection).aggregate(pipeline).allowDiskUse(true)) {
-            if (doc.get("_id") instanceof String value && !value.isBlank()) values.add(value);
+            String value = idString(doc.get("_id"));
+            if (value != null && !value.isBlank()) values.add(value);
         }
         return values;
+    }
+
+    static String idString(Object value) {
+        if (value instanceof String string) return string;
+        if (value instanceof ObjectId objectId) return objectId.toHexString();
+        return null;
     }
 
     private long count(String collection, String field, String id) {

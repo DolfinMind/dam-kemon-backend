@@ -38,22 +38,16 @@ public class ShopDiscoveryService {
 
     /**
      * Public BD-ecommerce directories we follow. e-cab + BASIS are the
-     * two industry associations that publish member lists; the rest are
-     * tech-news archive pages that frequently roundup "Top BD online
-     * shops" — useful for catching newer entrants the associations miss.
+     * two industry associations that publish member lists. Broader news pages
+     * produced far more publishers and press-release sites than real shops;
+     * product-led SERP discovery covers the long tail with stronger intent.
      *
      * Adding a source is cheap: anything that links to other domains
      * works. We dedupe by host so re-running the discover is idempotent.
      */
     private static final List<String> SOURCES = List.of(
             "https://e-cab.net/members/",
-            "https://basis.org.bd/members",
-            "https://www.thedailystar.net/tech-startup/online-shopping",
-            "https://www.tbsnews.net/tech",
-            "https://www.dhakatribune.com/business/e-commerce",
-            "https://en.prothomalo.com/business",
-            "https://futurestartup.com/ecosystem/ecommerce-bangladesh/",
-            "https://en.wikipedia.org/wiki/E-commerce_in_Bangladesh"
+            "https://basis.org.bd/members"
     );
 
     private static final Set<String> BLOCKLIST_HOST_SUBSTRINGS = Set.of(
@@ -64,6 +58,8 @@ public class ShopDiscoveryService {
             "thedailystar.net", "tbsnews.net", "dhakatribune.com",
             "prothomalo.com", "futurestartup.com",
             "bdnews24.com", "newagebd.net", "thefinancialexpress.com.bd",
+            "prnewswire.com", "newswire", "medium.com", "github.com", "gitlab.com",
+            "archive.org", "wordpress.com", "blogspot.com",
             "bb.org.bd", "btrc.gov.bd",
             // SERP noise: price-info/aggregator/spec sites that aren't shops
             "gsmarena", "mobiledokan.com", "mobilemaya", "techtunes", "bikroy",
@@ -129,7 +125,7 @@ public class ShopDiscoveryService {
                     if (href.isBlank()) continue;
                     String host = hostOf(href);
                     if (host == null || host.isBlank()) continue;
-                    if (isBlocked(host)) continue;
+                    if (!isCandidateHost(host)) continue;
                     String root = "https://" + stripWww(host);
                     if (existingHosts.contains(stripWww(host))) continue;
                     if (pendingHosts.contains(stripWww(host))) continue;
@@ -194,7 +190,7 @@ public class ShopDiscoveryService {
                 java.util.regex.Matcher m = urlPat.matcher(body);
                 while (m.find()) {
                     String host = stripWww(m.group(1).toLowerCase());
-                    if (host == null || host.isBlank() || isBlocked(host) || !isBdShopHost(host)) continue;
+                    if (host == null || host.isBlank() || !isCandidateHost(host)) continue;
                     if (existingHosts.contains(host) || pendingHosts.contains(host)) continue;
                     candidates.putIfAbsent(host, "https://" + host);
                 }
@@ -227,6 +223,10 @@ public class ShopDiscoveryService {
     private static boolean isBdShopHost(String host) {
         for (String t : BD_TLDS) if (host.endsWith(t)) return true;
         return host.endsWith(".com") || host.endsWith(".net") || host.endsWith(".xyz");
+    }
+
+    static boolean isCandidateHost(String host) {
+        return host != null && !host.isBlank() && !isBlocked(host) && isBdShopHost(host);
     }
 
     private Set<String> listExistingHosts() {

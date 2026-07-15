@@ -1,6 +1,7 @@
 package com.damKemon.dam.kemon.controller;
 
 import com.damKemon.dam.kemon.service.CrawlerControlService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,6 +42,14 @@ public class AdminCrawlerController {
     }
 
     private ResponseEntity<String> response(CrawlerControlService.RemoteResponse remote) {
+        // A 401 here belongs to the crawler bridge, not the owner's Damkemon
+        // session. Do not let it masquerade as an expired admin JWT upstream.
+        if (remote.status() == HttpStatus.UNAUTHORIZED.value()
+                || remote.status() == HttpStatus.FORBIDDEN.value()) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("{\"error\":\"crawler bridge authorization failed\"}");
+        }
         return ResponseEntity.status(remote.status())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(remote.body());

@@ -16,9 +16,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * The anonymous teaser gate: capped offer list, masked cheapest seller,
- * member-only history, review teaser. Signed-in state = the "authUserId"
- * request attribute stamped by JwtAuthFilter.
+ * Product comparison is public; durable account features (history) remain
+ * member-only. Signed-in state = the "authUserId" request attribute stamped by
+ * JwtAuthFilter.
  */
 class ProductControllerGateTest {
 
@@ -59,22 +59,17 @@ class ProductControllerGateTest {
     }
 
     @Test
-    void anonymousGetsFourOffersWithCheapestMasked() {
+    void anonymousGetsTheFullComparisonAndCheapestSeller() {
         var resp = controller(sixSellerProduct(), List.of()).getProductById("p1", anonReq());
 
         Product body = resp.getBody();
         assertNotNull(body);
-        assertEquals(4, body.getPrices().size(), "anon sees only the 4 cheapest sellers");
-        assertEquals(6, body.getTotalSellerCount(), "true distinct-seller count still travels");
-
-        SitePrice best = body.getPrices().get(0);
-        assertEquals(Boolean.TRUE, best.getLocked());
-        assertEquals(80.0, best.getPrice(), "the TRUE lowest price stays visible");
-        assertNull(best.getSiteName(), "shop identity is stripped");
-        assertNull(best.getSiteSlug());
-        assertNull(best.getProductUrl(), "no buy link on the locked offer");
-
-        assertNotNull(body.getPrices().get(1).getSiteName(), "runner-up offers keep identity");
+        assertEquals(7, body.getPrices().size(), "comparison value is public before signup");
+        SitePrice best = body.getPrices().stream()
+                .min(java.util.Comparator.comparing(SitePrice::getPrice)).orElseThrow();
+        assertEquals(80.0, best.getPrice());
+        assertEquals("Shop 1", best.getSiteName());
+        assertNotNull(best.getProductUrl());
     }
 
     @Test

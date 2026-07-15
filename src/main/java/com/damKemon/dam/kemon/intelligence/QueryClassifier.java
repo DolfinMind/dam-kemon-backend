@@ -42,7 +42,7 @@ public class QueryClassifier {
      *  category so the focus gate drops it. Words with a computing sense (fan, iron,
      *  mouse) are deliberately excluded — those can be PC parts. */
     private static final Set<String> HARD_OUT_OF_SCOPE = Set.of(
-            "vacuum","blender","kettle","toaster","microwave","trimmer","shaver","hairdryer");
+            "vacuum","blender","kettle","toaster","microwave","trimmer","shaver","hairdryer","purifier");
 
     /** Context words, not object words — they describe a LINE or a mode, and at
      *  full weight they hijack other objects: "GALAXY Drone Toy" filed as a
