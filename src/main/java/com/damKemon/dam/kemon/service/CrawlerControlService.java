@@ -34,9 +34,8 @@ public class CrawlerControlService {
 
     @Autowired
     public CrawlerControlService(
-            @Value("${crawler.control-url:" + DEFAULT_CRAWLER_URL + "}") String baseUrl,
             @Value("${crawler.control-token:${admin.api-key:}}") String token) {
-        this(baseUrl, token, REQUEST_TIMEOUT);
+        this(DEFAULT_CRAWLER_URL, token, REQUEST_TIMEOUT);
     }
 
     CrawlerControlService(String baseUrl, String token, Duration timeout) {

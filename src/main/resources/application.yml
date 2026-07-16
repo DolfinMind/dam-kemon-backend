@@ -221,7 +221,6 @@ auth:
 # Server-to-server control for the isolated Python crawler. Keep this separate
 # from browser/admin authentication; the admin JWT only reaches this API.
 crawler:
-  control-url: ${CRAWLER_CONTROL_URL:http://188.166.224.53:8090}
   control-token: ${CRAWLER_CONTROL_TOKEN:${ADMIN_API_KEY:}}
 
 # ───── Resend API Integration ─────
