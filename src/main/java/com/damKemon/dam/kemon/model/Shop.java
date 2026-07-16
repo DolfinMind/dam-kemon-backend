@@ -43,6 +43,10 @@ public class Shop {
      */
     private String sitemapUrl;
 
+    /** Verified sitemap entry-points found via robots.txt and common platform paths. */
+    @Builder.Default
+    private List<String> discoveredSitemapUrls = new ArrayList<>();
+
     /**
      * Merchant-published product feed URL — Shopify {@code /products.json},
      * WooCommerce Store API, or a Google Merchant / RSS XML feed. When set,
@@ -157,6 +161,10 @@ public class Shop {
      * between {@code shops.json} and reality.
      */
     private String detectedPlatform;
+
+    /** Last bounded source-discovery pass and its result classification. */
+    private LocalDateTime sourceAuditAt;
+    private String sourceAuditStatus;
 
     /**
      * Last time {@code ScraperLearningService} ran a probe on this shop.

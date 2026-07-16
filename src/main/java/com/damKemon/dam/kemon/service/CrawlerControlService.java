@@ -21,7 +21,7 @@ import java.util.Set;
 public class CrawlerControlService {
 
     private static final Logger log = LoggerFactory.getLogger(CrawlerControlService.class);
-    private static final Set<String> ACTIONS = Set.of("start", "stop", "restart", "deploy");
+    private static final Set<String> ACTIONS = Set.of("start", "stop", "restart", "deploy", "discover");
     private static final String DEFAULT_CRAWLER_URL = "http://188.166.224.53:8090";
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
 
@@ -64,7 +64,7 @@ public class CrawlerControlService {
     public RemoteResponse action(String action) {
         if (!ACTIONS.contains(action)) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "action must be start, stop, restart, or deploy");
+                    HttpStatus.BAD_REQUEST, "action must be start, stop, restart, deploy, or discover");
         }
         return request("POST", "/actions/" + action);
     }

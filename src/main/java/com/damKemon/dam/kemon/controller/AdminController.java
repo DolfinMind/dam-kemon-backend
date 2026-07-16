@@ -399,6 +399,7 @@ public class AdminController {
             @RequestParam(value = "size", defaultValue = "100") int size,
             @RequestParam(value = "q", required = false) String q,
             @RequestParam(value = "health", required = false) String health,
+            @RequestParam(value = "source", required = false) String source,
             @RequestParam(value = "sort", defaultValue = "name") String sort) {
         try {
             if (page == null) {
@@ -425,6 +426,22 @@ public class AdminController {
                             Criteria.where("health").is(null)));
                 } else {
                     query.addCriteria(Criteria.where("health").is(health));
+                }
+            }
+            if (source != null && !source.isBlank() && !"all".equals(source)) {
+                switch (source) {
+                    case "sitemap" -> query.addCriteria(Criteria.where("sourceAuditStatus")
+                            .in("sitemap", "sitemap-and-feed"));
+                    case "feed" -> query.addCriteria(Criteria.where("sourceAuditStatus")
+                            .in("feed", "sitemap-and-feed"));
+                    case "none" -> query.addCriteria(Criteria.where("sourceAuditStatus")
+                            .in("no-source", "invalid-url"));
+                    case "unreachable" -> query.addCriteria(
+                            Criteria.where("sourceAuditStatus").is("unreachable"));
+                    case "unaudited" -> query.addCriteria(new Criteria().orOperator(
+                            Criteria.where("sourceAuditStatus").is(null),
+                            Criteria.where("sourceAuditStatus").exists(false)));
+                    default -> { }
                 }
             }
             long total = mongoTemplate.count(query, Shop.class);
@@ -457,6 +474,10 @@ public class AdminController {
         m.put("consecutiveFailures", s.getConsecutiveFailures());
         m.put("needsRetry", s.getNeedsRetry());
         m.put("sitemapUrl", s.getSitemapUrl());
+        m.put("discoveredSitemapCount", s.getDiscoveredSitemapUrls() == null
+                ? 0 : s.getDiscoveredSitemapUrls().size());
+        m.put("sourceAuditAt", s.getSourceAuditAt());
+        m.put("sourceAuditStatus", s.getSourceAuditStatus());
         m.put("requiresJs", s.getRequiresJs());
         m.put("lastIndexedAt", s.getLastIndexedAt());
         m.put("lastIndexedCount", s.getLastIndexedCount());
