@@ -55,6 +55,13 @@ public class AdminAnalyticsController {
         return ResponseEntity.ok(analytics.dailyUsers(clamp(days, 1, 90)));
     }
 
+    /** Product additions over time plus the current seller/shop footprint. */
+    @GetMapping("/catalog-growth")
+    public ResponseEntity<Map<String, Object>> catalogGrowth(
+            @RequestParam(value = "days", defaultValue = "14") int days) {
+        return ResponseEntity.ok(analytics.catalogGrowth(clamp(days, 1, 90)));
+    }
+
     /** Top client IPs by request volume, with last-seen + device + reach. */
     @GetMapping("/top-ips")
     public ResponseEntity<List<Map<String, Object>>> topIps(

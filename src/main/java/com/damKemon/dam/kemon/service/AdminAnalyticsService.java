@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -125,31 +126,61 @@ public class AdminAnalyticsService {
         out.put("serverTime", now);
         try {
             Instant dayStart = todayStart();
-            Instant hourAgo = now.minus(1, ChronoUnit.HOURS);
             Instant fiveMin = now.minus(5, ChronoUnit.MINUTES);
 
-            out.put("requestsToday", mongo.count(query(human(where("ts").gte(dayStart))), REQUESTS));
             out.put("searchesToday", mongo.count(query(human(where("type").is("search").and("ts").gte(dayStart))), EVENTS));
             out.put("pageViewsToday", mongo.count(query(human(where("type").is("pageview").and("ts").gte(dayStart))), EVENTS));
             out.put("productViewsToday", mongo.count(query(human(where("type").is("view").and("ts").gte(dayStart))), EVENTS));
-            out.put("clicksToday", mongo.count(query(human(where("type").is("click").and("ts").gte(dayStart))), EVENTS));
+            out.put("clicksToday", mongo.count(query(human(where("ts").gte(dayStart))), CLICKS));
             out.put("visitorsToday", distinctVisitors(EVENTS, human(where("ts").gte(dayStart))));
-            out.put("ipsToday", distinctField(REQUESTS, human(where("ts").gte(dayStart)), "ip"));
-            out.put("requestsLastHour", mongo.count(query(human(where("ts").gte(hourAgo))), REQUESTS));
             out.put("activeNow", distinctVisitors(EVENTS, human(where("ts").gte(fiveMin))));
-            out.put("totalRequestsRetained", mongo.count(query(new Criteria()), REQUESTS));
-            
-            // New Dashboard Metrics
-            out.put("totalShops", mongo.count(query(new Criteria()), "shops"));
-            out.put("failingShops", mongo.count(query(where("lastError").ne(null).not().regex("^\\s*$")), "shops"));
-            out.put("totalCommunityReviews", mongo.count(query(where("source").is("community")), "reviews"));
-            out.put("flaggedReviews", mongo.count(query(where("status").is("flagged")), "reviews"));
             long searchesToday = (long) out.getOrDefault("searchesToday", 0L);
             long clicksToday = (long) out.getOrDefault("clicksToday", 0L);
             out.put("searchConversionRate", searchesToday == 0 ? 0.0 : Math.round(((double) clicksToday / searchesToday) * 1000.0) / 10.0);
         } catch (Exception e) {
-            out.putIfAbsent("requestsToday", 0L);
+            out.putIfAbsent("searchesToday", 0L);
         }
+        return out;
+    }
+
+    // ─────────────────────────── Catalog growth ───────────────────────────────
+
+    /** Product additions over time plus the current seller/shop footprint. */
+    public Map<String, Object> catalogGrowth(int days) {
+        LocalDate first = LocalDate.now(zone).minusDays(days - 1L);
+        LocalDateTime cutoff = first.atStartOfDay();
+        Map<String, Long> created = new HashMap<>();
+        try {
+            Aggregation agg = newAggregation(
+                    match(where("createdAt").gte(cutoff)),
+                    project().and(DateOperators.dateOf("createdAt").withTimezone(tz)
+                            .toString("%Y-%m-%d")).as("d"),
+                    group("d").count().as("n"));
+            for (Document d : mongo.aggregate(agg, "products", Document.class)) {
+                created.put(d.getString("_id"), num(d.get("n")));
+            }
+        } catch (Exception ignored) { /* degrade to zeros */ }
+
+        List<Map<String, Object>> daily = new ArrayList<>();
+        long newProducts = 0;
+        LocalDate today = LocalDate.now(zone);
+        for (LocalDate d = first; !d.isAfter(today); d = d.plusDays(1)) {
+            String key = d.format(ISO);
+            long n = created.getOrDefault(key, 0L);
+            newProducts += n;
+            daily.add(Map.of("date", key, "products", n));
+        }
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("days", days);
+        out.put("totalProducts", safeCount("products", new Criteria()));
+        out.put("totalSellers", safeCount("sellers", new Criteria()));
+        out.put("marketplaceSellers", safeCount("marketplace_sellers", new Criteria()));
+        out.put("activeShops", safeCount("shops", where("status").is("active")));
+        out.put("recoverableShops", safeCount("shops",
+                where("status").is("blocked").and("blockedBy").ne("operator")));
+        out.put("newProducts", newProducts);
+        out.put("daily", daily);
         return out;
     }
 
@@ -762,12 +793,9 @@ public class AdminAnalyticsService {
         }
     }
 
-    private long distinctField(String coll, Criteria base, String field) {
+    private long safeCount(String coll, Criteria criteria) {
         try {
-            // No .and(field).ne(null) here: base may already constrain this field
-            // (human() adds an ip clause) and Criteria rejects a duplicate key.
-            return mongo.findDistinct(query(base), field, coll, String.class)
-                    .stream().filter(v -> v != null && !v.isBlank()).count();
+            return mongo.count(query(criteria), coll);
         } catch (Exception e) {
             return 0;
         }

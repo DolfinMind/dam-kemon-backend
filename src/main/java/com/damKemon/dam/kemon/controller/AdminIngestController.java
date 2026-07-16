@@ -4,6 +4,7 @@ import com.damKemon.dam.kemon.indexer.BulkIndexer;
 import com.damKemon.dam.kemon.model.Shop;
 import com.damKemon.dam.kemon.repository.ShopRepository;
 import com.damKemon.dam.kemon.scraper.ScrapedProduct;
+import com.damKemon.dam.kemon.service.SellerDirectoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,10 +34,13 @@ public class AdminIngestController {
 
     private final BulkIndexer indexer;
     private final ShopRepository shops;
+    private final SellerDirectoryService sellers;
 
-    public AdminIngestController(BulkIndexer indexer, ShopRepository shops) {
+    public AdminIngestController(BulkIndexer indexer, ShopRepository shops,
+                                 SellerDirectoryService sellers) {
         this.indexer = indexer;
         this.shops = shops;
+        this.sellers = sellers;
     }
 
     public record IngestOffer(String name, Double price, Double originalPrice,
@@ -99,6 +104,7 @@ public class AdminIngestController {
                         .build());
             }
             BulkIndexer.FastIngestResult result = indexer.enrichFast(shop, scraped);
+            boolean reactivated = reactivateIfRecovered(shop, result.accepted());
             inserted += result.inserted();
             merged += result.merged();
             outOfScope += result.outOfScope();
@@ -108,7 +114,8 @@ public class AdminIngestController {
                     "inserted", result.inserted(),
                     "merged", result.merged(),
                     "outOfScope", result.outOfScope(),
-                    "invalid", shopInvalid));
+                    "invalid", shopInvalid,
+                    "reactivated", reactivated));
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("submitted", submitted);
@@ -123,5 +130,23 @@ public class AdminIngestController {
                 inserted, merged, perShop.size(),
                 unknownShops.isEmpty() ? "" : " (unknown: " + unknownShops + ")");
         return ResponseEntity.ok(out);
+    }
+
+    private boolean reactivateIfRecovered(Shop shop, int accepted) {
+        if (accepted <= 0
+                || "active".equalsIgnoreCase(shop.getStatus())
+                || "operator".equalsIgnoreCase(shop.getBlockedBy())) {
+            return false;
+        }
+        shop.setStatus("active");
+        shop.setBlockedBy(null);
+        shop.setHealth("active");
+        shop.setConsecutiveFailures(0);
+        shop.setNeedsRetry(false);
+        shop.setLastError(null);
+        shop.setUpdatedAt(LocalDateTime.now());
+        shops.save(shop);
+        sellers.syncShop(shop);
+        return true;
     }
 }

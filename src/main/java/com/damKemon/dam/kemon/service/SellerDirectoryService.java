@@ -134,19 +134,7 @@ public class SellerDirectoryService {
         int added = 0;
         try {
             for (Shop s : shops.findAll()) {
-                if (s == null || !"active".equalsIgnoreCase(String.valueOf(s.getStatus()))) continue;
-                String name = (s.getName() != null && !s.getName().isBlank()) ? s.getName() : s.getSlug();
-                String slug = slugify(name);
-                if (slug.length() < 2 || exists(slug)) continue;
-                String type = MARKETPLACE_SLUGS.contains(String.valueOf(s.getSlug()).toLowerCase())
-                        ? "marketplace" : "website";
-                save(Seller.builder()
-                        .name(name).slug(slug).type(type).url(s.getBaseUrl())
-                        .categories(s.getCategories() != null ? s.getCategories() : new ArrayList<>())
-                        .verified(true).source("catalog")
-                        .joinedAt(LocalDateTime.now()).lastSeen(LocalDateTime.now())
-                        .build());
-                added++;
+                if (syncShop(s)) added++;
             }
             for (MarketplaceSeller m : marketplaceSellers.findAll()) {
                 if (m == null || m.getSellerName() == null || m.getSellerName().isBlank()) continue;
@@ -168,6 +156,24 @@ public class SellerDirectoryService {
             log.warn("SellerDirectory sync failed: {}", e.getMessage());
         }
         return added;
+    }
+
+    /** Add one newly recovered catalog shop without scanning the whole directory. */
+    public boolean syncShop(Shop s) {
+        if (s == null || !"active".equalsIgnoreCase(String.valueOf(s.getStatus()))) return false;
+        String name = (s.getName() != null && !s.getName().isBlank()) ? s.getName() : s.getSlug();
+        String slug = slugify(name);
+        if (slug.length() < 2 || exists(slug)) return false;
+        String type = MARKETPLACE_SLUGS.contains(String.valueOf(s.getSlug()).toLowerCase())
+                ? "marketplace" : "website";
+        save(Seller.builder()
+                .name(name).slug(slug).type(type).url(s.getBaseUrl())
+                .categories(s.getCategories() != null ? s.getCategories() : new ArrayList<>())
+                .verified(true).source("catalog")
+                .joinedAt(LocalDateTime.now()).lastSeen(LocalDateTime.now())
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build());
+        return true;
     }
 
     private boolean exists(String slug) {
