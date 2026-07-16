@@ -46,18 +46,22 @@ class CrawlerControlServiceTest {
         CrawlerControlService.RemoteResponse status = service.status();
         CrawlerControlService.RemoteResponse logs = service.logs(50);
         CrawlerControlService.RemoteResponse restart = service.action("restart");
+        CrawlerControlService.RemoteResponse deploy = service.action("deploy");
 
         assertEquals(200, health.status());
         assertEquals(200, status.status());
         assertEquals(200, logs.status());
         assertEquals(202, restart.status());
+        assertEquals(202, deploy.status());
         assertEquals(List.of(
                 "GET /health",
                 "GET /status",
                 "GET /logs?lines=50",
-                "POST /actions/restart"
+                "POST /actions/restart",
+                "POST /actions/deploy"
         ), requests);
         assertEquals(List.of(
+                "Bearer " + TOKEN,
                 "Bearer " + TOKEN,
                 "Bearer " + TOKEN,
                 "Bearer " + TOKEN,
