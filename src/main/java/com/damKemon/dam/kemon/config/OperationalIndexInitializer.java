@@ -36,6 +36,8 @@ public class OperationalIndexInitializer {
                 .on("ts", Sort.Direction.DESC).named("events_type_ts"));
         ensure("events", new Index().on("userId", Sort.Direction.ASC)
                 .on("ts", Sort.Direction.DESC).named("events_user_ts"));
+        ensure("events", new Index().on("anonId", Sort.Direction.ASC)
+                .on("ts", Sort.Direction.DESC).named("events_anon_ts"));
 
         ensure("request_log", new Index().on("ts", Sort.Direction.DESC)
                 .expire(Duration.ofDays(30)).named("request_log_ts_ttl"));

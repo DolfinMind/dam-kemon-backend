@@ -1,6 +1,8 @@
 package com.damKemon.dam.kemon.config;
 
+import com.damKemon.dam.kemon.service.JwtService;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -46,6 +48,27 @@ class AdminGateFilterTest {
 
         assertFalse(result.passed());
         assertEquals(401, result.response().getStatus());
+    }
+
+    @Test
+    void allowsAdminBearerAfterJwtAuthenticationFilter() throws Exception {
+        JwtService jwt = new JwtService("test-secret-long-enough-for-admin-jwt", 1);
+        MockHttpServletRequest request = new MockHttpServletRequest(
+                "GET", "/api/admin/analytics/overview");
+        request.addHeader("Authorization", "Bearer " + jwt.issue("u1", "admin@test", "ADMIN"));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean passed = new AtomicBoolean();
+
+        try {
+            new JwtAuthFilter(jwt).doFilter(request, response, (req, res) ->
+                    new SecurityConfig.AdminGateFilter("secret").doFilter(
+                            req, res, (innerReq, innerRes) -> passed.set(true)));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+
+        assertTrue(passed.get());
+        assertEquals(200, response.getStatus());
     }
 
     private static FilterResult filter(String path, String remote, String header, String value)

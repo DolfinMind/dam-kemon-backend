@@ -219,7 +219,6 @@ public class AdminAnalyticsService {
         Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
         long[] searches = hourBuckets(EVENTS, human(where("type").is("search").and("ts").gte(cutoff)));
         long[] pageViews = hourBuckets(EVENTS, human(where("type").is("pageview").and("ts").gte(cutoff)));
-        long[] requests = hourBuckets(REQUESTS, human(where("ts").gte(cutoff)));
 
         List<Map<String, Object>> buckets = new ArrayList<>(24);
         int peak = 0;
@@ -231,7 +230,6 @@ public class AdminAnalyticsService {
             row.put("label", String.format("%02d:00", h));
             row.put("searches", searches[h]);
             row.put("pageViews", pageViews[h]);
-            row.put("requests", requests[h]);
             row.put("activity", activity);
             buckets.add(row);
             if (activity > peakVal) { peakVal = activity; peak = h; }
@@ -291,7 +289,6 @@ public class AdminAnalyticsService {
         Map<String, Long> users = usersByDay(cutoff);
         Map<String, Long> searches = countByDay(EVENTS, human(where("type").is("search").and("ts").gte(cutoff)));
         Map<String, Long> pageViews = countByDay(EVENTS, human(where("type").is("pageview").and("ts").gte(cutoff)));
-        Map<String, Long> requests = countByDay(REQUESTS, human(where("ts").gte(cutoff)));
 
         List<Map<String, Object>> out = new ArrayList<>();
         LocalDate today = LocalDate.now(zone);
@@ -302,7 +299,6 @@ public class AdminAnalyticsService {
             row.put("users", users.getOrDefault(key, 0L));
             row.put("searches", searches.getOrDefault(key, 0L));
             row.put("pageViews", pageViews.getOrDefault(key, 0L));
-            row.put("requests", requests.getOrDefault(key, 0L));
             out.add(row);
         }
         return out;

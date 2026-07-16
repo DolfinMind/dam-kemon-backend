@@ -95,6 +95,7 @@ public class SecurityConfig {
             log.info("Admin API key is set ({} chars) — /api/admin/** requires either an admin JWT or X-Admin-Key.", adminApiKey.length());
         }
 
+        JwtAuthFilter jwtAuth = new JwtAuthFilter(jwtService);
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -119,10 +120,10 @@ public class SecurityConfig {
                             "/api/products", "/api/compare", "/api/sellers",
                             "/api/shops", "/api/trust", "/api/stats"))
                 )), UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(new JwtAuthFilter(jwtService),
+            .addFilterBefore(jwtAuth,
                     UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(new AdminGateFilter(adminApiKey),
-                    UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(new AdminGateFilter(adminApiKey),
+                    JwtAuthFilter.class)
             .addFilterAfter(auditLog, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -187,7 +188,7 @@ public class SecurityConfig {
 
             // JWT path: a signed-in admin user passes through.
             Object role = req.getAttribute("authUserRole");
-            if ("admin".equals(role)) {
+            if (role != null && "admin".equalsIgnoreCase(String.valueOf(role))) {
                 chain.doFilter(req, res);
                 return;
             }
