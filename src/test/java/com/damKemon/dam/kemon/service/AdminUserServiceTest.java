@@ -1,6 +1,7 @@
 package com.damKemon.dam.kemon.service;
 
 import com.damKemon.dam.kemon.model.User;
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -34,5 +35,12 @@ class AdminUserServiceTest {
         assertFalse(safe.containsKey("googleSub"));
         assertFalse(safe.containsKey("verifyToken"));
         assertFalse(safe.containsKey("resetToken"));
+    }
+
+    @Test
+    void normalizesMongoAndStringUserIdsForActivationJoins() {
+        ObjectId id = new ObjectId();
+        assertEquals(id.toHexString(), AdminUserService.idString(id));
+        assertEquals("u1", AdminUserService.idString("u1"));
     }
 }

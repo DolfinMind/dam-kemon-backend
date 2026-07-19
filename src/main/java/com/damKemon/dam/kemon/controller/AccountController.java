@@ -241,25 +241,30 @@ public class AccountController {
     }
 
     @PostMapping("/wishlist")
-    public ResponseEntity<?> addToWishlist(@RequestBody Map<String, String> body, HttpServletRequest req) {
+    public ResponseEntity<?> addToWishlist(@RequestBody Map<String, Object> body, HttpServletRequest req) {
         String userId = requireUserId(req);
         if (userId == null) return unauthorised();
-        String productId = body == null ? null : body.get("productId");
+        String productId = body == null ? null : asString(body.get("productId"));
         if (productId == null || productId.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "productId required"));
         }
         try {
             Optional<WishlistItem> existing = wishlist.findByUserIdAndProductId(userId, productId);
-            if (existing.isPresent()) return ResponseEntity.ok(existing.get());
+            if (existing.isPresent()) {
+                WishlistItem item = existing.get();
+                if (Boolean.TRUE.equals(body.get("alertsEnabled")) && !Boolean.TRUE.equals(item.getAlertsEnabled())) {
+                    item.setAlertsEnabled(true);
+                    item = wishlist.save(item);
+                }
+                return ResponseEntity.ok(item);
+            }
 
             Product p = products.findById(productId).orElse(null);
             WishlistItem w = WishlistItem.builder()
                     .userId(userId)
                     .productId(productId)
                     .priceAtAdd(p == null ? null : p.getLowestPrice())
-                    // Alerts ON by default — a null flag made the scheduler skip
-                    // every wishlisted product, so alerts never fired for anyone.
-                    .alertsEnabled(true)
+                    .alertsEnabled(Boolean.TRUE.equals(body.get("alertsEnabled")))
                     .notifyChannel("email")
                     .addedAt(LocalDateTime.now())
                     .build();

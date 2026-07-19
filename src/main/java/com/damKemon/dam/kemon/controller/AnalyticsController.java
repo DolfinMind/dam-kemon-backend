@@ -15,18 +15,25 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Public, anonymous, fire-and-forget analytics ingestion. Each endpoint
+ * Public, fire-and-forget analytics ingestion. Each endpoint
  * accepts a small JSON body, writes the event asynchronously, and returns
  * 204 immediately so the client (often a {@code sendBeacon}) doesn't block.
  *
- * <p>No-PII contract: only an anon UUID from {@code localStorage} ever ties
- * events together. The server hashes the IP and discards the raw value.
+ * <p>No-PII payload contract: an anon UUID ties guest events together and the
+ * auth filter can attach a user ID to signed-in events. The server hashes the
+ * IP and discards the raw value.
  */
 @RestController
 @RequestMapping("/api/events")
 public class AnalyticsController {
+
+    private static final Set<String> ACTION_TYPES = Set.of(
+            "member_intent_save", "member_intent_track", "auth_success",
+            "member_action_completed_save", "member_action_completed_track",
+            "saved_search_created");
 
     private final AnalyticsService analytics;
     private final AdminAnalyticsService adminAnalytics;
@@ -90,6 +97,18 @@ public class AnalyticsController {
                 userId,
                 asString(body.get("referer")),
                 req.getHeader("User-Agent"));
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Small, bounded conversion events that connect anonymous intent to member value. */
+    @PostMapping("/action")
+    public ResponseEntity<Void> action(@RequestBody Map<String, Object> body,
+                                       HttpServletRequest req) {
+        String type = asString(body.get("type"));
+        if (!ACTION_TYPES.contains(type)) return ResponseEntity.badRequest().build();
+        analytics.recordAction(type, asString(body.get("productId")),
+                asString(body.get("anonId")), ClientIp.of(req),
+                asString(req.getAttribute("authUserId")));
         return ResponseEntity.noContent().build();
     }
 

@@ -160,6 +160,20 @@ public class AnalyticsService {
                 .build());
     }
 
+    /** Explicit conversion action; endpoint-level allowlisting keeps type cardinality bounded. */
+    @Async
+    public void recordAction(String type, String productId, String anonId, String ip, String userId) {
+        save(AnalyticsEvent.builder()
+                .type(safe(type))
+                .productId(safe(productId))
+                .anonId(safe(anonId))
+                .userId(safe(userId))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
+                .ts(Instant.now())
+                .build());
+    }
+
     private void save(AnalyticsEvent e) {
         try { repo.save(e); }
         catch (DataAccessException ex) { log.debug("analytics save dropped: {}", ex.getMessage()); }

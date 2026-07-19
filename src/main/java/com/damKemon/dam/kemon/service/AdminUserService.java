@@ -6,6 +6,7 @@ import com.damKemon.dam.kemon.model.User;
 import com.damKemon.dam.kemon.repository.UserRepository;
 import com.mongodb.client.MongoCollection;
 import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -28,8 +29,10 @@ import java.util.regex.Pattern;
 @Service
 public class AdminUserService {
 
-    // List, not Set: the driver's $in encodes a List unambiguously across codec registries.
-    private static final List<String> ACTIVATION_EVENTS = List.of("search", "view", "click", "suggest_click");
+    // Lists, not Sets: the driver's $in encodes a List unambiguously across codec registries.
+    private static final List<String> ACTIVE_EVENTS = List.of("search", "view", "click", "suggest_click");
+    private static final List<String> ACTIVATION_EVENTS = List.of(
+            "member_action_completed_save", "member_action_completed_track", "saved_search_created");
 
     private final MongoTemplate mongo;
     private final UserRepository users;
@@ -89,7 +92,7 @@ public class AdminUserService {
 
         Document activeFilter = new Document("ts", new Document("$gte", since))
                 .append("userId", new Document("$ne", null))
-                .append("type", new Document("$in", ACTIVATION_EVENTS));
+                .append("type", new Document("$in", ACTIVE_EVENTS));
         Set<String> activeUsers = distinct("events", "userId", activeFilter);
         activeUsers.addAll(distinct("request_log", "userId", new Document("ts", new Document("$gte", since))
                 .append("userId", new Document("$ne", null))
@@ -99,7 +102,14 @@ public class AdminUserService {
         // last distinct command in the method and the remaining 500 path.
         Set<String> registeredUsers = distinct("users", "_id", new Document("role", new Document("$ne", "admin")));
         activeUsers.retainAll(registeredUsers);
-        long activated = newUserIds.stream().filter(activeUsers::contains).count();
+        Set<String> activatedUsers = distinct("events", "userId", new Document("ts", new Document("$gte", since))
+                .append("userId", new Document("$ne", null))
+                .append("type", new Document("$in", ACTIVATION_EVENTS)));
+        // Source-of-truth rows cover actions created before explicit conversion events shipped.
+        activatedUsers.addAll(distinct("wishlist", "userId", new Document()));
+        activatedUsers.addAll(distinct("saved_searches", "userId", new Document()));
+        activatedUsers.retainAll(registeredUsers);
+        long activated = newUserIds.stream().filter(activatedUsers::contains).count();
         long googleSignups = newUsers.stream().filter(u -> "google".equalsIgnoreCase(u.getSignupSource())).count();
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -202,9 +212,16 @@ public class AdminUserService {
                 new Document("$match", filter),
                 new Document("$group", new Document("_id", "$" + field)));
         for (Document doc : collection(collection).aggregate(pipeline).allowDiskUse(true)) {
-            if (doc.get("_id") instanceof String value && !value.isBlank()) values.add(value);
+            String value = idString(doc.get("_id"));
+            if (value != null && !value.isBlank()) values.add(value);
         }
         return values;
+    }
+
+    static String idString(Object value) {
+        if (value instanceof String string) return string;
+        if (value instanceof ObjectId objectId) return objectId.toHexString();
+        return null;
     }
 
     private long count(String collection, String field, String id) {
@@ -272,6 +289,12 @@ public class AdminUserService {
             case "click" -> "Clicked through to " + value(event.getSellerSlug(), "a shop");
             case "suggest_click" -> "Selected “" + value(event.getProductName(), "a search suggestion") + "”";
             case "pageview" -> "Visited " + value(event.getPath(), "a page");
+            case "member_intent_save" -> "Started saving a product";
+            case "member_intent_track" -> "Started tracking a price";
+            case "auth_success" -> "Completed authentication";
+            case "member_action_completed_save" -> "Saved a product";
+            case "member_action_completed_track" -> "Enabled a price alert";
+            case "saved_search_created" -> "Saved a search";
             default -> type.replace('_', ' ');
         };
     }

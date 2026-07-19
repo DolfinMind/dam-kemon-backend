@@ -16,9 +16,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * The anonymous teaser gate: capped offer list, masked cheapest seller,
- * member-only history, review teaser. Signed-in state = the "authUserId"
- * request attribute stamped by JwtAuthFilter.
+ * Core comparison proof stays public; accounts are only required for
+ * persistent actions such as saving and tracking.
  */
 class ProductControllerGateTest {
 
@@ -59,22 +58,14 @@ class ProductControllerGateTest {
     }
 
     @Test
-    void anonymousGetsFourOffersWithCheapestMasked() {
+    void anonymousGetsTheFullNamedComparison() {
         var resp = controller(sixSellerProduct(), List.of()).getProductById("p1", anonReq());
 
         Product body = resp.getBody();
         assertNotNull(body);
-        assertEquals(4, body.getPrices().size(), "anon sees only the 4 cheapest sellers");
-        assertEquals(6, body.getTotalSellerCount(), "true distinct-seller count still travels");
-
-        SitePrice best = body.getPrices().get(0);
-        assertEquals(Boolean.TRUE, best.getLocked());
-        assertEquals(80.0, best.getPrice(), "the TRUE lowest price stays visible");
-        assertNull(best.getSiteName(), "shop identity is stripped");
-        assertNull(best.getSiteSlug());
-        assertNull(best.getProductUrl(), "no buy link on the locked offer");
-
-        assertNotNull(body.getPrices().get(1).getSiteName(), "runner-up offers keep identity");
+        assertEquals(7, body.getPrices().size());
+        assertTrue(body.getPrices().stream().allMatch(sp -> sp.getSiteName() != null));
+        assertTrue(body.getPrices().stream().allMatch(sp -> sp.getProductUrl() != null));
     }
 
     @Test
@@ -89,21 +80,21 @@ class ProductControllerGateTest {
     }
 
     @Test
-    void historyIsMemberOnly() {
+    void historyIsPublic() {
         ProductController c = controller(sixSellerProduct(), List.of());
-        assertEquals(401, c.getPriceHistory("p1", anonReq()).getStatusCode().value());
-        assertEquals(401, c.getDailyPriceHistory("p1", 30, anonReq()).getStatusCode().value());
+        assertEquals(200, c.getPriceHistory("p1", anonReq()).getStatusCode().value());
+        assertEquals(200, c.getDailyPriceHistory("p1", 30, anonReq()).getStatusCode().value());
         assertEquals(200, c.getPriceHistory("p1", userReq()).getStatusCode().value());
         assertEquals(200, c.getDailyPriceHistory("p1", 30, userReq()).getStatusCode().value());
     }
 
     @Test
-    void anonymousReviewsCappedAtThreeWithTrueCountHeader() {
+    void reviewsArePublicWithTrueCountHeader() {
         List<Review> five = List.of(new Review(), new Review(), new Review(), new Review(), new Review());
         ProductController c = controller(sixSellerProduct(), five);
 
         var anon = c.getReviews("p1", anonReq());
-        assertEquals(3, anon.getBody().size());
+        assertEquals(5, anon.getBody().size());
         assertEquals("5", anon.getHeaders().getFirst("X-Total-Reviews"));
 
         var member = c.getReviews("p1", userReq());
