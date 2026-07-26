@@ -3,6 +3,7 @@ package com.damKemon.dam.kemon.service;
 import com.damKemon.dam.kemon.model.AnalyticsEvent;
 import com.damKemon.dam.kemon.repository.AnalyticsEventRepository;
 import com.damKemon.dam.kemon.util.ClientIp;
+import com.damKemon.dam.kemon.util.TrafficClassifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,12 +40,13 @@ public class AnalyticsService {
 
     @Async
     public void recordSearch(String query, int resultCount, String anonId, String ip) {
-        recordSearch(query, resultCount, anonId, ip, null, null, null);
+        recordSearch(query, resultCount, anonId, ip, null, null, null, null);
     }
 
     @Async
     public void recordSearch(String query, int resultCount, String anonId, String ip,
-                             String userId, Long latencyMs, java.util.List<String> resultShops) {
+                             String userId, Long latencyMs, java.util.List<String> resultShops,
+                             String userAgent) {
         if (query == null) return;
         String q = query.trim();
         if (q.isEmpty()) return;
@@ -59,17 +61,18 @@ public class AnalyticsService {
                 .latencyMs(latencyMs)
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
     }
 
     @Async
     public void recordView(String productId, String anonId, String ip) {
-        recordView(productId, anonId, ip, null);
+        recordView(productId, anonId, ip, null, null);
     }
 
     @Async
-    public void recordView(String productId, String anonId, String ip, String userId) {
+    public void recordView(String productId, String anonId, String ip, String userId, String userAgent) {
         if (productId == null || productId.isBlank()) return;
         save(AnalyticsEvent.builder()
                 .type("view")
@@ -78,17 +81,19 @@ public class AnalyticsService {
                 .userId(safe(userId))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
     }
 
     @Async
     public void recordClick(String productId, String sellerSlug, String anonId, String ip) {
-        recordClick(productId, sellerSlug, anonId, ip, null);
+        recordClick(productId, sellerSlug, anonId, ip, null, null);
     }
 
     @Async
-    public void recordClick(String productId, String sellerSlug, String anonId, String ip, String userId) {
+    public void recordClick(String productId, String sellerSlug, String anonId, String ip,
+                            String userId, String userAgent) {
         if (productId == null && sellerSlug == null) return;
         save(AnalyticsEvent.builder()
                 .type("click")
@@ -98,6 +103,7 @@ public class AnalyticsService {
                 .userId(safe(userId))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
     }
@@ -107,12 +113,12 @@ public class AnalyticsService {
     @Async
     public void recordSuggestClick(String query, String productId, String productName,
                                    String anonId, String ip) {
-        recordSuggestClick(query, productId, productName, anonId, ip, null);
+        recordSuggestClick(query, productId, productName, anonId, ip, null, null);
     }
 
     @Async
     public void recordSuggestClick(String query, String productId, String productName,
-                                   String anonId, String ip, String userId) {
+                                   String anonId, String ip, String userId, String userAgent) {
         if (productId == null && productName == null) return;
         String q = query == null ? null : query.trim().toLowerCase();
         if (q != null && q.length() > MAX_QUERY_LEN) q = q.substring(0, MAX_QUERY_LEN);
@@ -125,6 +131,7 @@ public class AnalyticsService {
                 .userId(safe(userId))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
     }
@@ -145,6 +152,7 @@ public class AnalyticsService {
                 .userAgent(safe256(userAgent))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
     }
@@ -162,7 +170,8 @@ public class AnalyticsService {
 
     /** Explicit conversion action; endpoint-level allowlisting keeps type cardinality bounded. */
     @Async
-    public void recordAction(String type, String productId, String anonId, String ip, String userId) {
+    public void recordAction(String type, String productId, String anonId, String ip,
+                             String userId, String userAgent) {
         save(AnalyticsEvent.builder()
                 .type(safe(type))
                 .productId(safe(productId))
@@ -170,6 +179,7 @@ public class AnalyticsService {
                 .userId(safe(userId))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
     }

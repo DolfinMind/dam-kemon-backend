@@ -6,9 +6,12 @@ import com.damKemon.dam.kemon.model.SitePrice;
 import com.damKemon.dam.kemon.repository.AffiliateClickRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.service.AffiliateService;
+import com.damKemon.dam.kemon.util.ClientIp;
+import com.damKemon.dam.kemon.util.TrafficClassifier;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,13 +40,16 @@ public class AffiliateController {
     private final ProductRepository products;
     private final AffiliateClickRepository clicks;
     private final AffiliateService affiliate;
+    private final boolean storeRawIp;
 
     public AffiliateController(ProductRepository products,
                                AffiliateClickRepository clicks,
-                               AffiliateService affiliate) {
+                               AffiliateService affiliate,
+                               @Value("${analytics.store-raw-ip:false}") boolean storeRawIp) {
         this.products = products;
         this.clicks = clicks;
         this.affiliate = affiliate;
+        this.storeRawIp = storeRawIp;
     }
 
     @GetMapping("/{productId}")
@@ -65,6 +71,8 @@ public class AffiliateController {
 
         String clickId = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         String outbound = affiliate.decorate(chosen.getProductUrl(), chosen.getSiteSlug(), clickId);
+        String ip = ClientIp.of(req);
+        String userAgent = req.getHeader("User-Agent");
 
         try {
             clicks.save(AffiliateClick.builder()
@@ -77,8 +85,10 @@ public class AffiliateController {
                     .clickId(clickId)
                     .fromQuery(fromQuery)
                     .referer(req.getHeader("Referer"))
-                    .userAgent(req.getHeader("User-Agent"))
-                    .ip(clientIp(req))
+                    .userAgent(userAgent)
+                    .trafficClass(TrafficClassifier.classify(userAgent, ip))
+                    .ip(storeRawIp ? ip : null)
+                    .ipHash(ClientIp.hash(ip))
                     .outboundUrl(outbound)
                     .ts(Instant.now())
                     .build());
@@ -121,15 +131,6 @@ public class AffiliateController {
     }
 
     private static String asString(Object v) { return v == null ? null : v.toString(); }
-
-    private static String clientIp(HttpServletRequest req) {
-        String fwd = req.getHeader("X-Forwarded-For");
-        if (fwd != null && !fwd.isBlank()) {
-            int comma = fwd.indexOf(',');
-            return (comma < 0 ? fwd : fwd.substring(0, comma)).trim();
-        }
-        return req.getRemoteAddr();
-    }
 
     @SuppressWarnings("unused")
     private static URI safeUri(String s) {

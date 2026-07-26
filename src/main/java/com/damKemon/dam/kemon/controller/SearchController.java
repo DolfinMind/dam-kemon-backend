@@ -5,6 +5,7 @@ import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.SitePrice;
 import com.damKemon.dam.kemon.service.AnalyticsService;
 import com.damKemon.dam.kemon.service.CatalogSearchService;
+import com.damKemon.dam.kemon.util.ClientIp;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -45,7 +46,8 @@ public class SearchController {
         String userId = (String) req.getAttribute("authUserId");
         analytics.recordSearch(query,
                 resp.getTotalResults() == null ? 0 : resp.getTotalResults(),
-                anonId, clientIp(req), userId, latencyMs, resultShops(resp));
+                anonId, ClientIp.of(req), userId, latencyMs, resultShops(resp),
+                req.getHeader("User-Agent"));
         return ResponseEntity.ok(resp);
     }
 
@@ -77,14 +79,5 @@ public class SearchController {
             @RequestParam("q") String prefix,
             @RequestParam(value = "limit", defaultValue = "8") int limit) {
         return ResponseEntity.ok(catalog.autocomplete(prefix, limit));
-    }
-
-    private static String clientIp(HttpServletRequest req) {
-        String fwd = req.getHeader("X-Forwarded-For");
-        if (fwd != null && !fwd.isBlank()) {
-            int comma = fwd.indexOf(',');
-            return (comma < 0 ? fwd : fwd.substring(0, comma)).trim();
-        }
-        return req.getRemoteAddr();
     }
 }

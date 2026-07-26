@@ -189,6 +189,8 @@ admin:
 analytics:
   store-raw-ip: ${ANALYTICS_STORE_RAW_IP:false}
   timezone: ${ANALYTICS_TIMEZONE:Asia/Dhaka}
+  clean-traffic:
+    enabled: ${ANALYTICS_CLEAN_TRAFFIC_ENABLED:true}
 
 # Start disabled until staging confirms price freshness and Resend delivery.
 price-alerts:

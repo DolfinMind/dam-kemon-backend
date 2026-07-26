@@ -24,6 +24,7 @@ class SearchControllerTest {
         HttpServletRequest req = mock(HttpServletRequest.class);
         when(req.getRemoteAddr()).thenReturn("203.0.113.5");
         when(req.getAttribute("authUserId")).thenReturn("user-7");
+        when(req.getHeader("User-Agent")).thenReturn("Mozilla/5.0 Chrome/126");
 
         SearchController ctrl = new SearchController(catalog, analytics);
         var resp = ctrl.search("iphone", 0, null, false, null, null, null, "anon-id-123", req);
@@ -35,7 +36,8 @@ class SearchControllerTest {
         ArgumentCaptor<String> ipCap = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Long> latencyCap = ArgumentCaptor.forClass(Long.class);
         verify(analytics).recordSearch(eq("iphone"), eq(12), eq("anon-id-123"),
-                ipCap.capture(), eq("user-7"), latencyCap.capture(), anyList());
+                ipCap.capture(), eq("user-7"), latencyCap.capture(), anyList(),
+                eq("Mozilla/5.0 Chrome/126"));
         assertEquals("203.0.113.5", ipCap.getValue());
         // latency should be a small non-negative number for a mocked call
         assertNotNull(latencyCap.getValue());
@@ -54,6 +56,6 @@ class SearchControllerTest {
         ctrl.search("x", 0, null, false, null, null, null, null, req);
 
         verify(analytics).recordSearch(eq("x"), eq(0), eq(null), eq("1.2.3.4"),
-                eq(null), org.mockito.ArgumentMatchers.anyLong(), anyList());
+                eq(null), org.mockito.ArgumentMatchers.anyLong(), anyList(), eq(null));
     }
 }

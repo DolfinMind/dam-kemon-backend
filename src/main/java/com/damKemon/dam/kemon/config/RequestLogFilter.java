@@ -3,6 +3,7 @@ package com.damKemon.dam.kemon.config;
 import com.damKemon.dam.kemon.model.RequestLog;
 import com.damKemon.dam.kemon.service.RequestLogService;
 import com.damKemon.dam.kemon.util.ClientIp;
+import com.damKemon.dam.kemon.util.TrafficClassifier;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -83,6 +84,7 @@ public class RequestLogFilter extends OncePerRequestFilter {
                 .userId(userId == null ? null : String.valueOf(userId))
                 .anonId(trim(req.getHeader("X-Anon-Id"), 64))
                 .userAgent(trim(req.getHeader("User-Agent"), 256))
+                .trafficClass(TrafficClassifier.classify(req.getHeader("User-Agent"), ip))
                 .referer(trim(req.getHeader("Referer"), 256))
                 .ts(Instant.now())
                 .build());

@@ -51,7 +51,9 @@ public class AffiliateClick {
     private String fromQuery;   // search query that led here (for attribution analytics)
     private String referer;
     private String userAgent;
+    private String trafficClass;
     private String ip;
+    private String ipHash;
     private String outboundUrl; // final URL we 302'd to (incl. ref code)
 
     @Indexed

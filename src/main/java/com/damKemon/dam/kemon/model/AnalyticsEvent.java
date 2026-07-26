@@ -88,6 +88,9 @@ public class AnalyticsEvent {
     /** Client User-Agent (truncated). Lets the operator break traffic down by device/bot. */
     private String userAgent;
 
+    /** Ingestion-time classification; legacy rows without it are unclassified. */
+    private String trafficClass;
+
     /** Referring URL for a page view, when the browser sends one. */
     private String referer;
 

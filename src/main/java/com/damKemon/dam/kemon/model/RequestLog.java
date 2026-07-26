@@ -60,6 +60,9 @@ public class RequestLog {
 
     private String userAgent;
 
+    /** Ingestion-time classification; raw request evidence need not be retained. */
+    private String trafficClass;
+
     private String referer;
 
     /** Event timestamp. TTL: 30 days. */

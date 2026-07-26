@@ -31,12 +31,13 @@ class AnalyticsControllerActionTest {
         assertEquals(204, controller.action(Map.of(
                 "type", "member_action_completed_track", "productId", "p1", "anonId", "a1"), req)
                 .getStatusCode().value());
-        verify(analytics).recordAction(eq("member_action_completed_track"), eq("p1"), eq("a1"), nullable(String.class), eq("u1"));
+        verify(analytics).recordAction(eq("member_action_completed_track"), eq("p1"), eq("a1"),
+                nullable(String.class), eq("u1"), nullable(String.class));
 
         assertEquals(204, controller.action(Map.of("type", "alert_target_set", "productId", "p1", "anonId", "a1"), req)
                 .getStatusCode().value());
 
         assertEquals(400, controller.action(Map.of("type", "anything_goes"), req).getStatusCode().value());
-        verify(analytics, never()).recordAction(eq("anything_goes"), any(), any(), any(), any());
+        verify(analytics, never()).recordAction(eq("anything_goes"), any(), any(), any(), any(), any());
     }
 }

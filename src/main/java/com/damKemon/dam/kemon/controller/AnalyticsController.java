@@ -52,7 +52,7 @@ public class AnalyticsController {
     public ResponseEntity<Void> view(@RequestBody Map<String, Object> body,
                                      HttpServletRequest req) {
         analytics.recordView(asString(body.get("productId")), asString(body.get("anonId")), ClientIp.of(req),
-                asString(req.getAttribute("authUserId")));
+                asString(req.getAttribute("authUserId")), req.getHeader("User-Agent"));
         return ResponseEntity.noContent().build();
     }
 
@@ -64,7 +64,8 @@ public class AnalyticsController {
                 asString(body.get("sellerSlug")),
                 asString(body.get("anonId")),
                 ClientIp.of(req),
-                asString(req.getAttribute("authUserId")));
+                asString(req.getAttribute("authUserId")),
+                req.getHeader("User-Agent"));
         return ResponseEntity.noContent().build();
     }
 
@@ -78,7 +79,8 @@ public class AnalyticsController {
                 asString(body.get("productName")),
                 asString(body.get("anonId")),
                 ClientIp.of(req),
-                asString(req.getAttribute("authUserId")));
+                asString(req.getAttribute("authUserId")),
+                req.getHeader("User-Agent"));
         return ResponseEntity.noContent().build();
     }
 
@@ -108,7 +110,7 @@ public class AnalyticsController {
         if (!ACTION_TYPES.contains(type)) return ResponseEntity.badRequest().build();
         analytics.recordAction(type, asString(body.get("productId")),
                 asString(body.get("anonId")), ClientIp.of(req),
-                asString(req.getAttribute("authUserId")));
+                asString(req.getAttribute("authUserId")), req.getHeader("User-Agent"));
         return ResponseEntity.noContent().build();
     }
 

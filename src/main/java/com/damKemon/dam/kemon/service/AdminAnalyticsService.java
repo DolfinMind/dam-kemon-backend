@@ -2,6 +2,7 @@ package com.damKemon.dam.kemon.service;
 
 import com.damKemon.dam.kemon.model.RequestLog;
 import com.damKemon.dam.kemon.repository.RequestLogRepository;
+import com.damKemon.dam.kemon.util.TrafficClassifier;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -68,49 +69,18 @@ public class AdminAnalyticsService {
     private static final String CLICKS = "affiliate_clicks";
     private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
 
-    /**
-     * One bot definition for the whole admin: every human-facing traffic number
-     * excludes user-agents matching this (Googlebot post-sitemap-submit was
-     * inflating "active now" to 70+ while real visitors sat at 8). Bots stay
-     * fully visible where they're the point: topIps, topPaths, recentRequests
-     * and the device breakdown's "bot" bucket. Rows with NO user-agent pass as
-     * human — real browsers always send one.
-     */
-    private static final java.util.regex.Pattern BOT_UA = java.util.regex.Pattern.compile(
-            "bot|spider|crawl|curl|python|wget|scrapy|headless|phantom|slurp"
-                    + "|facebookexternalhit|whatsapp|telegram|axios|okhttp|httpclient"
-                    + "|java/|go-http|node-fetch|uptime|pingdom|monitor|lighthouse|pagespeed",
-            java.util.regex.Pattern.CASE_INSENSITIVE);
-
-    /**
-     * Googlebot's page RENDERER fires the SPA's API calls with a plain Chrome
-     * UA — the {@code Googlebot/2.1} token only appears on its direct fetches.
-     * Its crawl IP range is the only reliable tell (observed 2026-07-11: 23k
-     * requests/day from 24 IPs in 66.249.0.0/16, each render minting a fresh
-     * anonId). Null ip passes as human.
-     */
-    private static final java.util.regex.Pattern CRAWLER_IP =
-            java.util.regex.Pattern.compile("^66\\.249\\.");
-
-    /** AND a human-only (non-bot user-agent, non-crawler IP) clause onto {@code c}. */
-    private static Criteria human(Criteria c) {
-        return c.and("userAgent").not().regex(BOT_UA)
-                .and("ip").not().regex(CRAWLER_IP);
-    }
-
-    static boolean isBotUa(String ua) {
-        return ua != null && BOT_UA.matcher(ua).find();
-    }
-
     private final MongoTemplate mongo;
     private final RequestLogRepository requestLog;
     private final ZoneId zone;
     private final Timezone tz;
+    private final boolean cleanTrafficEnabled;
 
     public AdminAnalyticsService(MongoTemplate mongo, RequestLogRepository requestLog,
-                                 @Value("${analytics.timezone:Asia/Dhaka}") String timezone) {
+                                 @Value("${analytics.timezone:Asia/Dhaka}") String timezone,
+                                 @Value("${analytics.clean-traffic.enabled:true}") boolean cleanTrafficEnabled) {
         this.mongo = mongo;
         this.requestLog = requestLog;
+        this.cleanTrafficEnabled = cleanTrafficEnabled;
         ZoneId z;
         try { z = ZoneId.of(timezone); } catch (Exception e) { z = ZoneId.of("Asia/Dhaka"); }
         this.zone = z;
@@ -129,14 +99,29 @@ public class AdminAnalyticsService {
             Instant fiveMin = now.minus(5, ChronoUnit.MINUTES);
 
             out.put("searchesToday", mongo.count(query(human(where("type").is("search").and("ts").gte(dayStart))), EVENTS));
-            out.put("pageViewsToday", mongo.count(query(human(where("type").is("pageview").and("ts").gte(dayStart))), EVENTS));
+            out.put("uniqueSearchersToday", distinctVisitors(EVENTS,
+                    human(where("type").is("search").and("ts").gte(dayStart))));
+            Criteria humanPageViewsToday = human(publicPageView(where("ts").gte(dayStart)));
+            out.put("pageViewsToday", mongo.count(query(humanPageViewsToday), EVENTS));
             out.put("productViewsToday", mongo.count(query(human(where("type").is("view").and("ts").gte(dayStart))), EVENTS));
             out.put("clicksToday", mongo.count(query(human(where("ts").gte(dayStart))), CLICKS));
-            out.put("visitorsToday", distinctVisitors(EVENTS, human(where("ts").gte(dayStart))));
-            out.put("activeNow", distinctVisitors(EVENTS, human(where("ts").gte(fiveMin))));
+            long likelyHumanVisitors = distinctVisitors(EVENTS, human(publicPageView(where("ts").gte(dayStart))));
+            out.put("likelyHumanVisitorsToday", likelyHumanVisitors);
+            out.put("visitorsToday", likelyHumanVisitors);
+            out.put("knownBotVisitorsToday", distinctVisitors(EVENTS,
+                    publicPageView(where("ts").gte(dayStart).and("trafficClass").is(TrafficClassifier.KNOWN_BOT))));
+            out.put("suspectedBotVisitorsToday", distinctVisitors(EVENTS,
+                    publicPageView(where("ts").gte(dayStart).and("trafficClass").is(TrafficClassifier.SUSPECTED_BOT))));
+            out.put("unclassifiedVisitorsToday", distinctVisitors(EVENTS,
+                    unclassified(publicPageView(where("ts").gte(dayStart)))));
+            out.put("activeNow", distinctVisitors(EVENTS, human(publicPageView(where("ts").gte(fiveMin)))));
             long searchesToday = (long) out.getOrDefault("searchesToday", 0L);
             long clicksToday = (long) out.getOrDefault("clicksToday", 0L);
-            out.put("searchConversionRate", searchesToday == 0 ? 0.0 : Math.round(((double) clicksToday / searchesToday) * 1000.0) / 10.0);
+            double clicksPer100Searches = searchesToday == 0 ? 0.0
+                    : Math.round(((double) clicksToday / searchesToday) * 1000.0) / 10.0;
+            out.put("clicksPer100Searches", clicksPer100Searches);
+            out.put("searchConversionRate", clicksPer100Searches);
+            out.put("cleanTrafficEnabled", cleanTrafficEnabled);
         } catch (Exception e) {
             out.putIfAbsent("searchesToday", 0L);
         }
@@ -218,7 +203,7 @@ public class AdminAnalyticsService {
     public Map<String, Object> hourly(int days) {
         Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
         long[] searches = hourBuckets(EVENTS, human(where("type").is("search").and("ts").gte(cutoff)));
-        long[] pageViews = hourBuckets(EVENTS, human(where("type").is("pageview").and("ts").gte(cutoff)));
+        long[] pageViews = hourBuckets(EVENTS, human(publicPageView(where("ts").gte(cutoff))));
 
         List<Map<String, Object>> buckets = new ArrayList<>(24);
         int peak = 0;
@@ -288,7 +273,7 @@ public class AdminAnalyticsService {
         Instant cutoff = first.atStartOfDay(zone).toInstant();
         Map<String, Long> users = usersByDay(cutoff);
         Map<String, Long> searches = countByDay(EVENTS, human(where("type").is("search").and("ts").gte(cutoff)));
-        Map<String, Long> pageViews = countByDay(EVENTS, human(where("type").is("pageview").and("ts").gte(cutoff)));
+        Map<String, Long> pageViews = countByDay(EVENTS, human(publicPageView(where("ts").gte(cutoff))));
 
         List<Map<String, Object>> out = new ArrayList<>();
         LocalDate today = LocalDate.now(zone);
@@ -304,12 +289,12 @@ public class AdminAnalyticsService {
         return out;
     }
 
-    /** Distinct anon ids per local day. */
+    /** Distinct likely-human public page-view anon ids per local day. */
     private Map<String, Long> usersByDay(Instant cutoff) {
         Map<String, Long> m = new HashMap<>();
         try {
             Aggregation agg = newAggregation(
-                    match(human(where("ts").gte(cutoff).and("anonId").ne(null))),
+                    match(human(publicPageView(where("ts").gte(cutoff).and("anonId").ne(null)))),
                     project("anonId").and(DateOperators.dateOf("ts").withTimezone(tz).toString("%Y-%m-%d")).as("d"),
                     group("d", "anonId"),
                     group("_id.d").count().as("n"));
@@ -397,23 +382,27 @@ public class AdminAnalyticsService {
 
     // ─────────────────────── Devices & referrers (pageviews) ───────────────────
 
-    /**
-     * Device split of page views: mobile / desktop / tablet / bot, plus visitor
-     * uniques per bucket. Classified from the User-Agent recorded on each
-     * pageview event — coarse buckets on purpose, this answers "are my shoppers
-     * on phones?", not "which Chrome build".
-     */
+    /** Public page-view split: likely-human devices plus bot and unclassified traffic. */
     public Map<String, Object> deviceBreakdown(int days) {
         Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
         Map<String, long[]> buckets = new LinkedHashMap<>();   // bucket -> [views, uniques]
-        for (String b : List.of("mobile", "tablet", "desktop", "bot", "unknown"))
+        for (String b : List.of("mobile", "tablet", "desktop", "known_bot",
+                "suspected_bot", "unclassified"))
             buckets.put(b, new long[2]);
         try {
             Aggregation agg = newAggregation(
-                    match(where("type").is("pageview").and("ts").gte(cutoff)),
-                    group("userAgent").count().as("views").addToSet("anonId").as("anonIds"));
+                    match(publicPageView(where("ts").gte(cutoff))),
+                    group("trafficClass", "userAgent").count().as("views").addToSet("anonId").as("anonIds"));
             for (Document d : mongo.aggregate(agg, EVENTS, Document.class)) {
-                String bucket = classifyUa(d.getString("_id"));
+                Document id = d.get("_id") instanceof Document value ? value : new Document();
+                String trafficClass = id.getString("trafficClass");
+                String bucket = switch (trafficClass == null ? TrafficClassifier.UNCLASSIFIED : trafficClass) {
+                    case TrafficClassifier.LIKELY_HUMAN -> classifyUa(id.getString("userAgent"));
+                    case TrafficClassifier.KNOWN_BOT -> "known_bot";
+                    case TrafficClassifier.SUSPECTED_BOT -> "suspected_bot";
+                    default -> "unclassified";
+                };
+                if (!buckets.containsKey(bucket)) bucket = "unclassified";
                 long[] acc = buckets.get(bucket);
                 acc[0] += num(d.get("views"));
                 acc[1] += nonNullCount(d.get("anonIds"));
@@ -425,7 +414,7 @@ public class AdminAnalyticsService {
         for (Map.Entry<String, long[]> e : buckets.entrySet()) {
             if (e.getValue()[0] == 0) continue;
             Map<String, Object> row = new LinkedHashMap<>();
-            row.put("device", e.getKey());
+            row.put("device", e.getKey().replace('_', ' '));
             row.put("views", e.getValue()[0]);
             row.put("visitors", e.getValue()[1]);
             row.put("pct", total == 0 ? 0.0 : Math.round(e.getValue()[0] * 1000.0 / total) / 10.0);
@@ -443,7 +432,7 @@ public class AdminAnalyticsService {
         Map<String, long[]> hosts = new HashMap<>();           // host -> [views, uniques]
         try {
             Aggregation agg = newAggregation(
-                    match(human(where("type").is("pageview").and("ts").gte(cutoff))),
+                    match(human(publicPageView(where("ts").gte(cutoff)))),
                     group("referer").count().as("views").addToSet("anonId").as("anonIds"));
             for (Document d : mongo.aggregate(agg, EVENTS, Document.class)) {
                 String host = refererHost(d.getString("_id"));
@@ -467,7 +456,7 @@ public class AdminAnalyticsService {
 
     private static String classifyUa(String ua) {
         if (ua == null || ua.isBlank()) return "unknown";
-        if (isBotUa(ua)) return "bot";
+        if (TrafficClassifier.isKnownBotUa(ua)) return "bot";
         String s = ua.toLowerCase();
         if (s.contains("ipad") || (s.contains("tablet") && !s.contains("mobile"))) return "tablet";
         if (s.contains("mobi") || s.contains("android") || s.contains("iphone")) return "mobile";
@@ -649,6 +638,8 @@ public class AdminAnalyticsService {
             out.put("searchToView", pct(views, searches));
             out.put("viewToClick", pct(clicks, views));
             out.put("searchToClick", pct(clicks, searches));
+            out.put("clicksPer100Views", pct(clicks, views));
+            out.put("clicksPer100Searches", pct(clicks, searches));
         } catch (Exception e) {
             out.put("searches", 0L);
             out.put("productViews", 0L);
@@ -772,13 +763,33 @@ public class AdminAnalyticsService {
         return LocalDate.now(zone).atStartOfDay(zone).toInstant();
     }
 
-    /** Distinct "visitor" = anonId, falling back to ipHash, then "unknown". */
+    /** New rows use the persisted class; the flag gives operations a query-only rollback. */
+    private Criteria human(Criteria c) {
+        if (cleanTrafficEnabled) return c.and("trafficClass").is(TrafficClassifier.LIKELY_HUMAN);
+        return c.and("userAgent").not().regex(TrafficClassifier.knownBotUserAgentPattern())
+                .and("ip").not().regex(TrafficClassifier.suspectedRendererIpPattern());
+    }
+
+    private static Criteria publicPageView(Criteria c) {
+        return c.and("type").is("pageview").and("path").not().regex("^/admin(?:/|$)");
+    }
+
+    private static Criteria unclassified(Criteria c) {
+        return new Criteria().andOperator(c, new Criteria().orOperator(
+                where("trafficClass").is(null),
+                where("trafficClass").is(TrafficClassifier.UNCLASSIFIED)));
+    }
+
+    /** Distinct visitor = anonId, falling back to ipHash; rows with neither are ignored. */
     private long distinctVisitors(String coll, Criteria c) {
         try {
             Aggregation agg = newAggregation(
                     match(c),
+                    match(new Criteria().orOperator(
+                            where("anonId").exists(true).ne(null),
+                            where("ipHash").exists(true).ne(null))),
                     project().and(ConditionalOperators.ifNull("anonId")
-                            .thenValueOf(ConditionalOperators.ifNull("ipHash").then("unknown"))).as("v"),
+                            .thenValueOf("ipHash")).as("v"),
                     group("v"),
                     count().as("n"));
             AggregationResults<Document> r = mongo.aggregate(agg, coll, Document.class);
