@@ -61,6 +61,7 @@ public class AnalyticsService {
                 .latencyMs(latencyMs)
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .userAgent(safe256(userAgent))
                 .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
@@ -81,6 +82,7 @@ public class AnalyticsService {
                 .userId(safe(userId))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .userAgent(safe256(userAgent))
                 .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
@@ -103,6 +105,7 @@ public class AnalyticsService {
                 .userId(safe(userId))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .userAgent(safe256(userAgent))
                 .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
@@ -131,6 +134,7 @@ public class AnalyticsService {
                 .userId(safe(userId))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .userAgent(safe256(userAgent))
                 .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
@@ -179,6 +183,7 @@ public class AnalyticsService {
                 .userId(safe(userId))
                 .ip(rawIp(ip))
                 .ipHash(ClientIp.hash(ip))
+                .userAgent(safe256(userAgent))
                 .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());

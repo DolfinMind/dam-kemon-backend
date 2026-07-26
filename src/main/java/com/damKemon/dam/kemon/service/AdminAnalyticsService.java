@@ -109,9 +109,9 @@ public class AdminAnalyticsService {
             out.put("likelyHumanVisitorsToday", likelyHumanVisitors);
             out.put("visitorsToday", likelyHumanVisitors);
             out.put("knownBotVisitorsToday", distinctVisitors(EVENTS,
-                    publicPageView(where("ts").gte(dayStart).and("trafficClass").is(TrafficClassifier.KNOWN_BOT))));
+                    knownBot(publicPageView(where("ts").gte(dayStart)))));
             out.put("suspectedBotVisitorsToday", distinctVisitors(EVENTS,
-                    publicPageView(where("ts").gte(dayStart).and("trafficClass").is(TrafficClassifier.SUSPECTED_BOT))));
+                    suspectedBot(publicPageView(where("ts").gte(dayStart)))));
             out.put("unclassifiedVisitorsToday", distinctVisitors(EVENTS,
                     unclassified(publicPageView(where("ts").gte(dayStart)))));
             out.put("activeNow", distinctVisitors(EVENTS, human(publicPageView(where("ts").gte(fiveMin)))));
@@ -382,27 +382,19 @@ public class AdminAnalyticsService {
 
     // ─────────────────────── Devices & referrers (pageviews) ───────────────────
 
-    /** Public page-view split: likely-human devices plus bot and unclassified traffic. */
+    /** Device split for likely-human public page views. */
     public Map<String, Object> deviceBreakdown(int days) {
         Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
         Map<String, long[]> buckets = new LinkedHashMap<>();   // bucket -> [views, uniques]
-        for (String b : List.of("mobile", "tablet", "desktop", "known_bot",
-                "suspected_bot", "unclassified"))
+        for (String b : List.of("mobile", "tablet", "desktop", "unknown"))
             buckets.put(b, new long[2]);
         try {
             Aggregation agg = newAggregation(
-                    match(publicPageView(where("ts").gte(cutoff))),
-                    group("trafficClass", "userAgent").count().as("views").addToSet("anonId").as("anonIds"));
+                    match(human(publicPageView(where("ts").gte(cutoff)))),
+                    group("userAgent").count().as("views").addToSet("anonId").as("anonIds"));
             for (Document d : mongo.aggregate(agg, EVENTS, Document.class)) {
-                Document id = d.get("_id") instanceof Document value ? value : new Document();
-                String trafficClass = id.getString("trafficClass");
-                String bucket = switch (trafficClass == null ? TrafficClassifier.UNCLASSIFIED : trafficClass) {
-                    case TrafficClassifier.LIKELY_HUMAN -> classifyUa(id.getString("userAgent"));
-                    case TrafficClassifier.KNOWN_BOT -> "known_bot";
-                    case TrafficClassifier.SUSPECTED_BOT -> "suspected_bot";
-                    default -> "unclassified";
-                };
-                if (!buckets.containsKey(bucket)) bucket = "unclassified";
+                String bucket = classifyUa(d.getString("_id"));
+                if (!buckets.containsKey(bucket)) bucket = "unknown";
                 long[] acc = buckets.get(bucket);
                 acc[0] += num(d.get("views"));
                 acc[1] += nonNullCount(d.get("anonIds"));
@@ -763,9 +755,29 @@ public class AdminAnalyticsService {
         return LocalDate.now(zone).atStartOfDay(zone).toInstant();
     }
 
-    /** New rows use the persisted class; the flag gives operations a query-only rollback. */
+    /**
+     * New rows use their persisted class. Legacy page views are recovered from
+     * their stored user agent/IP, while legacy searches without a user agent
+     * remain visible because the explicit search action is human-intent data.
+     */
     private Criteria human(Criteria c) {
-        if (cleanTrafficEnabled) return c.and("trafficClass").is(TrafficClassifier.LIKELY_HUMAN);
+        if (cleanTrafficEnabled) {
+            Criteria legacyUaHuman = new Criteria().andOperator(
+                    where("trafficClass").is(null),
+                    where("userAgent").regex("\\S"),
+                    where("userAgent").not().regex(TrafficClassifier.knownBotUserAgentPattern()),
+                    where("ip").not().regex(TrafficClassifier.suspectedRendererIpPattern()));
+            Criteria legacySearch = new Criteria().andOperator(
+                    where("trafficClass").is(null),
+                    where("type").is("search"),
+                    new Criteria().orOperator(
+                            where("userAgent").is(null),
+                            where("userAgent").regex("^\\s*$")));
+            return new Criteria().andOperator(c, new Criteria().orOperator(
+                    where("trafficClass").is(TrafficClassifier.LIKELY_HUMAN),
+                    legacyUaHuman,
+                    legacySearch));
+        }
         return c.and("userAgent").not().regex(TrafficClassifier.knownBotUserAgentPattern())
                 .and("ip").not().regex(TrafficClassifier.suspectedRendererIpPattern());
     }
@@ -776,8 +788,29 @@ public class AdminAnalyticsService {
 
     private static Criteria unclassified(Criteria c) {
         return new Criteria().andOperator(c, new Criteria().orOperator(
-                where("trafficClass").is(null),
-                where("trafficClass").is(TrafficClassifier.UNCLASSIFIED)));
+                where("trafficClass").is(TrafficClassifier.UNCLASSIFIED),
+                new Criteria().andOperator(
+                        where("trafficClass").is(null),
+                        new Criteria().orOperator(
+                                where("userAgent").is(null),
+                                where("userAgent").regex("^\\s*$")))));
+    }
+
+    private static Criteria knownBot(Criteria c) {
+        return new Criteria().andOperator(c, new Criteria().orOperator(
+                where("trafficClass").is(TrafficClassifier.KNOWN_BOT),
+                new Criteria().andOperator(
+                        where("trafficClass").is(null),
+                        where("userAgent").regex(TrafficClassifier.knownBotUserAgentPattern()))));
+    }
+
+    private static Criteria suspectedBot(Criteria c) {
+        return new Criteria().andOperator(c, new Criteria().orOperator(
+                where("trafficClass").is(TrafficClassifier.SUSPECTED_BOT),
+                new Criteria().andOperator(
+                        where("trafficClass").is(null),
+                        where("userAgent").not().regex(TrafficClassifier.knownBotUserAgentPattern()),
+                        where("ip").regex(TrafficClassifier.suspectedRendererIpPattern()))));
     }
 
     /** Distinct visitor = anonId, falling back to ipHash; rows with neither are ignored. */
