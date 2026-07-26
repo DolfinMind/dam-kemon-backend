@@ -53,8 +53,10 @@ public class PriceAlertScheduler {
     private final EmailNotifier emailNotifier;
     private final AppRole appRole;
 
-    @Value("${price-alerts.enabled:true}")
+    @Value("${price-alerts.enabled:false}")
     private boolean enabled;
+    @Value("${price-alerts.max-age-hours:30}")
+    private int maxAgeHours;
 
     public PriceAlertScheduler(WishlistItemRepository wishlist,
                                ProductRepository products,
@@ -75,6 +77,7 @@ public class PriceAlertScheduler {
         // Web role only: this cron used to fire on BOTH JVMs (web + worker),
         // double-scanning every hour — the 24h debounce hid most of it.
         if (!enabled || !appRole.isWeb()) return;
+        retryDueAlerts();
         long t0 = System.nanoTime();
         int scanned = 0, fired = 0;
         try {
@@ -95,7 +98,8 @@ public class PriceAlertScheduler {
         if (w.getProductId() == null || w.getUserId() == null) return false;
 
         Product p = products.findById(w.getProductId()).orElse(null);
-        if (p == null || p.getLowestPrice() == null) return false;
+        if (p == null || p.getLowestPrice() == null || p.getLastScraped() == null
+                || p.getLastScraped().isBefore(LocalDateTime.now().minusHours(maxAgeHours))) return false;
 
         double current = p.getLowestPrice();
         Double prevSeen = w.getLastSeenLowest() != null ? w.getLastSeenLowest() : w.getPriceAtAdd();
@@ -116,8 +120,8 @@ public class PriceAlertScheduler {
 
         // Debounce: skip if we fired in the last 72h
         LocalDateTime since = LocalDateTime.now().minusHours(72);
-        if (!notifications.findByUserIdAndProductIdAndCreatedAtAfter(
-                w.getUserId(), w.getProductId(), since).isEmpty()) {
+        if (notifications.findByUserIdAndProductIdAndCreatedAtAfter(w.getUserId(), w.getProductId(), since)
+                .stream().anyMatch(n -> "accepted".equals(n.getDeliveryState()) || "inapp".equals(n.getDeliveryState()))) {
             return false;
         }
 
@@ -126,6 +130,12 @@ public class PriceAlertScheduler {
         if (lastNotifiedPrice != null && current > lastNotifiedPrice * (1 - RE_ALERT_FLOOR_PCT)) {
             return false;
         }
+
+        Optional<User> user = users.findById(w.getUserId());
+        String channel = w.getNotifyChannel() == null ? "email" : w.getNotifyChannel();
+        boolean emailable = user.isPresent() && user.get().getEmail() != null && Boolean.TRUE.equals(user.get().getEmailVerified());
+        // Verification is required for the promised email and must not consume this crossing.
+        if ("email".equals(channel) && !emailable) return false;
 
         PriceAlertNotification note = PriceAlertNotification.builder()
                 .userId(w.getUserId())
@@ -136,31 +146,55 @@ public class PriceAlertScheduler {
                 .previousPrice(prevSeen)
                 .currentPrice(current)
                 .reason(hitTarget ? "hit_target" : "drop_pct")
+                .deliveryKey(w.getUserId() + ":" + p.getId() + ":" + Math.round(current * 100) + ":" + (hitTarget ? "target" : "drop"))
+                .deliveryState("pending")
+                .deliveryAttempts(0)
+                .nextDeliveryAttemptAt(LocalDateTime.now())
                 .unread(true)
                 .createdAt(LocalDateTime.now())
                 .build();
+        try { note = notifications.save(note); }
+        catch (org.springframework.dao.DuplicateKeyException duplicate) { return false; }
+        if ("email".equals(channel)) {
+            boolean accepted = emailNotifier.sendPriceDropAlert(user.get().getEmail(), p, w, current, note.getDeliveryKey());
+            note.setSentVia(accepted ? "email" : "failed");
+            note.setDeliveryAttempts(1);
+            note.setDeliveryState(accepted ? "accepted" : "failed");
+            note.setNextDeliveryAttemptAt(accepted ? null : LocalDateTime.now().plusHours(1));
+            notifications.save(note);
+            if (!accepted) return false;
+        } else { note.setSentVia("inapp"); note.setDeliveryState("inapp"); notifications.save(note); }
+        w.setLastNotifiedAt(LocalDateTime.now()); w.setLastSeenLowest(current); safeSave(w); return true;
+    }
 
-        Optional<User> user = users.findById(w.getUserId());
-        String channel = w.getNotifyChannel() == null ? "email" : w.getNotifyChannel();
-        // Email only to proven inboxes: explicit false = fresh signup that never
-        // clicked the verify link. Null (owner/legacy rows) counts as verified.
-        boolean emailable = user.isPresent() && user.get().getEmail() != null
-                && !Boolean.FALSE.equals(user.get().getEmailVerified());
-        if ("email".equals(channel) && emailable) {
-            emailNotifier.sendPriceDropAlert(user.get().getEmail(), p, w, current);
-            note.setSentVia("email");
-        } else {
-            note.setSentVia("inapp");
+    private void retryDueAlerts() {
+        for (PriceAlertNotification n : notifications.findTop100ByDeliveryStateInAndNextDeliveryAttemptAtLessThanEqualOrderByCreatedAtAsc(
+                java.util.List.of("failed", "pending"), LocalDateTime.now())) {
+            if (n.getDeliveryAttempts() != null && n.getDeliveryAttempts() >= 3) {
+                n.setDeliveryState("failed_terminal"); n.setNextDeliveryAttemptAt(null); notifications.save(n); continue;
+            }
+            User u = users.findById(n.getUserId()).orElse(null); Product p = products.findById(n.getProductId()).orElse(null);
+            WishlistItem w = wishlist.findByUserIdAndProductId(n.getUserId(), n.getProductId()).orElse(null);
+            if (u == null || p == null || w == null || !Boolean.TRUE.equals(u.getEmailVerified())
+                    || !Boolean.TRUE.equals(w.getAlertsEnabled()) || (w.getNotifyChannel() != null && !"email".equals(w.getNotifyChannel()))
+                    || p.getLastScraped() == null || p.getLastScraped().isBefore(LocalDateTime.now().minusHours(maxAgeHours))
+                    || !stillQualifies(n, p, w)) {
+                n.setDeliveryState("skipped"); n.setNextDeliveryAttemptAt(null); notifications.save(n); continue;
+            }
+            boolean accepted = emailNotifier.sendPriceDropAlert(u.getEmail(), p, w, n.getCurrentPrice(), n.getDeliveryKey());
+            n.setDeliveryAttempts((n.getDeliveryAttempts() == null ? 0 : n.getDeliveryAttempts()) + 1);
+            n.setDeliveryState(accepted ? "accepted" : (n.getDeliveryAttempts() >= 3 ? "failed_terminal" : "failed"));
+            n.setSentVia(accepted ? "email" : "failed");
+            n.setNextDeliveryAttemptAt(accepted || n.getDeliveryAttempts() >= 3 ? null : LocalDateTime.now().plusHours(1)); notifications.save(n);
+            if (accepted) { w.setLastNotifiedAt(LocalDateTime.now()); safeSave(w); }
         }
+    }
 
-        try { notifications.save(note); } catch (Exception e) {
-            log.warn("Failed to persist notification for {}: {}", w.getUserId(), e.getMessage());
-        }
-
-        w.setLastNotifiedAt(LocalDateTime.now());
-        w.setLastSeenLowest(current);
-        safeSave(w);
-        return true;
+    private static boolean stillQualifies(PriceAlertNotification note, Product product, WishlistItem item) {
+        if (product.getLowestPrice() == null) return false;
+        if ("hit_target".equals(note.getReason())) return item.getTargetPrice() != null && product.getLowestPrice() <= item.getTargetPrice();
+        double pct = item.getAlertOnDropPercent() != null ? item.getAlertOnDropPercent() : DEFAULT_DROP_PCT;
+        return item.getPriceAtAdd() != null && product.getLowestPrice() <= item.getPriceAtAdd() * (1 - pct);
     }
 
     private Double lastNotifiedPriceFor(String userId, String productId) {

@@ -31,7 +31,7 @@ import java.util.Set;
 public class AnalyticsController {
 
     private static final Set<String> ACTION_TYPES = Set.of(
-            "member_intent_save", "member_intent_track", "auth_success",
+            "member_intent_save", "member_intent_track", "alert_target_set", "auth_success",
             "member_action_completed_save", "member_action_completed_track",
             "saved_search_created");
 

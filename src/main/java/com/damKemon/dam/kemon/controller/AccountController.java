@@ -10,6 +10,7 @@ import com.damKemon.dam.kemon.repository.PriceAlertNotificationRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.SavedSearchRepository;
 import com.damKemon.dam.kemon.repository.WishlistItemRepository;
+import com.damKemon.dam.kemon.service.AnalyticsService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,17 +40,20 @@ public class AccountController {
     private final ProductRepository products;
     private final AnalyticsEventRepository events;
     private final PriceAlertNotificationRepository notifications;
+    private final AnalyticsService analytics;
 
     public AccountController(SavedSearchRepository savedSearches,
                              WishlistItemRepository wishlist,
                              ProductRepository products,
                              AnalyticsEventRepository events,
-                             PriceAlertNotificationRepository notifications) {
+                             PriceAlertNotificationRepository notifications,
+                             AnalyticsService analytics) {
         this.savedSearches = savedSearches;
         this.wishlist = wishlist;
         this.products = products;
         this.events = events;
         this.notifications = notifications;
+        this.analytics = analytics;
     }
 
     @GetMapping("/search-history")
@@ -177,8 +181,15 @@ public class AccountController {
             WishlistItem w = wishlist.findByUserIdAndProductId(userId, productId).orElse(null);
             if (w == null) return ResponseEntity.notFound().build();
 
-            if (body.containsKey("targetPrice"))
-                w.setTargetPrice(asDouble(body.get("targetPrice")));
+            if (body.containsKey("targetPrice")) {
+                Double target = asDouble(body.get("targetPrice"));
+                if (!validTarget(target)) return ResponseEntity.badRequest().body(Map.of("error", "targetPrice must be a finite positive amount"));
+                Product product = products.findById(productId).orElse(null);
+                if (product != null && product.getLowestPrice() != null && target >= product.getLowestPrice()) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "targetPrice must be below the current lowest price"));
+                }
+                w.setTargetPrice(target);
+            }
             if (body.containsKey("alertOnDropPercent"))
                 w.setAlertOnDropPercent(asDouble(body.get("alertOnDropPercent")));
             if (body.containsKey("notifyChannel"))
@@ -249,29 +260,60 @@ public class AccountController {
             return ResponseEntity.badRequest().body(Map.of("error", "productId required"));
         }
         try {
+            Product p = products.findById(productId).orElse(null);
+            boolean isAlert = Boolean.TRUE.equals(body.get("alertsEnabled")) || body.containsKey("targetPrice");
+            if (p == null && isAlert) return ResponseEntity.notFound().build();
+            Double target = body.containsKey("targetPrice") ? asDouble(body.get("targetPrice")) : null;
+            if (body.containsKey("targetPrice") && !validTarget(target)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "targetPrice must be a finite positive amount"));
+            }
+            if (target != null && p != null && p.getLowestPrice() != null && target >= p.getLowestPrice()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "targetPrice must be below the current lowest price"));
+            }
+            boolean enableRequested = Boolean.TRUE.equals(body.get("alertsEnabled")) || target != null;
             Optional<WishlistItem> existing = wishlist.findByUserIdAndProductId(userId, productId);
             if (existing.isPresent()) {
                 WishlistItem item = existing.get();
-                if (Boolean.TRUE.equals(body.get("alertsEnabled")) && !Boolean.TRUE.equals(item.getAlertsEnabled())) {
+                boolean changed = false;
+                if (enableRequested && !Boolean.TRUE.equals(item.getAlertsEnabled())) {
                     item.setAlertsEnabled(true);
-                    item = wishlist.save(item);
+                    changed = true;
                 }
+                if (target != null && !target.equals(item.getTargetPrice())) { item.setTargetPrice(target); changed = true; }
+                if (changed) { item = wishlist.save(item); analytics.recordAccountActivity("alert_persisted", userId); }
                 return ResponseEntity.ok(item);
             }
-
-            Product p = products.findById(productId).orElse(null);
             WishlistItem w = WishlistItem.builder()
                     .userId(userId)
                     .productId(productId)
                     .priceAtAdd(p == null ? null : p.getLowestPrice())
-                    .alertsEnabled(Boolean.TRUE.equals(body.get("alertsEnabled")))
+                    .targetPrice(target)
+                    .alertsEnabled(enableRequested)
                     .notifyChannel("email")
                     .addedAt(LocalDateTime.now())
                     .build();
-            return ResponseEntity.ok(wishlist.save(w));
+            WishlistItem saved = wishlist.save(w);
+            if (Boolean.TRUE.equals(saved.getAlertsEnabled())) analytics.recordAccountActivity("alert_persisted", userId);
+            return ResponseEntity.ok(saved);
+        } catch (org.springframework.dao.DuplicateKeyException replay) {
+            WishlistItem item = wishlist.findByUserIdAndProductId(userId, productId).orElse(null);
+            if (item == null) return ResponseEntity.status(409).body(Map.of("error", "please retry"));
+            boolean changed = false;
+            if ((Boolean.TRUE.equals(body.get("alertsEnabled")) || body.containsKey("targetPrice"))
+                    && !Boolean.TRUE.equals(item.getAlertsEnabled())) {
+                item.setAlertsEnabled(true); changed = true;
+            }
+            Double target = body.containsKey("targetPrice") ? asDouble(body.get("targetPrice")) : null;
+            if (target != null && !target.equals(item.getTargetPrice())) { item.setTargetPrice(target); changed = true; }
+            if (changed) { item = wishlist.save(item); analytics.recordAccountActivity("alert_persisted", userId); }
+            return ResponseEntity.ok(item);
         } catch (DataAccessException e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "could not save"));
         }
+    }
+
+    private static boolean validTarget(Double value) {
+        return value != null && Double.isFinite(value) && value > 0 && value <= 100_000_000d;
     }
 
     @DeleteMapping("/wishlist/{productId}")

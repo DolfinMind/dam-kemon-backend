@@ -36,6 +36,11 @@ public class ResendService {
 
     /** @return true if the email was accepted by Resend; false on missing key or send error. */
     public boolean sendEmail(String to, String subject, String htmlContent) {
+        return sendEmail(to, subject, htmlContent, null);
+    }
+
+    /** A stable key makes a retry safe with Resend for its 24-hour idempotency window. */
+    public boolean sendEmail(String to, String subject, String htmlContent, String idempotencyKey) {
         if (!isConfigured()) {
             logger.warn("Resend API key is not configured. Email to {} was not sent.", to);
             return false;
@@ -45,6 +50,7 @@ public class ResendService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(apiKey);
+            if (idempotencyKey != null && !idempotencyKey.isBlank()) headers.set("Idempotency-Key", idempotencyKey);
 
             Map<String, Object> body = new HashMap<>();
             body.put("from", fromName + " <" + fromEmail + ">");

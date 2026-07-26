@@ -158,7 +158,7 @@ public class SecurityConfig {
      *   - an admin-role JWT (set on the request by {@link JwtAuthFilter}).
      * The exact catalog ingest path additionally permits direct loopback calls.
      *
-     * No-op when {@code adminApiKey} is blank AND no JWT is present (dev mode).
+     * A blank key fails closed; only the direct loopback ingest exception remains.
      */
     static class AdminGateFilter extends OncePerRequestFilter {
         private final String expectedKey;
@@ -206,8 +206,9 @@ public class SecurityConfig {
                 return;
             }
 
-            // Dev mode: no key set, no JWT — let it through but it's logged on boot.
-            chain.doFilter(req, res);
+            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            res.setContentType("application/json");
+            res.getWriter().write("{\"error\":\"admin access is not configured\"}");
         }
 
         private static boolean isDirectLoopbackIngest(HttpServletRequest req, String path) {

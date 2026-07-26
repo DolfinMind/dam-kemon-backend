@@ -55,6 +55,11 @@ public class OperationalIndexInitializer {
         ensure("reviews", new Index().on("status", Sort.Direction.ASC).named("reviews_status"));
         ensure("shops", new Index().on("status", Sort.Direction.ASC).named("shops_status"));
         ensure("sellers", new Index().on("slug", Sort.Direction.ASC).named("sellers_slug"));
+        // Preflight legacy duplicates before enabling these unique indexes; never delete rows at boot.
+        ensure("wishlist", new Index().on("userId", Sort.Direction.ASC).on("productId", Sort.Direction.ASC)
+                .unique().named("wishlist_user_product_unique"));
+        ensure("price_alert_notifications", new Index().on("deliveryKey", Sort.Direction.ASC)
+                .unique().sparse().named("delivery_key_unique"));
     }
 
     private void ensure(String collection, Index index) {

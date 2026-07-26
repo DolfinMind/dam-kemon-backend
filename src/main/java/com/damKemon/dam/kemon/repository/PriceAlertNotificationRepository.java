@@ -17,4 +17,7 @@ public interface PriceAlertNotificationRepository
     /** Used by the scheduler to enforce a same-day debounce. */
     List<PriceAlertNotification> findByUserIdAndProductIdAndCreatedAtAfter(
             String userId, String productId, LocalDateTime after);
+
+    List<PriceAlertNotification> findTop100ByDeliveryStateInAndNextDeliveryAttemptAtLessThanEqualOrderByCreatedAtAsc(
+            List<String> states, LocalDateTime due);
 }

@@ -106,6 +106,7 @@ class AuthControllerTest {
         assertEquals("rima@example.com", saved.getEmail(), "email is lower-cased");
         assertEquals("user", saved.getRole());
         assertEquals(Boolean.FALSE, saved.getEmailVerified());
+        assertEquals(Boolean.FALSE, saved.getNewsletterOptIn(), "newsletter consent defaults off when omitted");
         assertNotNull(saved.getVerifyToken(), "verification token issued");
         assertTrue(enc.matches("s3cret-pass", saved.getPasswordHash()), "password is BCrypt-hashed");
         assertFalse(saved.getPasswordHash().contains("s3cret"), "never stored in the clear");

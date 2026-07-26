@@ -25,6 +25,7 @@ import java.time.LocalDateTime;
 @Builder
 @Document(collection = "price_alert_notifications")
 @CompoundIndex(name = "user_unread_idx", def = "{'userId': 1, 'unread': 1, 'createdAt': -1}")
+@CompoundIndex(name = "delivery_key_unique", def = "{'deliveryKey': 1}", unique = true, sparse = true)
 public class PriceAlertNotification {
 
     @Id
@@ -49,6 +50,15 @@ public class PriceAlertNotification {
     private String reason;
     /** Channel(s) we *attempted* to send. Audit-only. */
     private String sentVia;
+
+    /** pending | accepted | failed | inapp. Pending/failed rows are retried. */
+    @Indexed
+    private String deliveryState;
+    @Builder.Default
+    private Integer deliveryAttempts = 0;
+    @Indexed
+    private LocalDateTime nextDeliveryAttemptAt;
+    private String deliveryKey;
 
     @Indexed
     @Builder.Default

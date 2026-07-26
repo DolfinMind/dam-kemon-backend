@@ -95,13 +95,13 @@
     "semantic_hash": "7c249efec365f55cf49ba4136c25782c"
   },
   "src/main/java/com/damKemon/dam/kemon/config/RequestLogFilter.java": {
-    "mtime": 1781453145.6007526,
-    "ast_hash": "56ea0f841b6c18e4d7bb57e00237f798",
-    "semantic_hash": "56ea0f841b6c18e4d7bb57e00237f798"
+    "mtime": 1785084629.959305,
+    "ast_hash": "1fdcb297809785a2459ee11db6e26f9f",
+    "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/config/SecurityConfig.java": {
-    "mtime": 1783949327.028136,
-    "ast_hash": "46bc0a9b6248e32b9df8426e908e7f35",
+    "mtime": 1785084441.4040854,
+    "ast_hash": "e621c4847e1aad8dfc88150be0602c4e",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/config/SyntheticHealthIndicator.java": {
@@ -115,12 +115,12 @@
     "semantic_hash": "6a1df1d24763fd7e877c2e37f4c33cbf"
   },
   "src/main/java/com/damKemon/dam/kemon/controller/AccountController.java": {
-    "mtime": 1783265850.5359151,
-    "ast_hash": "02f91be72f3fd40f7041be9705b41523",
+    "mtime": 1785085269.8684986,
+    "ast_hash": "94748c8f4a14c2e2d4947ece83a20c6c",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/controller/AdminAnalyticsController.java": {
-    "mtime": 1784185905.345094,
+    "mtime": 1785082997.6349337,
     "ast_hash": "1a2eb65850e999f069e4ab28c0170d49",
     "semantic_hash": ""
   },
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/controller/AdminController.java": {
-    "mtime": 1783788257.4354076,
-    "ast_hash": "cf847959b82ce3e81de7799ca8c0efb1",
+    "mtime": 1785082997.6360629,
+    "ast_hash": "4ec599a8f871788dfa2e8e22b82e1c21",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/controller/AdminDiagController.java": {
@@ -150,7 +150,7 @@
     "semantic_hash": "e7b9f8edd530c5757b5623e443405e9e"
   },
   "src/main/java/com/damKemon/dam/kemon/controller/AdminIngestController.java": {
-    "mtime": 1784186400.8555384,
+    "mtime": 1785082997.6363912,
     "ast_hash": "a6a90b2050d73834ff62c2fb8855fabb",
     "semantic_hash": ""
   },
@@ -195,8 +195,8 @@
     "semantic_hash": "db7313f51a3896bf5f2c9ebeb7b1f01b"
   },
   "src/main/java/com/damKemon/dam/kemon/controller/AnalyticsController.java": {
-    "mtime": 1783857767.7080007,
-    "ast_hash": "39a26b9af2fdbe847700155896a43168",
+    "mtime": 1785084665.7377448,
+    "ast_hash": "7354ba644e70d1f1cbfeb0d8b5151b54",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/controller/AssistantController.java": {
@@ -205,8 +205,8 @@
     "semantic_hash": "162eaf60c4bcf31604a852e91205614f"
   },
   "src/main/java/com/damKemon/dam/kemon/controller/AuthController.java": {
-    "mtime": 1783858010.5909166,
-    "ast_hash": "898f2c956b83959645f4fbf14086f2c0",
+    "mtime": 1785084282.1666634,
+    "ast_hash": "6cfac67b6b5b0d07178c4a1927206022",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/controller/CacheController.java": {
@@ -255,8 +255,8 @@
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/controller/ProductController.java": {
-    "mtime": 1784124459.829925,
-    "ast_hash": "f22780ad89bc122552ed8402bc71c103",
+    "mtime": 1785082997.6367269,
+    "ast_hash": "9b9fff1bcd1563b22327202c7ffc0aec",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/controller/ProtectController.java": {
@@ -575,9 +575,9 @@
     "semantic_hash": "dfa063fe52065dec36b33ab4aefec6bb"
   },
   "src/main/java/com/damKemon/dam/kemon/model/PriceAlertNotification.java": {
-    "mtime": 1779807196.1689951,
-    "ast_hash": "a9fb70e36814832653204a8f24389ee6",
-    "semantic_hash": "a9fb70e36814832653204a8f24389ee6"
+    "mtime": 1785084299.4285963,
+    "ast_hash": "34a7e9844c15cd32462059197c3d2fe2",
+    "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/model/PriceHistory.java": {
     "mtime": 1783839649.646466,
@@ -635,8 +635,8 @@
     "semantic_hash": "c7dce05be0e3540612df3e46e2027ecd"
   },
   "src/main/java/com/damKemon/dam/kemon/model/Shop.java": {
-    "mtime": 1783788206.928816,
-    "ast_hash": "0da879f952e4c03f7ba03247dfef63ab",
+    "mtime": 1785082997.6371038,
+    "ast_hash": "ed7adc1910eff3b068649c83d65693a2",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/model/ShopDiagnostic.java": {
@@ -655,8 +655,8 @@
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/model/User.java": {
-    "mtime": 1783852040.0949073,
-    "ast_hash": "1fa60d3adf8bb25fa4169729d33bea20",
+    "mtime": 1785084441.4045565,
+    "ast_hash": "1866c8315f10e19ddf68ce153c1a2837",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/model/WishlistItem.java": {
@@ -710,9 +710,9 @@
     "semantic_hash": "e27ac27e2b801bf2689249fa406c563d"
   },
   "src/main/java/com/damKemon/dam/kemon/repository/PriceAlertNotificationRepository.java": {
-    "mtime": 1779807202.6629653,
-    "ast_hash": "0f912d856fc4de2baa215bb5bc89594d",
-    "semantic_hash": "0f912d856fc4de2baa215bb5bc89594d"
+    "mtime": 1785084299.4291055,
+    "ast_hash": "27a908ad0d1734207c9b0bc8877c28f9",
+    "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/repository/PriceHistoryRepository.java": {
     "mtime": 1778862215.9129815,
@@ -865,8 +865,8 @@
     "semantic_hash": "6b39993b1459302bb1c781fc8d4308e4"
   },
   "src/main/java/com/damKemon/dam/kemon/service/AdminAnalyticsService.java": {
-    "mtime": 1784186413.506903,
-    "ast_hash": "4bf40e9ef1ebeaf2e0b3e9708618699b",
+    "mtime": 1785082997.6379633,
+    "ast_hash": "b6bd6246a7cbf587171245464f23da4a",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/AffiliateService.java": {
@@ -875,8 +875,8 @@
     "semantic_hash": "23c28e24aaa6069921f81b0b12e97ec9"
   },
   "src/main/java/com/damKemon/dam/kemon/service/AnalyticsService.java": {
-    "mtime": 1783857767.7073865,
-    "ast_hash": "f83c45f19531f6cec16fe9df74f34d65",
+    "mtime": 1785084431.7295828,
+    "ast_hash": "9fc948176bb9c027c4349ae38d198282",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/AssistantService.java": {
@@ -905,8 +905,8 @@
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/EmailNotifier.java": {
-    "mtime": 1783678238.5931828,
-    "ast_hash": "4aa6f905b7da18daac650e460b4a388b",
+    "mtime": 1785085005.43698,
+    "ast_hash": "a10ca2c6535df86939d45615c316e9c5",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/FeedSyncService.java": {
@@ -940,8 +940,8 @@
     "semantic_hash": "0e1ae69f0c603741ffe882c7293a296d"
   },
   "src/main/java/com/damKemon/dam/kemon/service/NewsletterService.java": {
-    "mtime": 1783430068.9338872,
-    "ast_hash": "b46be0a106d768e3c26eaaab53877ca2",
+    "mtime": 1785084629.9599173,
+    "ast_hash": "159ffb0a92ef759f530365f33b7f683a",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/OperatorStatsService.java": {
@@ -955,8 +955,8 @@
     "semantic_hash": "1c78c4e5df3ad253807747609c931e0f"
   },
   "src/main/java/com/damKemon/dam/kemon/service/PriceAlertScheduler.java": {
-    "mtime": 1783761844.9078436,
-    "ast_hash": "cf4360629aecf7f12542fef00f6ae157",
+    "mtime": 1785085005.436231,
+    "ast_hash": "1aa8be0d6054df937db8a33b1c57dd34",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/PriceSnapshotScheduler.java": {
@@ -980,9 +980,9 @@
     "semantic_hash": "251096c65d0288c73fe45b3ad97f651a"
   },
   "src/main/java/com/damKemon/dam/kemon/service/ResendService.java": {
-    "mtime": 1782137465.133837,
-    "ast_hash": "0b9fa08e7e29a905174529027f277ca0",
-    "semantic_hash": "0b9fa08e7e29a905174529027f277ca0"
+    "mtime": 1785084282.167114,
+    "ast_hash": "ee274b823d9105456564739676f7940a",
+    "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/SaathiMessengerService.java": {
     "mtime": 1779894475.8068027,
@@ -1000,7 +1000,7 @@
     "semantic_hash": "28e5e898e2542128b8607325ccb5868d"
   },
   "src/main/java/com/damKemon/dam/kemon/service/SellerDirectoryService.java": {
-    "mtime": 1784185735.2667134,
+    "mtime": 1785082997.6388695,
     "ast_hash": "f108a7a6309b9ab941f7f7d6946e3144",
     "semantic_hash": ""
   },
@@ -1065,8 +1065,8 @@
     "semantic_hash": "2101a6d0e4418ea0e40c23d1e94f679a"
   },
   "src/test/java/com/damKemon/dam/kemon/controller/AuthControllerTest.java": {
-    "mtime": 1783857767.7088935,
-    "ast_hash": "7b21726837fc6c64da0edc72f4283a01",
+    "mtime": 1785085105.5281126,
+    "ast_hash": "7fb277f66ab288304955cea9f9318fc6",
     "semantic_hash": ""
   },
   "src/test/java/com/damKemon/dam/kemon/controller/OffersControllerTest.java": {
@@ -1220,8 +1220,8 @@
     "semantic_hash": ""
   },
   "src/main/resources/application-production.yml": {
-    "mtime": 1784124459.8411734,
-    "ast_hash": "4d73f21780246f0a56c18fb79d13b4df",
+    "mtime": 1785084282.165171,
+    "ast_hash": "978ad9b4078a236c2dae979df122edf4",
     "semantic_hash": ""
   },
   "src/main/resources/application-staging.yml": {
@@ -1235,8 +1235,8 @@
     "semantic_hash": "1f6a073916d642ecd7044ec63c6393c5"
   },
   "src/main/resources/application.yml": {
-    "mtime": 1784124459.8418498,
-    "ast_hash": "94c25939356ad6987a89463b44627e06",
+    "mtime": 1785084809.8243182,
+    "ast_hash": "8eff11075a4d5b50cc0232c8dd5a6a71",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/ShopVisibilityService.java": {
@@ -1315,8 +1315,8 @@
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/AdminUserService.java": {
-    "mtime": 1784124459.837485,
-    "ast_hash": "b3d1fb2e8095d24454b55440a183327b",
+    "mtime": 1785082997.6381054,
+    "ast_hash": "a81a1ce1e06a4719c076a01edd415233",
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/ReviewReputationService.java": {
@@ -1325,13 +1325,13 @@
     "semantic_hash": ""
   },
   "src/test/java/com/damKemon/dam/kemon/controller/ProductControllerGateTest.java": {
-    "mtime": 1784124459.8424962,
-    "ast_hash": "b12a46983531e5a55de608eb42f2ca7c",
+    "mtime": 1785082997.6409,
+    "ast_hash": "00627aed2e208a760441a1a06bf3aa44",
     "semantic_hash": ""
   },
   "src/test/java/com/damKemon/dam/kemon/service/AdminUserServiceTest.java": {
-    "mtime": 1784124459.8436942,
-    "ast_hash": "cb238059c59ab29c50202871101f6659",
+    "mtime": 1785082997.6410334,
+    "ast_hash": "3516017a4dca8faeb565a52b3eadc8b5",
     "semantic_hash": ""
   },
   "src/test/java/com/damKemon/dam/kemon/service/ReviewReputationServiceTest.java": {
@@ -1345,13 +1345,13 @@
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/service/CrawlerControlService.java": {
-    "mtime": 1784124459.8396869,
-    "ast_hash": "1c968fff550ee0859f6fc448e02ec63e",
+    "mtime": 1785082997.638589,
+    "ast_hash": "63f738ed0be892e206814ae584dc67c8",
     "semantic_hash": ""
   },
   "src/test/java/com/damKemon/dam/kemon/config/AdminGateFilterTest.java": {
-    "mtime": 1783949327.0304294,
-    "ast_hash": "3f600ce20fe9494760dc1fe824f4f228",
+    "mtime": 1785084553.183356,
+    "ast_hash": "4112ad9a23a965e6d0f2a602a3245756",
     "semantic_hash": ""
   },
   "src/test/java/com/damKemon/dam/kemon/config/SyntheticHealthIndicatorTest.java": {
@@ -1360,7 +1360,7 @@
     "semantic_hash": ""
   },
   "src/test/java/com/damKemon/dam/kemon/controller/AdminIngestControllerTest.java": {
-    "mtime": 1784185735.2673264,
+    "mtime": 1785082997.6406395,
     "ast_hash": "dc3abb8b8c7ed11262510319441d3e68",
     "semantic_hash": ""
   },
@@ -1380,8 +1380,8 @@
     "semantic_hash": ""
   },
   "src/test/java/com/damKemon/dam/kemon/service/CrawlerControlServiceTest.java": {
-    "mtime": 1783950847.687941,
-    "ast_hash": "044cc17aa7024c8fd98ce4d968e8c489",
+    "mtime": 1785082997.6413,
+    "ast_hash": "304b0756ae9ec2c9a9ad61da12030cf5",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-07-13-loopback-ingest-without-admin-key.md": {
@@ -1410,8 +1410,38 @@
     "semantic_hash": ""
   },
   "src/main/java/com/damKemon/dam/kemon/config/OperationalIndexInitializer.java": {
-    "mtime": 1784186400.8552823,
-    "ast_hash": "c4fbc63414f9bc01a660e7295b9f0189",
+    "mtime": 1785084981.1187491,
+    "ast_hash": "83293277aee02dc546b51b331c39a830",
+    "semantic_hash": ""
+  },
+  "src/main/java/com/damKemon/dam/kemon/config/ProductionSecretsValidator.java": {
+    "mtime": 1785084399.570577,
+    "ast_hash": "8836aff982fcfea0802efa8d6d955e27",
+    "semantic_hash": ""
+  },
+  "src/test/java/com/damKemon/dam/kemon/controller/AccountControllerWishlistTest.java": {
+    "mtime": 1785085348.0297184,
+    "ast_hash": "caf5affc88f03d64dd928c925e04b5a7",
+    "semantic_hash": ""
+  },
+  "src/test/java/com/damKemon/dam/kemon/controller/AnalyticsControllerActionTest.java": {
+    "mtime": 1785084665.7392225,
+    "ast_hash": "4b18a707252adb4c9092eefe4bd81fae",
+    "semantic_hash": ""
+  },
+  "src/test/java/com/damKemon/dam/kemon/config/ProductionSecretsValidatorTest.java": {
+    "mtime": 1785084564.9345891,
+    "ast_hash": "8f71c85ebb12ec4c566d49d823f4ff75",
+    "semantic_hash": ""
+  },
+  "src/test/java/com/damKemon/dam/kemon/service/PriceAlertSchedulerTest.java": {
+    "mtime": 1785085021.5050657,
+    "ast_hash": "5976067fac34a23cd5220c3728aaa51d",
+    "semantic_hash": ""
+  },
+  "src/test/java/com/damKemon/dam/kemon/service/EmailNotifierTest.java": {
+    "mtime": 1785084774.9802105,
+    "ast_hash": "12e76b11766691b40a988b8b66958441",
     "semantic_hash": ""
   }
 }

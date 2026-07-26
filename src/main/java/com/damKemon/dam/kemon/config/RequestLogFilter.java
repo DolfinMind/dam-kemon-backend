@@ -39,7 +39,7 @@ public class RequestLogFilter extends OncePerRequestFilter {
     private final boolean storeRawIp;
 
     public RequestLogFilter(RequestLogService sink,
-                            @Value("${analytics.store-raw-ip:true}") boolean storeRawIp) {
+                            @Value("${analytics.store-raw-ip:false}") boolean storeRawIp) {
         this.sink = sink;
         this.storeRawIp = storeRawIp;
     }

@@ -85,7 +85,7 @@ public class AuthController {
         String email = lower(trim(str(body.get("email"))));
         String password = str(body.get("password"));
         String phone = trim(str(body.get("phone")));
-        boolean newsletterOptIn = !Boolean.FALSE.equals(body.get("newsletterOptIn"));
+        boolean newsletterOptIn = Boolean.TRUE.equals(body.get("newsletterOptIn"));
 
         if (name == null || name.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "name is required"));
@@ -532,7 +532,7 @@ public class AuthController {
         m.put("avatarUrl", u.getAvatarUrl());
         // null (legacy/owner rows) counts as verified — only a fresh, unclicked
         // signup is explicitly false.
-        m.put("emailVerified", !Boolean.FALSE.equals(u.getEmailVerified()));
+        m.put("emailVerified", Boolean.TRUE.equals(u.getEmailVerified()));
         m.put("phone", u.getPhone());
         m.put("district", u.getDistrict());
         m.put("gender", u.getGender());

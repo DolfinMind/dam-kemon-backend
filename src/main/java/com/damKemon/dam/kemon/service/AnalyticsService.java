@@ -32,7 +32,7 @@ public class AnalyticsService {
     private final boolean storeRawIp;
 
     public AnalyticsService(AnalyticsEventRepository repo,
-                            @Value("${analytics.store-raw-ip:true}") boolean storeRawIp) {
+                            @Value("${analytics.store-raw-ip:false}") boolean storeRawIp) {
         this.repo = repo;
         this.storeRawIp = storeRawIp;
     }

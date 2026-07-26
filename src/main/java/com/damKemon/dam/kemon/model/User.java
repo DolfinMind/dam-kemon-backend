@@ -59,8 +59,7 @@ public class User {
 
     /**
      * Email ownership proven via the token link. Null on legacy rows (the
-     * owner predates verification) — treat null as verified; only an explicit
-     * {@code false} (fresh signup, link not yet clicked) blocks alert emails.
+     * owner predates verification). Only explicit {@code true} enables alert emails.
      */
     private Boolean emailVerified;
 

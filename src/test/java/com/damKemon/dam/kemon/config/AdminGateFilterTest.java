@@ -51,6 +51,16 @@ class AdminGateFilterTest {
     }
 
     @Test
+    void blankAdminKeyFailsClosedOutsideDirectIngest() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/admin/index/run");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean passed = new AtomicBoolean();
+        new SecurityConfig.AdminGateFilter("").doFilter(request, response, (req, res) -> passed.set(true));
+        assertFalse(passed.get());
+        assertEquals(401, response.getStatus());
+    }
+
+    @Test
     void allowsAdminBearerAfterJwtAuthenticationFilter() throws Exception {
         JwtService jwt = new JwtService("test-secret-long-enough-for-admin-jwt", 1);
         MockHttpServletRequest request = new MockHttpServletRequest(

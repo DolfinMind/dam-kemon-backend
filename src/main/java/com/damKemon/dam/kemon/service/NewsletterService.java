@@ -155,7 +155,7 @@ public class NewsletterService {
             // growth loop: the reader is the cheapest acquisition channel
             + "<tr><td align=\"center\" style=\"padding:14px 24px 0;color:#6b6b6b;font-size:13px;line-height:1.6;\">"
             + "Watching a price? <a href=\"" + siteUrl + "\" style=\"color:#15131a;font-weight:700;\">Set a drop alert</a>"
-            + " and we'll email you the moment it gets cheaper.<br>"
+            + " and you can set a price alert from its product page.<br>"
             + "Know someone who overpays for tech? Forward them this email."
             + "</td></tr>"
             // footer
