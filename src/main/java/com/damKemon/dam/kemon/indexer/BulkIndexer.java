@@ -776,10 +776,9 @@ public class BulkIndexer {
         String normName = normaliseForMatching(sp.getName());
 
         // 1. Exact URL match — a re-crawl of a known listing just refreshes that
-        //    seller's offer in place.
-        Optional<Product> byUrl = strict
-                ? productRepository.findByPriceUrl(url)
-                : safeFindByUrl(url);
+        //    seller's offer in place. Tolerant of duplicate documents sharing the
+        //    URL so one poisoned record can't 500 the whole batch (see matchByUrl).
+        Optional<Product> byUrl = matchByUrl(url);
         if (byUrl.isPresent()) {
             Product existing = byUrl.get();
             existing.getPrices().removeIf(p -> Objects.equals(p.getProductUrl(), url));
@@ -1218,9 +1217,26 @@ public class BulkIndexer {
         try { return URI.create(url).getHost(); } catch (Exception e) { return "_unknown"; }
     }
 
-    private Optional<Product> safeFindByUrl(String url) {
-        try { return productRepository.findByPriceUrl(url); }
-        catch (DataAccessException e) { return Optional.empty(); }
+    /** Exact-URL product match that survives duplicate documents. Two products
+     *  can end up sharing one {@code prices.productUrl} after a concurrent-write
+     *  race; the single-result {@link ProductRepository#findByPriceUrl} then throws
+     *  {@code IncorrectResultSizeDataAccessException}, which 500s the whole ingest
+     *  batch — and because the crawler outbox is FIFO, every retry re-hits the same
+     *  poisoned offer and the backlog never drains. Pick the oldest match
+     *  deterministically and log the rest for cleanup. A real Mongo outage still
+     *  throws {@link DataAccessException} (the List query fails on connection loss),
+     *  so the caller does not falsely acknowledge the batch. */
+    private Optional<Product> matchByUrl(String url) {
+        List<Product> matches = productRepository.findAllByPriceUrl(url);
+        if (matches == null || matches.isEmpty()) return Optional.empty();
+        if (matches.size() > 1) {
+            matches.sort(Comparator.comparing(Product::getId,
+                    Comparator.nullsLast(Comparator.naturalOrder())));
+            log.warn("Ingest: {} products share offer URL {} — merging into '{}' and "
+                    + "leaving {} duplicate(s) for cleanup",
+                    matches.size(), url, matches.get(0).getId(), matches.size() - 1);
+        }
+        return Optional.of(matches.get(0));
     }
 
     private Product safeSave(Product p) {
