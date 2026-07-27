@@ -2,7 +2,7 @@
 
 > **Damkemon** is a Bangladesh price-comparison engine. We nightly index 60+
 > BD e-commerce shops into MongoDB, then serve user searches instantly from
-> the catalog with cross-shop dedup + grouped pricing.
+> the catalog with cross-shop dedup + grouped pricing
 >
 > This repo is the **backend** — Spring Boot 4 on Java 17. The companion
 > frontend lives at [Saif64/dam-kemon-frontend](https://github.com/Saif64/dam-kemon-frontend).
