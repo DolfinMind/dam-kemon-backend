@@ -94,13 +94,36 @@ jobs:
                 (crontab -l 2>/dev/null | grep -vF "$watchdog" || true) | crontab -
               fi
               echo "systemd watchdog active"
-            else
-              command -v crontab >/dev/null
+            elif command -v crontab >/dev/null; then
               (crontab -l 2>/dev/null | grep -vF "$watchdog" || true
                echo "* * * * * $watchdog") | crontab -
               crontab -l | grep -F "$watchdog"
-              echo "user watchdog active; root installer remains available at ~/selfheal/install.sh"
+              echo "cron watchdog active"
+            elif [ "$(loginctl show-user "$(id -un)" -p Linger --value)" = "yes" ]; then
+              user_name=$(id -un)
+              export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+              export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+              mkdir -p "$HOME/.config/systemd/user"
+              install -m 0644 /home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog-user.service \
+                "$HOME/.config/systemd/user/"
+              install -m 0644 /home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog-user.timer \
+                "$HOME/.config/systemd/user/"
+              systemctl --user daemon-reload
+              systemctl --user enable --now damkemon-watchdog-user.timer
+              systemctl --user is-enabled damkemon-watchdog-user.timer
+              systemctl --user is-active damkemon-watchdog-user.timer
+              echo "user systemd watchdog active"
+            else
+              loop=/home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog-loop.sh
+              command -v flock >/dev/null
+              chmod 700 "$loop"
+              mkdir -p "$HOME/.local/state/damkemon-watchdog"
+              nohup "$loop" >>"$HOME/.local/state/damkemon-watchdog/loop.log" 2>&1 </dev/null &
+              sleep 2
+              pgrep -u "$(id -u)" -f "$loop" >/dev/null
+              echo "detached watchdog active"
             fi
+            echo "Root hardening remains available at: sudo bash ~/selfheal/install.sh"
             echo "current restart policy:"
             systemctl show damkemon-prod-app.service -p Restart -p RestartSec
 
@@ -138,3 +161,30 @@ jobs:
             fi
             echo "worker timer:"
             systemctl list-timers damkemon-prod-worker.timer --no-pager 2>/dev/null || true
+
+      - name: Verify watchdog survived SSH logout
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
+          script: |
+            watchdog=/home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog.sh
+            loop=/home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog-loop.sh
+            if systemctl is-active --quiet damkemon-watchdog.timer; then
+              exit 0
+            fi
+            if command -v crontab >/dev/null && crontab -l 2>/dev/null | grep -F "$watchdog" >/dev/null; then
+              exit 0
+            fi
+            export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+            export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+            if systemctl --user is-active --quiet damkemon-watchdog-user.timer 2>/dev/null; then
+              exit 0
+            fi
+            if pgrep -u "$(id -u)" -f "$loop" >/dev/null; then
+              exit 0
+            fi
+            echo "No liveness watchdog is active."
+            exit 1
