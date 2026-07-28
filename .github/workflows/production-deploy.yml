@@ -41,20 +41,35 @@ jobs:
           host: ${{ vars.SERVER_HOST }}
           username: ${{ vars.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
           script: |
-            # Restart the service to load the new JAR
             sudo systemctl restart damkemon-prod-app.service
-            sleep 5
+            ready=0
+            for attempt in $(seq 1 36); do
+              if curl --fail --silent --max-time 5 \
+                  http://127.0.0.1:8080/actuator/health/readiness >/dev/null; then
+                ready=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$ready" -ne 1 ]; then
+              systemctl status damkemon-prod-app.service --no-pager || true
+              echo "Application did not become ready within 6 minutes."
+              exit 1
+            fi
+            systemctl status damkemon-prod-app.service --no-pager
 
-            # Check status
-            sudo systemctl status damkemon-prod-app.service
+      - name: Verify public API
+        run: |
+          curl --fail --show-error --silent --retry 12 --retry-delay 5 \
+            --max-time 10 https://damkemon.com/api/shops >/dev/null
 
-      # Self-heal: keep the API up between deploys. Restart=always covers a
-      # crash/OOM-kill (the nightly crawler is the usual culprit); the watchdog
-      # timer covers a hung-but-alive process. Non-fatal so it never blocks a
-      # deploy.
+      # Prefer the root-installed systemd watchdog. Until its one-time installer
+      # is applied, keep the same conservative liveness check active from the
+      # deploy user's crontab; that user already has permission to restart this
+      # exact service.
       - name: Copy self-heal ops files
-        continue-on-error: true
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ vars.SERVER_HOST }}
@@ -64,27 +79,30 @@ jobs:
           target: "/home/${{ vars.SERVER_USER }}/selfheal/"
           strip_components: 2
 
-      - name: Apply self-heal (Restart=always + liveness watchdog)
-        continue-on-error: true
+      - name: Apply liveness watchdog
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ vars.SERVER_HOST }}
           username: ${{ vars.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
           script: |
-            # install.sh needs root (writes /etc/systemd). Auto-apply only when
-            # the deploy user has passwordless sudo; otherwise stage the files
-            # and print the one-time activation command instead of failing.
-            if sudo -n true 2>/dev/null; then
-              bash /home/${{ vars.SERVER_USER }}/selfheal/install.sh
+            watchdog=/home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog.sh
+            chmod 700 "$watchdog"
+            if systemctl is-active --quiet damkemon-watchdog.timer; then
+              if command -v crontab >/dev/null; then
+                (crontab -l 2>/dev/null | grep -vF "$watchdog" || true) | crontab -
+              fi
+              echo "systemd watchdog active"
             else
-              echo "Self-heal staged at ~/selfheal. The deploy user lacks passwordless sudo,"
-              echo "so activate it once by hand (persists across deploys & restarts):"
-              echo "    sudo bash ~/selfheal/install.sh"
-              echo "Or add a sudoers NOPASSWD rule for systemctl+install to automate this step."
+              command -v crontab >/dev/null
+              (crontab -l 2>/dev/null | grep -vF "$watchdog" || true
+               echo "* * * * * $watchdog") | crontab -
+              crontab -l | grep -F "$watchdog"
+              echo "user watchdog active; root installer remains available at ~/selfheal/install.sh"
             fi
             echo "current restart policy:"
-            systemctl show damkemon-prod-app.service -p Restart -p RestartSec 2>/dev/null || true
+            systemctl show damkemon-prod-app.service -p Restart -p RestartSec
 
       # Out-of-process crawl worker: a oneshot service + nightly timer installed
       # from the SAME jar (worker profile, no HTTP server, memory-capped). This is
@@ -120,17 +138,3 @@ jobs:
             fi
             echo "worker timer:"
             systemctl list-timers damkemon-prod-worker.timer --no-pager 2>/dev/null || true
-
-      - name: Show recent application logs
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ vars.SERVER_HOST }}
-          username: ${{ vars.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            echo "=== Last 50 lines of application logs ==="
-            sudo journalctl -u damkemon-prod-app.service -n 50 --no-pager
-
-            echo ""
-            echo "=== Checking for errors in last 100 lines ==="
-            sudo journalctl -u damkemon-prod-app.service -n 100 --no-pager | grep -i "error\|exception\|failed" || echo "No errors found"
