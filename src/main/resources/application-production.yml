@@ -1,6 +1,10 @@
 # Production profile — activated with SPRING_PROFILES_ACTIVE=production
 # Overlays application.yml. Anything not declared here inherits dev defaults.
 
+server:
+  # nginx is the only public entry point; never expose the Spring port directly.
+  address: 127.0.0.1
+
 spring:
   data:
     mongodb:
@@ -21,7 +25,7 @@ owner:
 resend:
   api-key: ${RESEND_API_KEY}
 
-# 1 GB-SAFE mode (prod box is 1 vCPU / 1 GB). Shops index sequentially with a tiny
+# API-safe mode (prod box is 1 vCPU / 2 GB with a 1 GB API heap). Shops index sequentially with a tiny
 # URL pool; the dedup index warms from an id+name projection; ~66 Shopify/WooCommerce
 # shops are pulled via cheap bulk JSON (JsonCatalogHarvester) instead of page scraping.
 # Chromium stays OFF (too heavy here). A GENTLE 24/7 catch-up runs every 6h toward the

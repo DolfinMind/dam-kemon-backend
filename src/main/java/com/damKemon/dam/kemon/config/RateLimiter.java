@@ -1,5 +1,7 @@
 package com.damKemon.dam.kemon.config;
 
+import org.springframework.scheduling.annotation.Scheduled;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -68,6 +70,11 @@ public class RateLimiter {
     public void evictIdle(int idleMinutes) {
         long cutoff = System.nanoTime() - idleMinutes * 60L * 1_000_000_000L;
         buckets.entrySet().removeIf(e -> e.getValue().lastTouched.get() < cutoff);
+    }
+
+    @Scheduled(fixedDelayString = "${ratelimit.cleanup-ms:600000}")
+    public void evictIdle() {
+        evictIdle(10);
     }
 
     private static final class Bucket {

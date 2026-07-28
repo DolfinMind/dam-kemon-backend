@@ -32,7 +32,7 @@ public class ProductController {
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size,
             @RequestParam(value = "category", required = false) String category) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(size, 60)));
         return ResponseEntity.ok(productService.getAllProducts(category, pageable));
     }
 

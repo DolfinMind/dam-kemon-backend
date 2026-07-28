@@ -20,15 +20,20 @@ class TrigramSearchIndexTest {
     private final ProductRepository repo = mock(ProductRepository.class);
 
     private TrigramSearchIndex index() {
-        return new TrigramSearchIndex(repo);
+        return new TrigramSearchIndex(repo, true);
     }
 
     @Test
-    void baselineRecallCannotBeDisabled() {
-        TrigramSearchIndex index = new TrigramSearchIndex(repo);
+    void disabledIndexSkipsStartupAndScheduledRebuilds() {
+        TrigramSearchIndex index = new TrigramSearchIndex(repo, false);
 
-        assertTrue(index.isEnabled());
-        assertFalse(index.isReady());
+        index.run(null);
+        index.hourlyRefresh();
+
+        assertFalse(index.isEnabled());
+        assertTrue(index.isReady());
+        assertTrue(index.topK("iphone", 5, 0).isEmpty());
+        verify(repo, never()).findAllSearchDocuments();
     }
 
     @Test

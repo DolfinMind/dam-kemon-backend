@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -41,19 +42,22 @@ public class TrigramSearchIndex implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(TrigramSearchIndex.class);
 
     private final ProductRepository productRepository;
+    private final boolean enabled;
     private final AtomicReference<TrigramIndex> indexRef = new AtomicReference<>(new TrigramIndex());
     private volatile boolean ready;
     private volatile Instant lastSuccess;
     private volatile String lastFailure;
 
-    public TrigramSearchIndex(ProductRepository productRepository) {
+    public TrigramSearchIndex(ProductRepository productRepository,
+                              @Value("${search.trigram.enabled:true}") boolean enabled) {
         this.productRepository = productRepository;
+        this.enabled = enabled;
     }
 
     /** Build the lightweight index before Spring reports the application ready. */
     @Override
     public void run(ApplicationArguments args) {
-        rebuild();
+        if (enabled) rebuild();
     }
 
     /** Index refresh. Every 6h by default: the catalog only changes on the nightly
@@ -62,6 +66,7 @@ public class TrigramSearchIndex implements ApplicationRunner {
      *  Aligned to :05 so it never collides with the crawl window. */
     @Scheduled(cron = "${search.trigram.cron:0 5 */6 * * *}")
     public void hourlyRefresh() {
+        if (!enabled) return;
         try { rebuild(); }
         catch (Exception e) { log.warn("Trigram hourly refresh failed: {}", e.getMessage()); }
     }
@@ -98,6 +103,7 @@ public class TrigramSearchIndex implements ApplicationRunner {
 
     /** Top-K fuzzy matches above the given threshold, ranked by trigram-Jaccard. */
     public List<TrigramIndex.Hit> topK(String query, int k, double minScore) {
+        if (!enabled) return List.of();
         TrigramIndex idx = indexRef.get();
         if (idx == null || idx.size() == 0) return List.of();
         List<TrigramIndex.Hit> raw = idx.topK(query, k);
@@ -108,13 +114,13 @@ public class TrigramSearchIndex implements ApplicationRunner {
 
     public int size() { return indexRef.get().size(); }
 
-    public boolean isEnabled() { return true; }
+    public boolean isEnabled() { return enabled; }
 
-    public boolean isReady() { return ready; }
+    public boolean isReady() { return !enabled || ready; }
 
     public Map<String, Object> status() {
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("enabled", true);
+        out.put("enabled", enabled);
         out.put("ready", isReady());
         out.put("size", size());
         if (lastSuccess != null) out.put("lastSuccess", lastSuccess.toString());

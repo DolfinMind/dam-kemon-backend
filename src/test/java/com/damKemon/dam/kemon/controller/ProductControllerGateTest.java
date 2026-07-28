@@ -7,6 +7,9 @@ import com.damKemon.dam.kemon.service.ProductService;
 import com.damKemon.dam.kemon.service.ShowcaseService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +23,20 @@ import static org.mockito.Mockito.*;
  * persistent actions such as saving and tracking.
  */
 class ProductControllerGateTest {
+
+    @Test
+    void productListingClampsHostilePagination() {
+        ProductService svc = mock(ProductService.class);
+        when(svc.getAllProducts(any(), any())).thenReturn(Page.empty());
+        ProductController controller = new ProductController(svc, mock(ShowcaseService.class));
+
+        controller.getAllProducts(-1, Integer.MAX_VALUE, null);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(svc).getAllProducts(isNull(), pageable.capture());
+        assertEquals(0, pageable.getValue().getPageNumber());
+        assertEquals(60, pageable.getValue().getPageSize());
+    }
 
     private ProductController controller(Product p, List<Review> reviews) {
         ProductService svc = mock(ProductService.class);

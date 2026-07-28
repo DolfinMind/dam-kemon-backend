@@ -35,6 +35,14 @@ spring:
       - most-sellers
     caffeine:
       spec: maximumSize=500,expireAfterWrite=60s,recordStats
+  task:
+    execution:
+      # Analytics writes are fire-and-forget. Bound their executor so a Mongo
+      # slowdown sheds analytics work instead of growing the heap without limit.
+      pool:
+        core-size: ${ASYNC_CORE_SIZE:2}
+        max-size: ${ASYNC_MAX_SIZE:4}
+        queue-capacity: ${ASYNC_QUEUE_CAPACITY:500}
 
 # ───── Per-HTTP-request behaviour for scrapers ─────
 scraper:

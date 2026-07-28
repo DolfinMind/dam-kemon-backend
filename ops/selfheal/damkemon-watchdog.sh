@@ -16,14 +16,19 @@
 #     covers deploys, crashes and our own restarts uniformly, and
 #   * requires THRESHOLD consecutive no-response checks before acting.
 #
-# Runs as root via damkemon-watchdog.timer (every 60s). No `set -e`: arithmetic
-# conditionals legitimately return non-zero and must not abort the script.
+# Runs as root via damkemon-watchdog.timer, or as the deploy user from cron when
+# the host has not had the one-time root installer applied. No `set -e`:
+# arithmetic conditionals legitimately return non-zero and must not abort.
 
 set -uo pipefail
 
 SVC=damkemon-prod-app.service
 URL=http://127.0.0.1:8080/actuator/health/liveness
-STATE=/var/lib/damkemon-watchdog
+if [ "$(id -u)" -eq 0 ]; then
+  STATE=/var/lib/damkemon-watchdog
+else
+  STATE="${XDG_STATE_HOME:-$HOME/.local/state}/damkemon-watchdog"
+fi
 GRACE=240        # seconds of quiet after a (re)start, so a slow boot can't loop
 THRESHOLD=3      # consecutive failed checks (~3 min) before restarting
 
@@ -58,5 +63,9 @@ echo "$n" > "$FAILS"
 if [ "$n" -ge "$THRESHOLD" ]; then
   logger -t damkemon-watchdog "liveness unreachable ${n}x — restarting ${SVC}"
   echo 0 > "$FAILS"
-  systemctl restart "$SVC"
+  if [ "$(id -u)" -eq 0 ]; then
+    systemctl restart "$SVC"
+  else
+    sudo -n systemctl restart "$SVC"
+  fi
 fi

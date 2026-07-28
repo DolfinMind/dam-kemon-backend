@@ -118,7 +118,7 @@ public class SecurityConfig {
                     // scrapable catalog + price/seller data — the bulk-mining surface
                     new RateLimitFilter.Rule(dataRateLimiter(), 5, List.of(
                             "/api/products", "/api/compare", "/api/sellers",
-                            "/api/shops", "/api/trust", "/api/stats"))
+                            "/api/shops", "/api/trust", "/api/stats", "/api/events"))
                 )), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuth,
                     UsernamePasswordAuthenticationFilter.class)

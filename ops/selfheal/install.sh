@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Idempotently install the prod self-heal: a Restart=always drop-in plus a
-# liveness watchdog timer. Run on the production server by the deploy workflow
-# after the app is updated. Safe to re-run on every deploy.
+# liveness watchdog timer. Run once as root on the production server; deploys
+# stage updated files and use a user-cron watchdog until this is activated.
 
 set -euo pipefail
 
