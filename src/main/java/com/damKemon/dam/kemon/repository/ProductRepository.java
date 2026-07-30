@@ -36,6 +36,16 @@ public interface ProductRepository extends MongoRepository<Product, String> {
     @Query("{ 'prices.productUrl': ?0 }")
     Optional<Product> findByPriceUrl(String url);
 
+    /** Duplicate-tolerant variant of {@link #findByPriceUrl}. A data race can
+     *  leave two products carrying the same {@code prices.productUrl}; the
+     *  single-result Optional query above then throws
+     *  {@code IncorrectResultSizeDataAccessException}, which 500s an entire
+     *  ingest batch and stalls the crawler outbox behind it. Callers on the hot
+     *  ingest path use this List form and pick a match deterministically, while a
+     *  genuine Mongo failure still throws (so the batch is not falsely acked). */
+    @Query("{ 'prices.productUrl': ?0 }")
+    List<Product> findAllByPriceUrl(String url);
+
     long countByCategory(String category);
 
     /** How many catalog products carry an offer from this shop. Used to protect

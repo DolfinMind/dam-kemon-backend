@@ -17,7 +17,6 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -37,8 +36,8 @@ class BulkIndexerFastIngestTest {
                 .name("Phone X")
                 .prices(new ArrayList<>())
                 .build();
-        when(products.findByPriceUrl("https://shop.test/p/x"))
-                .thenReturn(Optional.of(existing));
+        when(products.findAllByPriceUrl("https://shop.test/p/x"))
+                .thenReturn(List.of(existing));
         when(products.save(any(Product.class))).thenAnswer(call -> call.getArgument(0));
 
         BulkIndexer indexer = indexer(products);
@@ -64,7 +63,7 @@ class BulkIndexerFastIngestTest {
     @Test
     void fastIngestPropagatesMongoFailureSoCallerDoesNotAcknowledge() {
         ProductRepository products = mock(ProductRepository.class);
-        when(products.findByPriceUrl("https://shop.test/p/x"))
+        when(products.findAllByPriceUrl("https://shop.test/p/x"))
                 .thenThrow(new DataAccessResourceFailureException("down"));
         Shop shop = Shop.builder().slug("shop").name("Shop").build();
         ScrapedProduct offer = ScrapedProduct.builder()
@@ -75,6 +74,38 @@ class BulkIndexerFastIngestTest {
 
         assertThrows(DataAccessResourceFailureException.class,
                 () -> indexer(products).enrichFast(shop, List.of(offer)));
+    }
+
+    @Test
+    void fastIngestToleratesDuplicateUrlInsteadOf500ingTheBatch() {
+        // A concurrent-write race can leave two products carrying the same
+        // prices.productUrl. The single-result Optional query throws
+        // IncorrectResultSizeDataAccessException, which used to 500 the whole
+        // batch and stall the FIFO crawler outbox behind it. The tolerant List
+        // lookup must merge into one match and let the batch succeed.
+        ProductRepository products = mock(ProductRepository.class);
+        Product dupA = Product.builder()
+                .id("a1").name("Phone X").prices(new ArrayList<>()).build();
+        Product dupB = Product.builder()
+                .id("b2").name("Phone X").prices(new ArrayList<>()).build();
+        when(products.findAllByPriceUrl("https://shop.test/p/x"))
+                .thenReturn(List.of(dupB, dupA));
+        when(products.save(any(Product.class))).thenAnswer(call -> call.getArgument(0));
+
+        BulkIndexer indexer = indexer(products);
+        Shop shop = Shop.builder()
+                .slug("shop").name("Shop").baseUrl("https://shop.test").build();
+        ScrapedProduct offer = ScrapedProduct.builder()
+                .name("Phone X")
+                .price(1000.0)
+                .productUrl("https://shop.test/p/x")
+                .build();
+
+        BulkIndexer.FastIngestResult result = indexer.enrichFast(shop, List.of(offer));
+
+        assertEquals(1, result.accepted());
+        assertEquals(1, result.merged());
+        assertEquals(0, result.inserted());
     }
 
     private BulkIndexer indexer(ProductRepository products) {
