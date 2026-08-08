@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "7934d3f2ff91660cf60af578f3e342f8fcb4bec6",
-  "generatedAt": "2026-08-08T08:49:10.659Z",
+  "gitCommitHash": "765bd46d39fa433cde7cde942dc112fae946b64e",
+  "generatedAt": "2026-08-08T08:59:44.054Z",
   "files": {
     ".claude/CLAUDE.md": {
       "filePath": ".claude/CLAUDE.md",
@@ -165,12 +165,12 @@
     },
     ".github/workflows/production-deploy.yml": {
       "filePath": ".github/workflows/production-deploy.yml",
-      "contentHash": "eda40393f1adc314d2068ea171f3f225e74a26ff09fa3abd4d3dd63cc73db4d9",
+      "contentHash": "4c63081713732e6ac54e730a80099077317844bcf3cb92bdc26648b844a15650",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 152,
+      "totalLines": 191,
       "hasStructuralAnalysis": true
     },
     ".github/workflows/staging-deploy.yml": {
@@ -215,7 +215,7 @@
     },
     "README.md": {
       "filePath": "README.md",
-      "contentHash": "be8f973c4add7b29a5527db3c3b27e9e1333ea016de575add14e999e77d4da1b",
+      "contentHash": "08ae4e7ceca682184e7974004b07ad1582520dbe7a77046059a2f10f45622a8a",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -858,12 +858,12 @@
     },
     "ops/selfheal/damkemon-watchdog.sh": {
       "filePath": "ops/selfheal/damkemon-watchdog.sh",
-      "contentHash": "c91dc53921a840ff2cd1dafebdfab7a91668a7678e9e652478142dbcf4a8f414",
+      "contentHash": "e0aa1d9bb3fff1f392d6225b326ac4fbaa14c4a5b5d76d8c837ae4a1e53da290",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 63,
+      "totalLines": 72,
       "hasStructuralAnalysis": true
     },
     "ops/selfheal/damkemon-watchdog.timer": {
@@ -878,7 +878,7 @@
     },
     "ops/selfheal/install.sh": {
       "filePath": "ops/selfheal/install.sh",
-      "contentHash": "d243a40643899d56115229fff56a294e2ed8735dcf963d2449286e67c5a44924",
+      "contentHash": "dc02c87a6aaa5fcf183805d98502464e82050dafacfe151506b1314c8ebd5d83",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -2059,7 +2059,7 @@
     },
     "src/main/java/com/damKemon/dam/kemon/config/RateLimiter.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/config/RateLimiter.java",
-      "contentHash": "b2b9978cc4da174f4d53e3fc56a483007afda4683b8ef2824a57d5c838cf3966",
+      "contentHash": "84d18d0f3707e5f4c011998a5cd84529c932f0c8a2adc15b2ae2ee16eca41941",
       "functions": [
         {
           "name": "RateLimiter",
@@ -2103,6 +2103,13 @@
           "returnType": "void",
           "exported": true,
           "lineCount": 4
+        },
+        {
+          "name": "evictIdle",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
         }
       ],
       "classes": [
@@ -2113,6 +2120,7 @@
             "capacity",
             "tryConsume",
             "tryConsumeRemaining",
+            "evictIdle",
             "evictIdle"
           ],
           "properties": [
@@ -2121,10 +2129,16 @@
             "buckets"
           ],
           "exported": true,
-          "lineCount": 66
+          "lineCount": 71
         }
       ],
       "imports": [
+        {
+          "source": "org.springframework.scheduling.annotation.Scheduled",
+          "specifiers": [
+            "Scheduled"
+          ]
+        },
         {
           "source": "java.util.concurrent.ConcurrentHashMap",
           "specifiers": [
@@ -2144,9 +2158,10 @@
         "tryConsume",
         "tryConsumeRemaining",
         "evictIdle",
+        "evictIdle",
         "RateLimiter"
       ],
-      "totalLines": 85,
+      "totalLines": 92,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/config/RequestLogFilter.java": {
@@ -2323,7 +2338,7 @@
     },
     "src/main/java/com/damKemon/dam/kemon/config/SecurityConfig.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/config/SecurityConfig.java",
-      "contentHash": "e7ba96978775067273ef3e73d3dc6ed340dac9563f8f3d54f2bfbdc7c1350877",
+      "contentHash": "b0da2754c81b384f9ca4f6ef9463aeff1eaaf95716675490774603874ec192c0",
       "functions": [
         {
           "name": "searchRateLimiter",
@@ -8531,7 +8546,7 @@
     },
     "src/main/java/com/damKemon/dam/kemon/controller/ProductController.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/controller/ProductController.java",
-      "contentHash": "b7ae0156b3f1320942aebd76695b59d703965496b8c607f26439ec336b3fe613",
+      "contentHash": "4dbff43202f673f2f47aa2ba0295c478c5af207a2bc72ffa8ae81ab9802686eb",
       "functions": [
         {
           "name": "ProductController",
@@ -18127,15 +18142,16 @@
     },
     "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndex.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndex.java",
-      "contentHash": "fb3b716151edaf2e070812e5f1a2641b4ff2685cd505679e7ec892be0a6efa07",
+      "contentHash": "fb674f01691e28dca1c08f86935ba5d63ebaf6ddc2a7cfa95158800203644230",
       "functions": [
         {
           "name": "TrigramSearchIndex",
           "params": [
-            "productRepository"
+            "productRepository",
+            "enabled"
           ],
           "exported": true,
-          "lineCount": 3
+          "lineCount": 5
         },
         {
           "name": "run",
@@ -18151,7 +18167,7 @@
           "params": [],
           "returnType": "void",
           "exported": true,
-          "lineCount": 5
+          "lineCount": 6
         },
         {
           "name": "rebuild",
@@ -18169,7 +18185,7 @@
           ],
           "returnType": "List<TrigramIndex.Hit>",
           "exported": true,
-          "lineCount": 8
+          "lineCount": 9
         },
         {
           "name": "size",
@@ -18217,13 +18233,14 @@
           "properties": [
             "log",
             "productRepository",
+            "enabled",
             "indexRef",
             "ready",
             "lastSuccess",
             "lastFailure"
           ],
           "exported": true,
-          "lineCount": 87
+          "lineCount": 92
         }
       ],
       "imports": [
@@ -18261,6 +18278,12 @@
           "source": "org.springframework.boot.ApplicationRunner",
           "specifiers": [
             "ApplicationRunner"
+          ]
+        },
+        {
+          "source": "org.springframework.beans.factory.annotation.Value",
+          "specifiers": [
+            "Value"
           ]
         },
         {
@@ -18324,7 +18347,7 @@
         "status",
         "TrigramSearchIndex"
       ],
-      "totalLines": 125,
+      "totalLines": 131,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/model/AffiliateClick.java": {
@@ -23890,17 +23913,16 @@
     },
     "src/main/java/com/damKemon/dam/kemon/payment/PaymentWebhookService.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/payment/PaymentWebhookService.java",
-      "contentHash": "ca1c0f3d7f8ccdf7c190575eb1a5697ea20cda06dcec2f44242e7efc9a615b98",
+      "contentHash": "0cdcd709b8ff409cce1646bbc538500fe8db458143873f73c10f47a889123c62",
       "functions": [
         {
           "name": "PaymentWebhookService",
           "params": [
             "store",
-            "security",
-            "json"
+            "security"
           ],
           "exported": true,
-          "lineCount": 5
+          "lineCount": 4
         },
         {
           "name": "process",
@@ -24010,7 +24032,7 @@
             "json"
           ],
           "exported": true,
-          "lineCount": 224
+          "lineCount": 223
         }
       ],
       "imports": [
@@ -24110,7 +24132,7 @@
         "process",
         "PaymentWebhookService"
       ],
-      "totalLines": 244,
+      "totalLines": 243,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentAdminAction.java": {
@@ -37712,12 +37734,12 @@
     },
     "src/main/resources/application-production.yml": {
       "filePath": "src/main/resources/application-production.yml",
-      "contentHash": "2fbc0eb40b2768db39175683cbbc118a83c54543e6c3d33cf28e028a3f117799",
+      "contentHash": "33e0ef78b3b37010de92f71c885e4f714e949613aedd2553f73c6887574af381",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 113,
+      "totalLines": 117,
       "hasStructuralAnalysis": true
     },
     "src/main/resources/application-staging.yml": {
@@ -37742,12 +37764,12 @@
     },
     "src/main/resources/application.yml": {
       "filePath": "src/main/resources/application.yml",
-      "contentHash": "00048c9794dc42836a70137d13e32b33f98d754f425833c6ee2ce25575f0c327",
+      "contentHash": "2f5db5b74f520d820ca75bd3fa2c6d1f1a2887e0a360b2c872c2849f4ada975f",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 349,
+      "totalLines": 357,
       "hasStructuralAnalysis": true
     },
     "src/main/resources/sellers.json": {
@@ -39291,8 +39313,15 @@
     },
     "src/test/java/com/damKemon/dam/kemon/controller/ProductControllerGateTest.java": {
       "filePath": "src/test/java/com/damKemon/dam/kemon/controller/ProductControllerGateTest.java",
-      "contentHash": "07b68341f8844ad89fd4c821f75fc4ef622fb2788155ff466960b421da83d82e",
+      "contentHash": "d3edf4eea55fcd3a1f473cc9dc9052e8a09c31b1723c51f9aa389b3ab499ccd6",
       "functions": [
+        {
+          "name": "productListingClampsHostilePagination",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 13
+        },
         {
           "name": "controller",
           "params": [
@@ -39357,6 +39386,7 @@
         {
           "name": "ProductControllerGateTest",
           "methods": [
+            "productListingClampsHostilePagination",
             "controller",
             "anonReq",
             "userReq",
@@ -39368,7 +39398,7 @@
           ],
           "properties": [],
           "exported": false,
-          "lineCount": 83
+          "lineCount": 97
         }
       ],
       "imports": [
@@ -39415,6 +39445,24 @@
           ]
         },
         {
+          "source": "org.mockito.ArgumentCaptor",
+          "specifiers": [
+            "ArgumentCaptor"
+          ]
+        },
+        {
+          "source": "org.springframework.data.domain.Page",
+          "specifiers": [
+            "Page"
+          ]
+        },
+        {
+          "source": "org.springframework.data.domain.Pageable",
+          "specifiers": [
+            "Pageable"
+          ]
+        },
+        {
           "source": "java.util.ArrayList",
           "specifiers": [
             "ArrayList"
@@ -39446,7 +39494,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 105,
+      "totalLines": 122,
       "hasStructuralAnalysis": true
     },
     "src/test/java/com/damKemon/dam/kemon/controller/SearchControllerTest.java": {
@@ -40365,7 +40413,7 @@
     },
     "src/test/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndexTest.java": {
       "filePath": "src/test/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndexTest.java",
-      "contentHash": "0f066fdf5cb0ae1bb18b0578e86806d4553f5a752b8a9116b944058eced21386",
+      "contentHash": "5a040cba779393eb400811e6b2989dae29c9a6a6f3a2c4d63cad6449903e303f",
       "functions": [
         {
           "name": "index",
@@ -40375,11 +40423,11 @@
           "lineCount": 3
         },
         {
-          "name": "baselineRecallCannotBeDisabled",
+          "name": "disabledIndexSkipsStartupAndScheduledRebuilds",
           "params": [],
           "returnType": "void",
           "exported": false,
-          "lineCount": 7
+          "lineCount": 12
         },
         {
           "name": "rebuildUsesProjectionAndStoresIds",
@@ -40408,7 +40456,7 @@
           "name": "TrigramSearchIndexTest",
           "methods": [
             "index",
-            "baselineRecallCannotBeDisabled",
+            "disabledIndexSkipsStartupAndScheduledRebuilds",
             "rebuildUsesProjectionAndStoresIds",
             "failedRefreshKeepsLastGoodIndex",
             "nonEmptyCatalogCannotBecomeReadyWithEmptyIndex"
@@ -40417,7 +40465,7 @@
             "repo"
           ],
           "exported": false,
-          "lineCount": 57
+          "lineCount": 62
         }
       ],
       "imports": [
@@ -40495,7 +40543,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 75,
+      "totalLines": 80,
       "hasStructuralAnalysis": true
     },
     "src/test/java/com/damKemon/dam/kemon/payment/PaymentProviderAdminServiceTest.java": {
@@ -40919,7 +40967,7 @@
     },
     "src/test/java/com/damKemon/dam/kemon/payment/PaymentWebhookServiceTest.java": {
       "filePath": "src/test/java/com/damKemon/dam/kemon/payment/PaymentWebhookServiceTest.java",
-      "contentHash": "54ad60e857d3f83ac58d83f5a3ad66a0f2e9443a7c3ef0b44e3bdc4c542a6243",
+      "contentHash": "fcc21cc096f77a021e53f1a323cd7874c22ae7b9d7722ea97babdd14a35fbc66",
       "functions": [
         {
           "name": "signedOrderCreatesAuthoritativePaidRecordForMappedCheckout",
@@ -40974,12 +41022,6 @@
           "source": "com.damKemon.dam.kemon.payment.model.PaymentWebhookEvent",
           "specifiers": [
             "PaymentWebhookEvent"
-          ]
-        },
-        {
-          "source": "com.fasterxml.jackson.databind.ObjectMapper",
-          "specifiers": [
-            "ObjectMapper"
           ]
         },
         {
@@ -41044,7 +41086,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 64,
+      "totalLines": 63,
       "hasStructuralAnalysis": true
     },
     "src/test/java/com/damKemon/dam/kemon/service/AdminUserServiceTest.java": {
@@ -41761,7 +41803,7 @@
     },
     "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchTypoRecallTest.java": {
       "filePath": "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchTypoRecallTest.java",
-      "contentHash": "1979ca9004e835d7a5923dbdb1d62ba2587f0262d94721debbb8b1f8a950a1cd",
+      "contentHash": "f85860bd7898c635b077f34771b39af0b46814c8c20b62758bcee250e2bbf777",
       "functions": [
         {
           "name": "serviceWith",

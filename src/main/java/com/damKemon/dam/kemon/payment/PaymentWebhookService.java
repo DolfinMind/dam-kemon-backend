@@ -26,12 +26,11 @@ public class PaymentWebhookService {
 
     private final PaymentStore store;
     private final PaymentSecurity security;
-    private final ObjectMapper json;
+    private final ObjectMapper json = new ObjectMapper();
 
-    public PaymentWebhookService(PaymentStore store, PaymentSecurity security, ObjectMapper json) {
+    public PaymentWebhookService(PaymentStore store, PaymentSecurity security) {
         this.store = store;
         this.security = security;
-        this.json = json;
     }
 
     public record WebhookResult(String status, boolean duplicate) {}

@@ -4,7 +4,6 @@ import com.damKemon.dam.kemon.payment.model.PaymentCheckout;
 import com.damKemon.dam.kemon.payment.model.PaymentOrder;
 import com.damKemon.dam.kemon.payment.model.PaymentProduct;
 import com.damKemon.dam.kemon.payment.model.PaymentWebhookEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -23,7 +22,7 @@ class PaymentWebhookServiceTest {
         String secret = "w".repeat(32);
         PaymentStore store = mock(PaymentStore.class);
         PaymentSecurity security = new PaymentSecurity("f".repeat(32), secret);
-        PaymentWebhookService service = new PaymentWebhookService(store, security, new ObjectMapper());
+        PaymentWebhookService service = new PaymentWebhookService(store, security);
         PaymentCheckout checkout = PaymentCheckout.builder().id("checkout-1").appId("rewire")
                 .productCode("lifetime").subjectType("installation").subjectId("opaque-subject").testMode(true).build();
         PaymentProduct product = PaymentProduct.builder().appId("rewire").code("lifetime")

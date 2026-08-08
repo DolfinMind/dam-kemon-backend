@@ -27,7 +27,7 @@
       "Spring Web MVC"
     ],
     "description": "Damkemon is a Bangladesh price-comparison backend that nightly indexes more than 60 e-commerce shops into MongoDB and serves fast catalog searches with cross-shop deduplication and grouped pricing. It is a Spring Boot 4 service on Java 17. Note: this project has over 100 source files; consider scoping analysis to a subdirectory for faster results.",
-    "analyzedAt": "2026-08-08T08:49:02.141Z",
+    "analyzedAt": "2026-08-08T08:59:42.392Z",
     "gitCommitHash": "7934d3f2ff91660cf60af578f3e342f8fcb4bec6"
   },
   "nodes": [
