@@ -1,6 +1,7 @@
 package com.damKemon.dam.kemon.payment;
 
 import com.damKemon.dam.kemon.payment.model.PaymentApplication;
+import com.damKemon.dam.kemon.payment.model.PaymentCheckout;
 import com.damKemon.dam.kemon.payment.model.PaymentEntitlement;
 import com.damKemon.dam.kemon.payment.model.PaymentLicense;
 import com.damKemon.dam.kemon.payment.model.PaymentOrder;
@@ -13,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
 
 import java.util.Optional;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,6 +66,26 @@ class PaymentServiceTest {
         verify(store).save(license.capture());
         assertNotEquals("license-secret", license.getValue().getLicenseKeyFingerprint());
         assertEquals("lice…cret", license.getValue().getKeyShort());
+    }
+
+    @Test void retriesAnExistingFailedCheckoutWithoutCreatingAnotherRecord() throws Exception {
+        PaymentCheckout failed = PaymentCheckout.builder().id("checkout-1").appId("rewire")
+                .productCode("lifetime").entitlementCode("rewire_pro").subjectType("installation")
+                .subjectId(subjectId).idempotencyKey("checkout_retry_12345678").status("FAILED").testMode(true)
+                .expiresAt(Instant.EPOCH).createdAt(Instant.EPOCH).updatedAt(Instant.EPOCH).build();
+        when(store.checkoutByIdempotency("rewire", subjectId, "checkout_retry_12345678")).thenReturn(Optional.of(failed));
+        when(lemon.createCheckout(eq(product), eq("checkout-1"), isNull(), any())).thenReturn(json.readTree("""
+                {"data":{"id":"provider-checkout","attributes":{"url":"https://example.test/checkout"}}}
+                """));
+
+        PaymentService.CheckoutResult result = service.createCheckout("rewire", "lifetime", "checkout_retry_12345678", caller(), null);
+
+        assertEquals("checkout-1", result.checkoutId());
+        assertEquals("OPEN", result.status());
+        assertEquals("https://example.test/checkout", result.checkoutUrl());
+        verify(store, never()).insert(any(PaymentCheckout.class));
+        verify(lemon).createCheckout(eq(product), eq("checkout-1"), isNull(), any());
+        verify(store, times(2)).save(failed);
     }
 
     @Test void rejectsAValidLicenseOwnedByAnotherTrustedBackendSubject() throws Exception {

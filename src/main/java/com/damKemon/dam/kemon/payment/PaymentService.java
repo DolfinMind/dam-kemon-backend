@@ -54,20 +54,28 @@ public class PaymentService {
         requirePattern(IDEMPOTENCY_KEY, idempotencyKey, "invalid_idempotency_key", "Idempotency-Key must be 8-128 safe characters");
 
         PaymentCheckout existing = store.checkoutByIdempotency(appId, subject.id(), idempotencyKey).orElse(null);
-        if (existing != null) return checkoutResult(existing);
-
         Instant now = Instant.now();
-        PaymentCheckout checkout = PaymentCheckout.builder()
-                .id(UUID.randomUUID().toString())
-                .appId(appId).productCode(product.getCode()).entitlementCode(product.getEntitlementCode())
-                .subjectType(subject.type()).subjectId(subject.id()).idempotencyKey(idempotencyKey)
-                .status("CREATING").testMode(product.isTestMode())
-                .expiresAt(now.plusSeconds(30 * 60)).createdAt(now).updatedAt(now).build();
-        try {
-            store.insert(checkout);
-        } catch (DuplicateKeyException race) {
-            return checkoutResult(store.checkoutByIdempotency(appId, subject.id(), idempotencyKey)
-                    .orElseThrow(() -> new PaymentException(HttpStatus.CONFLICT, "checkout_conflict", "Checkout request conflicted; retry")));
+        PaymentCheckout checkout;
+        if (existing != null) {
+            if (!"FAILED".equals(existing.getStatus())) return checkoutResult(existing);
+            checkout = existing;
+            checkout.setStatus("CREATING");
+            checkout.setExpiresAt(now.plusSeconds(30 * 60));
+            checkout.setUpdatedAt(now);
+            store.save(checkout);
+        } else {
+            checkout = PaymentCheckout.builder()
+                    .id(UUID.randomUUID().toString())
+                    .appId(appId).productCode(product.getCode()).entitlementCode(product.getEntitlementCode())
+                    .subjectType(subject.type()).subjectId(subject.id()).idempotencyKey(idempotencyKey)
+                    .status("CREATING").testMode(product.isTestMode())
+                    .expiresAt(now.plusSeconds(30 * 60)).createdAt(now).updatedAt(now).build();
+            try {
+                store.insert(checkout);
+            } catch (DuplicateKeyException race) {
+                return checkoutResult(store.checkoutByIdempotency(appId, subject.id(), idempotencyKey)
+                        .orElseThrow(() -> new PaymentException(HttpStatus.CONFLICT, "checkout_conflict", "Checkout request conflicted; retry")));
+            }
         }
 
         try {
