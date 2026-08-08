@@ -68,9 +68,7 @@ public class LemonSqueezyClient {
                     .header("Authorization", "Bearer " + key)
                     .body(Map.of("data", data))
                     .retrieve().body(String.class);
-            return json.readTree(response);
-        } catch (JsonProcessingException e) {
-            throw new PaymentProviderException("Lemon Squeezy returned an invalid checkout response", e);
+            return parseJson(response, "checkout");
         } catch (RestClientResponseException e) {
             throw new PaymentProviderException("Lemon Squeezy rejected checkout creation (HTTP " + e.getStatusCode().value() + ")");
         } catch (ResourceAccessException e) {
@@ -157,10 +155,11 @@ public class LemonSqueezyClient {
         if (instanceId != null) form.add("instance_id", instanceId);
         if (instanceName != null) form.add("instance_name", instanceName);
         try {
-            return http.post().uri(path)
+            String response = http.post().uri(path)
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .accept(MediaType.APPLICATION_JSON)
-                    .body(form).retrieve().body(JsonNode.class);
+                    .body(form).retrieve().body(String.class);
+            return parseJson(response, "license");
         } catch (RestClientResponseException e) {
             throw new PaymentProviderException("Lemon Squeezy license request failed (HTTP " + e.getStatusCode().value() + ")");
         } catch (ResourceAccessException e) {
@@ -170,9 +169,10 @@ public class LemonSqueezyClient {
 
     private JsonNode authenticatedGet(String path, boolean testMode) {
         try {
-            return http.get().uri(URI.create(path)).accept(JSON_API)
+            String response = http.get().uri(URI.create(path)).accept(JSON_API)
                     .header("Authorization", "Bearer " + requireApiKey(testMode))
-                    .retrieve().body(JsonNode.class);
+                    .retrieve().body(String.class);
+            return parseJson(response, "provider read");
         } catch (RestClientResponseException e) {
             throw providerError("read", e);
         } catch (ResourceAccessException e) {
@@ -185,9 +185,10 @@ public class LemonSqueezyClient {
             RestClient.RequestBodySpec request = "PATCH".equals(method)
                     ? http.patch().uri(URI.create(path))
                     : http.post().uri(URI.create(path));
-            return request.contentType(JSON_API).accept(JSON_API)
+            String response = request.contentType(JSON_API).accept(JSON_API)
                     .header("Authorization", "Bearer " + requireApiKey(testMode))
-                    .body(body).retrieve().body(JsonNode.class);
+                    .body(body).retrieve().body(String.class);
+            return parseJson(response, "provider write");
         } catch (RestClientResponseException e) {
             throw providerError("write", e);
         } catch (ResourceAccessException e) {
@@ -217,6 +218,14 @@ public class LemonSqueezyClient {
                     "invalid_provider_id", "Provider resource ID is invalid");
         }
         return value;
+    }
+
+    private JsonNode parseJson(String response, String operation) {
+        try {
+            return json.readTree(response);
+        } catch (JsonProcessingException e) {
+            throw new PaymentProviderException("Lemon Squeezy returned an invalid " + operation + " response", e);
+        }
     }
 
     private static PaymentProviderException providerError(String action, RestClientResponseException error) {
