@@ -21,7 +21,7 @@ jobs:
 
       - name: Build with Gradle (clean build)
         run: |
-          ./gradlew clean bootJar
+          ./gradlew clean test bootJar
           # Remove the plain JAR to avoid confusion
           rm -f build/libs/*-plain.jar
 
@@ -45,7 +45,7 @@ jobs:
           script: |
             sudo systemctl restart damkemon-prod-app.service
             ready=0
-            for attempt in $(seq 1 36); do
+            for attempt in $(seq 1 72); do
               if curl --fail --silent --max-time 5 \
                   http://127.0.0.1:8080/actuator/health/readiness >/dev/null; then
                 ready=1
