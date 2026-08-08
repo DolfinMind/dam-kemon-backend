@@ -43,12 +43,13 @@ jobs:
           target: "/home/${{ vars.SERVER_USER }}/server/"
           strip_components: 2
 
-      - name: Configure payment sandbox
+      - name: Configure payment environment
         uses: appleboy/ssh-action@v1.0.3
         env:
           PAYMENTS_ENABLED: ${{ vars.PAYMENTS_ENABLED }}
           PAYMENTS_FINGERPRINT_SECRET: ${{ secrets.PAYMENTS_FINGERPRINT_SECRET }}
           LEMON_SQUEEZY_TEST_API_KEY: ${{ secrets.LEMON_SQUEEZY_TEST_API_KEY }}
+          LEMON_SQUEEZY_LIVE_API_KEY: ${{ secrets.LEMON_SQUEEZY_LIVE_API_KEY }}
           LEMON_SQUEEZY_WEBHOOK_SECRET: ${{ secrets.LEMON_SQUEEZY_WEBHOOK_SECRET }}
           LEMON_SQUEEZY_WEBHOOK_URL: ${{ vars.LEMON_SQUEEZY_WEBHOOK_URL }}
           PAYMENTS_REWIRE_ENABLED: ${{ vars.PAYMENTS_REWIRE_ENABLED }}
@@ -56,12 +57,13 @@ jobs:
           PAYMENTS_REWIRE_PRODUCT_ID: ${{ vars.PAYMENTS_REWIRE_PRODUCT_ID }}
           PAYMENTS_REWIRE_VARIANT_ID: ${{ vars.PAYMENTS_REWIRE_VARIANT_ID }}
           PAYMENTS_REWIRE_TEST_MODE: ${{ vars.PAYMENTS_REWIRE_TEST_MODE }}
+          PAYMENTS_REWIRE_REDIRECT_URL: ${{ vars.PAYMENTS_REWIRE_REDIRECT_URL }}
         with:
           host: ${{ vars.SERVER_HOST }}
           username: ${{ vars.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script_stop: true
-          envs: PAYMENTS_ENABLED,PAYMENTS_FINGERPRINT_SECRET,LEMON_SQUEEZY_TEST_API_KEY,LEMON_SQUEEZY_WEBHOOK_SECRET,LEMON_SQUEEZY_WEBHOOK_URL,PAYMENTS_REWIRE_ENABLED,PAYMENTS_REWIRE_STORE_ID,PAYMENTS_REWIRE_PRODUCT_ID,PAYMENTS_REWIRE_VARIANT_ID,PAYMENTS_REWIRE_TEST_MODE
+          envs: PAYMENTS_ENABLED,PAYMENTS_FINGERPRINT_SECRET,LEMON_SQUEEZY_TEST_API_KEY,LEMON_SQUEEZY_LIVE_API_KEY,LEMON_SQUEEZY_WEBHOOK_SECRET,LEMON_SQUEEZY_WEBHOOK_URL,PAYMENTS_REWIRE_ENABLED,PAYMENTS_REWIRE_STORE_ID,PAYMENTS_REWIRE_PRODUCT_ID,PAYMENTS_REWIRE_VARIANT_ID,PAYMENTS_REWIRE_TEST_MODE,PAYMENTS_REWIRE_REDIRECT_URL
           script: |
             set -eu
             expected="/home/${{ vars.SERVER_USER }}/server/.env"
@@ -70,6 +72,9 @@ jobs:
             test -f "$env_file"
             test "${#PAYMENTS_FINGERPRINT_SECRET}" -ge 32
             test "${#LEMON_SQUEEZY_TEST_API_KEY}" -ge 100
+            if [ -n "$LEMON_SQUEEZY_LIVE_API_KEY" ]; then
+              test "${#LEMON_SQUEEZY_LIVE_API_KEY}" -ge 100
+            fi
             test "${#LEMON_SQUEEZY_WEBHOOK_SECRET}" -ge 32
             test "${#LEMON_SQUEEZY_WEBHOOK_SECRET}" -le 40
 
@@ -86,6 +91,11 @@ jobs:
             upsert PAYMENTS_ENABLED "$PAYMENTS_ENABLED"
             upsert PAYMENTS_FINGERPRINT_SECRET "$PAYMENTS_FINGERPRINT_SECRET"
             upsert LEMON_SQUEEZY_TEST_API_KEY "$LEMON_SQUEEZY_TEST_API_KEY"
+            # A live key is optional during sandbox operation. Do not erase an
+            # existing server key when this optional GitHub secret is unset.
+            if [ -n "$LEMON_SQUEEZY_LIVE_API_KEY" ]; then
+              upsert LEMON_SQUEEZY_LIVE_API_KEY "$LEMON_SQUEEZY_LIVE_API_KEY"
+            fi
             upsert LEMON_SQUEEZY_WEBHOOK_SECRET "$LEMON_SQUEEZY_WEBHOOK_SECRET"
             upsert LEMON_SQUEEZY_WEBHOOK_URL "$LEMON_SQUEEZY_WEBHOOK_URL"
             upsert PAYMENTS_REWIRE_ENABLED "$PAYMENTS_REWIRE_ENABLED"
@@ -93,6 +103,7 @@ jobs:
             upsert PAYMENTS_REWIRE_PRODUCT_ID "$PAYMENTS_REWIRE_PRODUCT_ID"
             upsert PAYMENTS_REWIRE_VARIANT_ID "$PAYMENTS_REWIRE_VARIANT_ID"
             upsert PAYMENTS_REWIRE_TEST_MODE "$PAYMENTS_REWIRE_TEST_MODE"
+            upsert PAYMENTS_REWIRE_REDIRECT_URL "$PAYMENTS_REWIRE_REDIRECT_URL"
             chmod 600 "$tmp"
             mv "$tmp" "$env_file"
 
