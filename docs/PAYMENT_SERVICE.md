@@ -182,14 +182,14 @@ LEMON_SQUEEZY_WEBHOOK_SECRET=<32-40 random characters>
 LEMON_SQUEEZY_WEBHOOK_URL=https://damkemon.com/api/payments/v1/webhooks/lemon-squeezy
 ```
 
-Rewire test catalog configuration:
+Rewire live catalog configuration:
 
 ```text
 PAYMENTS_REWIRE_ENABLED=true
 PAYMENTS_REWIRE_STORE_ID=445309
-PAYMENTS_REWIRE_PRODUCT_ID=1266751
-PAYMENTS_REWIRE_VARIANT_ID=1980706
-PAYMENTS_REWIRE_TEST_MODE=true
+PAYMENTS_REWIRE_PRODUCT_ID=1276394
+PAYMENTS_REWIRE_VARIANT_ID=1995479
+PAYMENTS_REWIRE_TEST_MODE=false
 ```
 
 The legacy `LEMON_SQUEEZY_API_KEY` is accepted only as a test-key fallback for
