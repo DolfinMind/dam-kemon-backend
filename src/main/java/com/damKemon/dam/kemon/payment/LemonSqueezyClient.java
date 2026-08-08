@@ -1,7 +1,9 @@
 package com.damKemon.dam.kemon.payment;
 
 import com.damKemon.dam.kemon.payment.model.PaymentProduct;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -12,6 +14,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,6 +26,7 @@ public class LemonSqueezyClient {
     private final RestClient http;
     private final String testApiKey;
     private final String liveApiKey;
+    private final ObjectMapper json = new ObjectMapper();
 
     public LemonSqueezyClient(@Value("${payments.lemon.base-url:https://api.lemonsqueezy.com}") String baseUrl,
                               @Value("${payments.lemon.test-api-key:${payments.lemon.api-key:}}") String testApiKey,
@@ -47,7 +51,8 @@ public class LemonSqueezyClient {
         Map<String, Object> attributes = new LinkedHashMap<>();
         attributes.put("checkout_data", checkoutData);
         attributes.put("product_options", productOptions(product));
-        attributes.put("expires_at", expiresAt.toString());
+        // Lemon Squeezy rejects fractional-second ISO-8601 timestamps (HTTP 422).
+        attributes.put("expires_at", expiresAt.truncatedTo(ChronoUnit.SECONDS).toString());
         attributes.put("test_mode", product.isTestMode());
 
         Map<String, Object> data = new LinkedHashMap<>();
@@ -58,11 +63,14 @@ public class LemonSqueezyClient {
                 "variant", Map.of("data", Map.of("type", "variants", "id", Long.toString(product.getVariantId())))));
 
         try {
-            return http.post().uri("/v1/checkouts")
+            String response = http.post().uri("/v1/checkouts")
                     .contentType(JSON_API).accept(JSON_API)
                     .header("Authorization", "Bearer " + key)
                     .body(Map.of("data", data))
-                    .retrieve().body(JsonNode.class);
+                    .retrieve().body(String.class);
+            return json.readTree(response);
+        } catch (JsonProcessingException e) {
+            throw new PaymentProviderException("Lemon Squeezy returned an invalid checkout response", e);
         } catch (RestClientResponseException e) {
             throw new PaymentProviderException("Lemon Squeezy rejected checkout creation (HTTP " + e.getStatusCode().value() + ")");
         } catch (ResourceAccessException e) {
