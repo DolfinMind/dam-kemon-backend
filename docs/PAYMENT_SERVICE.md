@@ -203,6 +203,19 @@ GitHub Actions pipeline and `damkemon-prod-app.service` on the Damkemon server.
 CI runs all tests and builds the boot JAR, serializes production deploys, then
 requires both the systemd unit and the public actuator health check to recover.
 
+The `deployment-prod` workflow writes the payment configuration to the service
+environment without printing values. Configure these GitHub **secrets**:
+`PAYMENTS_FINGERPRINT_SECRET`, `LEMON_SQUEEZY_TEST_API_KEY`,
+`LEMON_SQUEEZY_LIVE_API_KEY` (required before live cutover), and
+`LEMON_SQUEEZY_WEBHOOK_SECRET`. Configure these GitHub **variables**:
+`PAYMENTS_ENABLED`, `LEMON_SQUEEZY_WEBHOOK_URL`,
+`PAYMENTS_REWIRE_ENABLED`, `PAYMENTS_REWIRE_STORE_ID`,
+`PAYMENTS_REWIRE_PRODUCT_ID`, `PAYMENTS_REWIRE_VARIANT_ID`,
+`PAYMENTS_REWIRE_TEST_MODE`, and `PAYMENTS_REWIRE_REDIRECT_URL`. Set
+`PAYMENTS_REWIRE_TEST_MODE=false` only after the live key and a live Lemon
+catalog mapping are in place. An unset live-key secret leaves the existing
+server setting untouched so sandbox deployments remain unchanged.
+
 ## Security operations
 
 - Rate-limit public checkout/license calls independently from catalog traffic.

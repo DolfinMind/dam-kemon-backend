@@ -14,3 +14,4 @@
 
 - 2026-08-08T08:47Z [TOOL] The safe production workflow builds with `clean test bootJar`, deploys only on `deployment-prod`, and requires systemd plus public actuator health recovery.
 - 2026-08-08T09:06Z [CODE] Lemon Squeezy checkout, authenticated read/write, and license endpoints now receive raw response text and parse it with the local Jackson 2 mapper, avoiding Spring Boot 4's Jackson 3 converter mismatch; focused client tests pass.
+- 2026-08-08T09:18Z [CODE] Production CI can safely upsert an optional encrypted live Lemon API key and the configured Rewire redirect URL while preserving sandbox behavior when the live secret is unset.
