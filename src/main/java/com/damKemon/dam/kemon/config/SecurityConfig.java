@@ -63,6 +63,10 @@ public class SecurityConfig {
     private long authCapacity;                    // login brute-force throttle
     @Value("${ratelimit.auth-refill-per-sec:0.13}")
     private double authRefillPerSec;
+    @Value("${ratelimit.payment-capacity:20}")
+    private long paymentCapacity;
+    @Value("${ratelimit.payment-refill-per-sec:0.20}")
+    private double paymentRefillPerSec;
 
     @Bean
     public RateLimiter searchRateLimiter() {
@@ -82,6 +86,11 @@ public class SecurityConfig {
     @Bean
     public RateLimiter authRateLimiter() {
         return new RateLimiter(authCapacity, authRefillPerSec);
+    }
+
+    @Bean
+    public RateLimiter paymentRateLimiter() {
+        return new RateLimiter(paymentCapacity, paymentRefillPerSec);
     }
 
     @Bean
@@ -108,6 +117,10 @@ public class SecurityConfig {
                             List.of("/api/auth/login", "/api/auth/signup", "/api/auth/google",
                                     "/api/auth/forgot", "/api/auth/reset", "/api/auth/verify",
                                     "/api/auth/resend-verification")),
+                    // Checkout/license calls can reach an external provider. The
+                    // signed webhook route is intentionally excluded from this prefix.
+                    new RateLimitFilter.Rule(paymentRateLimiter(), 25,
+                            List.of("/api/payments/v1/apps/")),
                     // expensive / abuse-prone triggers — tight (scrape kicks off a
                     // crawl; assistant calls the LLM, so both cost real resources).
                     new RateLimitFilter.Rule(strictRateLimiter(), 15,

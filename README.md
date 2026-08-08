@@ -306,6 +306,10 @@ src/main/resources/
 ./gradlew bootJar                 # build runnable jar
 ```
 
+The reusable Lemon Squeezy payment API, authentication matrix, isolated Mongo
+collections, onboarding procedure, and rollout checklist are documented in
+[`docs/PAYMENT_SERVICE.md`](docs/PAYMENT_SERVICE.md).
+
 ---
 
 ## Roadmap

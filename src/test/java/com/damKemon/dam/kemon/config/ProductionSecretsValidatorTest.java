@@ -15,6 +15,30 @@ class ProductionSecretsValidatorTest {
         assertDoesNotThrow(() -> validator(new AppRole("web"), "a".repeat(32), "b".repeat(32), "owner", "c".repeat(12), "key").run(null));
         assertDoesNotThrow(() -> validator(new AppRole("worker"), "", "", "", "", "").run(null));
     }
+    @Test void enabledPaymentsFailClosedWithoutProviderSecrets() {
+        ProductionSecretsValidator v = validator(new AppRole("web"), "a".repeat(32), "b".repeat(32), "owner", "c".repeat(12), "key");
+        ReflectionTestUtils.setField(v, "paymentsEnabled", true);
+        assertThrows(IllegalStateException.class, () -> v.run(null));
+    }
+    @Test void enabledRewireSandboxRequiresTestKeyAndAcceptsCompleteConfiguration() {
+        ProductionSecretsValidator v = validator(new AppRole("web"), "a".repeat(32), "b".repeat(32), "owner", "c".repeat(12), "key");
+        ReflectionTestUtils.setField(v, "paymentsEnabled", true);
+        ReflectionTestUtils.setField(v, "paymentFingerprintSecret", "f".repeat(32));
+        ReflectionTestUtils.setField(v, "lemonTestApiKey", "test-key");
+        ReflectionTestUtils.setField(v, "lemonWebhookSecret", "w".repeat(32));
+        ReflectionTestUtils.setField(v, "lemonWebhookUrl", "https://damkemon.com/api/payments/v1/webhooks/lemon-squeezy");
+        ReflectionTestUtils.setField(v, "rewirePaymentsEnabled", true);
+        ReflectionTestUtils.setField(v, "rewireStoreId", 1L);
+        ReflectionTestUtils.setField(v, "rewireProductId", 2L);
+        ReflectionTestUtils.setField(v, "rewireVariantId", 3L);
+        ReflectionTestUtils.setField(v, "rewireTestMode", true);
+
+        assertDoesNotThrow(() -> v.run(null));
+
+        ReflectionTestUtils.setField(v, "lemonTestApiKey", "");
+        ReflectionTestUtils.setField(v, "lemonLiveApiKey", "live-key");
+        assertThrows(IllegalStateException.class, () -> v.run(null));
+    }
     private static ProductionSecretsValidator validator(AppRole role, String jwt, String admin, String owner, String password, String resend) {
         ProductionSecretsValidator v = new ProductionSecretsValidator(role);
         ReflectionTestUtils.setField(v, "jwt", jwt); ReflectionTestUtils.setField(v, "adminKey", admin);

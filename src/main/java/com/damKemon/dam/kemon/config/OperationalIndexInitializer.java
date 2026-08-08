@@ -60,6 +60,51 @@ public class OperationalIndexInitializer {
                 .unique().named("wishlist_user_product_unique"));
         ensure("price_alert_notifications", new Index().on("deliveryKey", Sort.Direction.ASC)
                 .unique().sparse().named("delivery_key_unique"));
+
+        // Payment data is deliberately isolated from Damkemon catalog/account collections.
+        ensure("payment_applications", new Index().on("apiKeySha256", Sort.Direction.ASC)
+                .unique().sparse().named("payment_app_api_key_unique"));
+        ensure("payment_products", new Index().on("appId", Sort.Direction.ASC).on("code", Sort.Direction.ASC)
+                .unique().named("payment_product_app_code_unique"));
+        ensure("payment_products", new Index().on("provider", Sort.Direction.ASC).on("storeId", Sort.Direction.ASC)
+                .on("variantId", Sort.Direction.ASC).on("testMode", Sort.Direction.ASC)
+                .unique().named("payment_product_provider_variant_unique"));
+        ensure("payment_checkouts", new Index().on("appId", Sort.Direction.ASC).on("subjectId", Sort.Direction.ASC)
+                .on("idempotencyKey", Sort.Direction.ASC).unique().named("payment_checkout_idempotency_unique"));
+        ensure("payment_checkouts", new Index().on("providerCheckoutId", Sort.Direction.ASC)
+                .unique().sparse().named("payment_checkout_provider_unique"));
+        ensure("payment_checkouts", new Index().on("appId", Sort.Direction.ASC).on("testMode", Sort.Direction.ASC)
+                .on("status", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC)
+                .named("payment_checkout_admin_list"));
+        ensure("payment_orders", new Index().on("provider", Sort.Direction.ASC).on("providerOrderId", Sort.Direction.ASC)
+                .unique().named("payment_order_provider_unique"));
+        ensure("payment_orders", new Index().on("appId", Sort.Direction.ASC).on("subjectId", Sort.Direction.ASC)
+                .on("createdAt", Sort.Direction.DESC).named("payment_order_subject_created"));
+        ensure("payment_orders", new Index().on("appId", Sort.Direction.ASC).on("testMode", Sort.Direction.ASC)
+                .on("status", Sort.Direction.ASC).on("providerCreatedAt", Sort.Direction.DESC)
+                .named("payment_order_admin_list"));
+        ensure("payment_licenses", new Index().on("provider", Sort.Direction.ASC).on("providerLicenseId", Sort.Direction.ASC)
+                .unique().named("payment_license_provider_unique"));
+        ensure("payment_licenses", new Index().on("appId", Sort.Direction.ASC).on("licenseKeyFingerprint", Sort.Direction.ASC)
+                .named("payment_license_fingerprint"));
+        ensure("payment_licenses", new Index().on("appId", Sort.Direction.ASC).on("testMode", Sort.Direction.ASC)
+                .on("status", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC)
+                .named("payment_license_admin_list"));
+        ensure("payment_entitlements", new Index().on("appId", Sort.Direction.ASC).on("subjectId", Sort.Direction.ASC)
+                .on("providerInstanceId", Sort.Direction.ASC).unique().named("payment_entitlement_instance_unique"));
+        ensure("payment_entitlements", new Index().on("checkoutId", Sort.Direction.ASC)
+                .named("payment_entitlement_checkout"));
+        ensure("payment_entitlements", new Index().on("appId", Sort.Direction.ASC).on("testMode", Sort.Direction.ASC)
+                .on("status", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC)
+                .named("payment_entitlement_admin_list"));
+        ensure("payment_webhook_events", new Index().on("receivedAt", Sort.Direction.DESC)
+                .named("payment_webhook_received"));
+        ensure("payment_webhook_events", new Index().on("appId", Sort.Direction.ASC).on("testMode", Sort.Direction.ASC)
+                .on("status", Sort.Direction.ASC).on("receivedAt", Sort.Direction.DESC)
+                .named("payment_webhook_admin_list"));
+        ensure("payment_admin_actions", new Index().on("appId", Sort.Direction.ASC).on("testMode", Sort.Direction.ASC)
+                .on("status", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC)
+                .named("payment_admin_action_list"));
     }
 
     private void ensure(String collection, Index index) {

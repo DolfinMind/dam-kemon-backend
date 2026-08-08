@@ -212,6 +212,28 @@ price-alerts:
 ratelimit:
   capacity: ${RATE_LIMIT_CAPACITY:60}
   refill-per-sec: ${RATE_LIMIT_REFILL_PER_SEC:1.0}
+  payment-capacity: ${RATE_LIMIT_PAYMENT_CAPACITY:20}
+  payment-refill-per-sec: ${RATE_LIMIT_PAYMENT_REFILL_PER_SEC:0.20}
+
+# ───── Reusable Lemon Squeezy payment module ─────
+# Disabled by default. Merchant credentials stay server-side; native/web clients
+# receive only hosted checkout URLs and license/entitlement status.
+payments:
+  enabled: ${PAYMENTS_ENABLED:false}
+  fingerprint-secret: ${PAYMENTS_FINGERPRINT_SECRET:}
+  lemon:
+    base-url: ${LEMON_SQUEEZY_BASE_URL:https://api.lemonsqueezy.com}
+    test-api-key: ${LEMON_SQUEEZY_TEST_API_KEY:${LEMON_SQUEEZY_API_KEY:}}
+    live-api-key: ${LEMON_SQUEEZY_LIVE_API_KEY:}
+    webhook-secret: ${LEMON_SQUEEZY_WEBHOOK_SECRET:}
+    webhook-url: ${LEMON_SQUEEZY_WEBHOOK_URL:https://damkemon.com/api/payments/v1/webhooks/lemon-squeezy}
+  rewire:
+    enabled: ${PAYMENTS_REWIRE_ENABLED:false}
+    store-id: ${PAYMENTS_REWIRE_STORE_ID:0}
+    product-id: ${PAYMENTS_REWIRE_PRODUCT_ID:0}
+    variant-id: ${PAYMENTS_REWIRE_VARIANT_ID:0}
+    test-mode: ${PAYMENTS_REWIRE_TEST_MODE:true}
+    redirect-url: ${PAYMENTS_REWIRE_REDIRECT_URL:}
 
 # ───── Fixed-credential owner sign-in ─────
 # The owner signs in with this username + password via POST /api/auth/login.

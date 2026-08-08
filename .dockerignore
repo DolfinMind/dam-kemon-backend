@@ -1,0 +1,14 @@
+.git
+.github
+.gradle
+.idea
+.ua
+build
+docs
+ops
+.env
+.env.*
+!.env.example
+!.env.production.example
+!.env.staging.example
+*.log
