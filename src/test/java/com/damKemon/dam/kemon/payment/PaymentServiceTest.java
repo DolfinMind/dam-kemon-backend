@@ -6,6 +6,7 @@ import com.damKemon.dam.kemon.payment.model.PaymentEntitlement;
 import com.damKemon.dam.kemon.payment.model.PaymentLicense;
 import com.damKemon.dam.kemon.payment.model.PaymentOrder;
 import com.damKemon.dam.kemon.payment.model.PaymentProduct;
+import com.damKemon.dam.kemon.payment.model.PaymentSubscription;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -133,6 +134,30 @@ class PaymentServiceTest {
 
         assertTrue(result.valid());
         verify(lemon).activateLicense("license-secret", "Second Android");
+    }
+
+    @Test void validatesDirectSubscriptionEntitlementWithoutAProviderSecretInTheClient() {
+        product.setCode("monthly");
+        product.setSubscription(true);
+        product.setBillingInterval("month");
+        product.setBillingIntervalCount(1);
+        product.setLicenseRequired(false);
+        when(store.product("rewire", "monthly")).thenReturn(Optional.of(product));
+        PaymentEntitlement entitlement = PaymentEntitlement.builder().id("ent-1").appId("rewire")
+                .productCode("monthly").entitlementCode("rewire_pro").subjectId(subjectId)
+                .providerSubscriptionId("88").status("ACTIVE").testMode(true)
+                .expiresAt(Instant.now().plusSeconds(3600)).build();
+        PaymentSubscription subscription = PaymentSubscription.builder().providerSubscriptionId("88")
+                .renewsAt(Instant.now().plusSeconds(1800)).build();
+        when(store.entitlementByProduct("rewire", subjectId, "monthly")).thenReturn(Optional.of(entitlement));
+        when(store.subscription("lemon_squeezy", "88")).thenReturn(Optional.of(subscription));
+
+        PaymentService.EntitlementResult result = service.validateEntitlement("rewire", "monthly", caller());
+
+        assertTrue(result.valid());
+        assertEquals("rewire_pro", result.entitlementCode());
+        assertNotNull(result.renewsAt());
+        verifyNoInteractions(lemon);
     }
 
     private PaymentService.Caller caller() {

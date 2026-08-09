@@ -44,6 +44,8 @@ public class PaymentService {
     public record CheckoutResult(String checkoutId, String status, String checkoutUrl, Instant expiresAt, boolean testMode) {}
     public record LicenseResult(boolean valid, String status, String entitlementCode,
                                 String instanceId, Instant expiresAt, Instant validatedAt, boolean testMode) {}
+    public record EntitlementResult(boolean valid, String status, String entitlementCode,
+                                    Instant renewsAt, Instant expiresAt, Instant validatedAt, boolean testMode) {}
     public record ApplicationKey(PaymentApplication application, String apiKey) {}
 
     public CheckoutResult createCheckout(String appId, String productCode, String idempotencyKey,
@@ -241,6 +243,33 @@ public class PaymentService {
         return result(entitlement, false);
     }
 
+    public EntitlementResult validateEntitlement(String appId, String productCode, Caller caller) {
+        PaymentApplication app = requireApplication(appId);
+        PaymentProduct product = requireProduct(appId, productCode);
+        if (!product.isSubscription() || product.isLicenseRequired()) {
+            throw new PaymentException(HttpStatus.BAD_REQUEST, "subscription_entitlement_unavailable",
+                    "This product does not use direct subscription entitlements");
+        }
+        Subject subject = authenticate(app, caller, app.isPublicCheckout());
+        PaymentEntitlement entitlement = store.entitlementByProduct(appId, subject.id(), productCode)
+                .orElseThrow(() -> new PaymentException(HttpStatus.NOT_FOUND, "entitlement_not_found",
+                        "No subscription entitlement exists for this account or installation"));
+        Instant now = Instant.now();
+        boolean valid = "ACTIVE".equals(entitlement.getStatus())
+                && (entitlement.getExpiresAt() == null || entitlement.getExpiresAt().isAfter(now));
+        if (!valid && "ACTIVE".equals(entitlement.getStatus())) {
+            entitlement.setStatus("REVOKED");
+            entitlement.setUpdatedAt(now);
+            store.save(entitlement);
+        }
+        String providerSubscriptionId = entitlement.getProviderSubscriptionId();
+        Instant renewsAt = providerSubscriptionId == null ? null
+                : store.subscription(PROVIDER, providerSubscriptionId)
+                .map(com.damKemon.dam.kemon.payment.model.PaymentSubscription::getRenewsAt).orElse(null);
+        return new EntitlementResult(valid, entitlement.getStatus(), entitlement.getEntitlementCode(), renewsAt,
+                entitlement.getExpiresAt(), now, entitlement.isTestMode());
+    }
+
     public ApplicationKey createApplication(String appId, String displayName, boolean acceptDamkemonJwt,
                                              boolean publicCheckout, boolean publicLicense) {
         requirePattern(APP_ID, appId, "invalid_app_id", "Application ID must be 3-40 lowercase characters");
@@ -286,7 +315,8 @@ public class PaymentService {
 
     public PaymentProduct upsertProduct(String appId, String code, String entitlementCode,
                                         long storeId, long productId, long variantId,
-                                        boolean testMode, boolean active, String redirectUrl) {
+                                        boolean subscription, String billingInterval, int billingIntervalCount,
+                                        boolean licenseRequired, boolean testMode, boolean active, String redirectUrl) {
         if (store.application(appId).isEmpty()) throw new PaymentException(HttpStatus.NOT_FOUND, "application_not_found", "Payment application not found");
         requirePattern(CODE, code, "invalid_product_code", "Product code is invalid");
         requirePattern(CODE, entitlementCode, "invalid_entitlement_code", "Entitlement code is invalid");
@@ -294,6 +324,7 @@ public class PaymentService {
             throw new PaymentException(HttpStatus.BAD_REQUEST, "invalid_provider_ids", "Store, product, and variant IDs must be positive");
         }
         if (redirectUrl != null && !redirectUrl.isBlank()) requireHttps(redirectUrl);
+        String normalizedInterval = billingInterval(subscription, billingInterval, billingIntervalCount);
         Instant now = Instant.now();
         PaymentProduct product = store.product(appId, code).orElseGet(PaymentProduct::new);
         if (product.getId() == null) {
@@ -302,7 +333,9 @@ public class PaymentService {
         }
         product.setAppId(appId); product.setCode(code); product.setEntitlementCode(entitlementCode);
         product.setProvider(PROVIDER); product.setStoreId(storeId); product.setProductId(productId);
-        product.setVariantId(variantId); product.setTestMode(testMode); product.setActive(active);
+        product.setVariantId(variantId); product.setSubscription(subscription);
+        product.setBillingInterval(normalizedInterval); product.setBillingIntervalCount(subscription ? billingIntervalCount : 0);
+        product.setLicenseRequired(licenseRequired); product.setTestMode(testMode); product.setActive(active);
         product.setRedirectUrl(blankToNull(redirectUrl)); product.setUpdatedAt(now);
         return store.save(product);
     }
@@ -432,6 +465,29 @@ public class PaymentService {
         } catch (IllegalArgumentException e) {
             throw new PaymentException(HttpStatus.BAD_REQUEST, "invalid_https_url", "URL must be absolute HTTPS");
         }
+    }
+
+    private static String billingInterval(boolean subscription, String interval, int count) {
+        if (!subscription) {
+            if ((interval != null && !interval.isBlank()) || count != 0) {
+                throw new PaymentException(HttpStatus.BAD_REQUEST, "invalid_billing_interval",
+                        "One-time products cannot define a billing interval");
+            }
+            return null;
+        }
+        String value = interval == null ? "" : interval.trim().toLowerCase(Locale.ROOT);
+        int max = switch (value) {
+            case "day" -> 365;
+            case "week" -> 52;
+            case "month" -> 12;
+            case "year" -> 1;
+            default -> 0;
+        };
+        if (count < 1 || count > max) {
+            throw new PaymentException(HttpStatus.BAD_REQUEST, "invalid_billing_interval",
+                    "Subscription billing must be 1-365 days, 1-52 weeks, 1-12 months, or 1 year");
+        }
+        return value;
     }
 
     private static String normalizeEmail(String requested, String jwtEmail) {

@@ -7,6 +7,7 @@ import com.damKemon.dam.kemon.payment.model.PaymentEntitlement;
 import com.damKemon.dam.kemon.payment.model.PaymentLicense;
 import com.damKemon.dam.kemon.payment.model.PaymentOrder;
 import com.damKemon.dam.kemon.payment.model.PaymentProduct;
+import com.damKemon.dam.kemon.payment.model.PaymentSubscription;
 import com.damKemon.dam.kemon.payment.model.PaymentWebhookEvent;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -58,19 +59,22 @@ public class PaymentAdminController {
     public record ProductRequest(String code, String entitlementCode, long storeId, long productId, long variantId,
                                  boolean testMode, boolean active, String redirectUrl) {}
     public record ProductView(String id, String appId, String code, String entitlementCode, String provider,
-                              long storeId, long productId, long variantId, boolean testMode, boolean active,
-                              String redirectUrl, Instant createdAt, Instant updatedAt) {
+                              long storeId, long productId, long variantId, boolean subscription,
+                              String billingInterval, int billingIntervalCount, boolean licenseRequired,
+                              boolean testMode, boolean active, String redirectUrl, Instant createdAt, Instant updatedAt) {
         static ProductView of(PaymentProduct value) {
             return new ProductView(value.getId(), value.getAppId(), value.getCode(), value.getEntitlementCode(),
                     value.getProvider(), value.getStoreId(), value.getProductId(), value.getVariantId(),
-                    value.isTestMode(), value.isActive(), value.getRedirectUrl(), value.getCreatedAt(), value.getUpdatedAt());
+                    value.isSubscription(), value.getBillingInterval(), value.getBillingIntervalCount(),
+                    value.isLicenseRequired(), value.isTestMode(), value.isActive(), value.getRedirectUrl(),
+                    value.getCreatedAt(), value.getUpdatedAt());
         }
     }
 
     public record PageView<T>(List<T> items, long total, int offset, int limit) {}
     public record StatusCounts(long total, long primary, long secondary, long failed) {}
     public record Overview(long applications, long products, StatusCounts checkouts, StatusCounts orders,
-                           StatusCounts licenses, StatusCounts entitlements, StatusCounts webhooks,
+                           StatusCounts subscriptions, StatusCounts licenses, StatusCounts entitlements, StatusCounts webhooks,
                            List<PaymentStore.RevenueTotal> revenue) {}
     public record CheckoutView(String id, String appId, String productCode, String entitlementCode,
                                String subjectType, String subjectRef, String status, String providerCheckoutId,
@@ -94,6 +98,18 @@ public class PaymentAdminController {
                     value.getProviderUpdatedAt(), value.getCreatedAt(), value.getUpdatedAt());
         }
     }
+    public record SubscriptionView(String id, String providerSubscriptionId, String providerOrderId, String checkoutId,
+                                   String appId, String productCode, String subjectType, String subjectRef, String status,
+                                   boolean cancelled, boolean testMode, Instant trialEndsAt, Instant renewsAt, Instant endsAt,
+                                   Instant providerCreatedAt, Instant providerUpdatedAt, Instant createdAt, Instant updatedAt) {
+        static SubscriptionView of(PaymentSubscription value) {
+            return new SubscriptionView(value.getId(), value.getProviderSubscriptionId(), value.getProviderOrderId(),
+                    value.getCheckoutId(), value.getAppId(), value.getProductCode(), value.getSubjectType(),
+                    value.getSubjectId(), value.getStatus(), value.isCancelled(), value.isTestMode(),
+                    value.getTrialEndsAt(), value.getRenewsAt(), value.getEndsAt(), value.getProviderCreatedAt(),
+                    value.getProviderUpdatedAt(), value.getCreatedAt(), value.getUpdatedAt());
+        }
+    }
     public record LicenseView(String id, String providerLicenseId, String providerOrderId, String checkoutId,
                               String appId, String productCode, String keyShort, String status,
                               Integer activationLimit, int activationUsage, boolean testMode, Instant expiresAt,
@@ -107,13 +123,15 @@ public class PaymentAdminController {
     }
     public record EntitlementView(String id, String appId, String productCode, String entitlementCode,
                                   String subjectType, String subjectRef, String checkoutId, String providerOrderId,
-                                  String providerLicenseId, String providerInstanceId, String status, boolean testMode,
+                                  String providerLicenseId, String providerSubscriptionId, String providerInstanceId,
+                                  String status, boolean testMode,
                                   Instant expiresAt, Instant lastValidatedAt, Instant createdAt, Instant updatedAt) {
         static EntitlementView of(PaymentEntitlement value) {
             return new EntitlementView(value.getId(), value.getAppId(), value.getProductCode(), value.getEntitlementCode(),
                     value.getSubjectType(), value.getSubjectId(), value.getCheckoutId(), value.getProviderOrderId(),
-                    value.getProviderLicenseId(), value.getProviderInstanceId(), value.getStatus(), value.isTestMode(),
-                    value.getExpiresAt(), value.getLastValidatedAt(), value.getCreatedAt(), value.getUpdatedAt());
+                    value.getProviderLicenseId(), value.getProviderSubscriptionId(), value.getProviderInstanceId(),
+                    value.getStatus(), value.isTestMode(), value.getExpiresAt(), value.getLastValidatedAt(),
+                    value.getCreatedAt(), value.getUpdatedAt());
         }
     }
     public record WebhookEventView(String payloadSha256, String eventName, String resourceType, String resourceId,
@@ -165,8 +183,12 @@ public class PaymentAdminController {
 
     @PostMapping("/applications/{appId}/products")
     public ResponseEntity<ProductView> product(@PathVariable String appId, @RequestBody ProductRequest body) {
+        PaymentProviderAdminService.ProviderVariant variant = provider.validatedVariant(
+                body.storeId(), body.productId(), body.variantId(), body.testMode());
         return noStore(ProductView.of(payments.upsertProduct(appId, body.code(), body.entitlementCode(), body.storeId(),
-                body.productId(), body.variantId(), body.testMode(), body.active(), body.redirectUrl())));
+                body.productId(), body.variantId(), variant.subscription(), variant.billingInterval(),
+                variant.billingIntervalCount() == null ? 0 : variant.billingIntervalCount(), variant.licenseKeys(),
+                body.testMode(), body.active(), body.redirectUrl())));
     }
 
     @GetMapping("/applications/{appId}/products")
@@ -191,6 +213,11 @@ public class PaymentAdminController {
                 store.count(PaymentOrder.class, appId, testMode, "paid"),
                 store.count(PaymentOrder.class, appId, testMode, "refunded"),
                 store.count(PaymentOrder.class, appId, testMode, "fraudulent"));
+        StatusCounts subscriptions = new StatusCounts(
+                store.count(PaymentSubscription.class, appId, testMode, null),
+                store.count(PaymentSubscription.class, appId, testMode, "active"),
+                store.count(PaymentSubscription.class, appId, testMode, "cancelled"),
+                store.count(PaymentSubscription.class, appId, testMode, "expired"));
         StatusCounts licenses = new StatusCounts(
                 store.count(PaymentLicense.class, appId, testMode, null),
                 store.count(PaymentLicense.class, appId, testMode, "active"),
@@ -204,7 +231,7 @@ public class PaymentAdminController {
         StatusCounts webhooks = new StatusCounts(
                 store.countWebhooks(appId, testMode, null), store.countWebhooks(appId, testMode, "PROCESSED"),
                 store.countWebhooks(appId, testMode, "IGNORED"), store.countWebhooks(appId, testMode, "FAILED"));
-        return noStore(new Overview(applicationCount, productCount, checkouts, orders, licenses,
+        return noStore(new Overview(applicationCount, productCount, checkouts, orders, subscriptions, licenses,
                 entitlements, webhooks, store.revenue(appId, testMode)));
     }
 
@@ -226,6 +253,17 @@ public class PaymentAdminController {
                                                        @RequestParam(defaultValue = "25") int limit) {
         PaymentStore.Slice<PaymentOrder> page = store.orders(appId, testMode, status, offset(offset), limit(limit));
         return noStore(page(page, page.items().stream().map(OrderView::of).toList()));
+    }
+
+    @GetMapping("/subscriptions")
+    public ResponseEntity<PageView<SubscriptionView>> subscriptions(@RequestParam(required = false) String appId,
+                                                                     @RequestParam(required = false) Boolean testMode,
+                                                                     @RequestParam(required = false) String status,
+                                                                     @RequestParam(defaultValue = "0") int offset,
+                                                                     @RequestParam(defaultValue = "25") int limit) {
+        PaymentStore.Slice<PaymentSubscription> page = store.subscriptions(
+                appId, testMode, status, offset(offset), limit(limit));
+        return noStore(page(page, page.items().stream().map(SubscriptionView::of).toList()));
     }
 
     @GetMapping("/licenses")

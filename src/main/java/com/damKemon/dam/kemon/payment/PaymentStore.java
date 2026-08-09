@@ -68,6 +68,14 @@ public class PaymentStore {
         return Optional.ofNullable(mongo.findOne(Query.query(Criteria.where("checkoutId").is(checkoutId)), PaymentOrder.class));
     }
 
+    public PaymentSubscription save(PaymentSubscription value) { return mongo.save(value); }
+
+    public Optional<PaymentSubscription> subscription(String provider, String providerSubscriptionId) {
+        Criteria criteria = Criteria.where("provider").is(provider)
+                .and("providerSubscriptionId").is(providerSubscriptionId);
+        return Optional.ofNullable(mongo.findOne(Query.query(criteria), PaymentSubscription.class));
+    }
+
     public PaymentLicense save(PaymentLicense value) { return mongo.save(value); }
 
     public Optional<PaymentLicense> license(String provider, String providerLicenseId) {
@@ -94,6 +102,18 @@ public class PaymentStore {
         return Optional.ofNullable(mongo.findOne(Query.query(criteria), PaymentEntitlement.class));
     }
 
+    public Optional<PaymentEntitlement> entitlementBySubscription(String providerSubscriptionId) {
+        return Optional.ofNullable(mongo.findOne(Query.query(
+                Criteria.where("providerSubscriptionId").is(providerSubscriptionId)), PaymentEntitlement.class));
+    }
+
+    public Optional<PaymentEntitlement> entitlementByProduct(String appId, String subjectId, String productCode) {
+        Criteria criteria = Criteria.where("appId").is(appId).and("subjectId").is(subjectId)
+                .and("productCode").is(productCode);
+        return Optional.ofNullable(mongo.findOne(Query.query(criteria).with(Sort.by(Sort.Direction.DESC, "updatedAt")),
+                PaymentEntitlement.class));
+    }
+
     public List<PaymentEntitlement> entitlementsByCheckout(String checkoutId) {
         return mongo.find(Query.query(Criteria.where("checkoutId").is(checkoutId)), PaymentEntitlement.class);
     }
@@ -112,6 +132,10 @@ public class PaymentStore {
 
     public Slice<PaymentOrder> orders(String appId, Boolean testMode, String status, int offset, int limit) {
         return slice(PaymentOrder.class, paymentQuery(appId, testMode, status), offset, limit, "providerCreatedAt");
+    }
+
+    public Slice<PaymentSubscription> subscriptions(String appId, Boolean testMode, String status, int offset, int limit) {
+        return slice(PaymentSubscription.class, paymentQuery(appId, testMode, status), offset, limit, "providerCreatedAt");
     }
 
     public Slice<PaymentLicense> licenses(String appId, Boolean testMode, String status, int offset, int limit) {

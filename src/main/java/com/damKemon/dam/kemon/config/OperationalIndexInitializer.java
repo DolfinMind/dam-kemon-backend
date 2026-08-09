@@ -83,6 +83,13 @@ public class OperationalIndexInitializer {
         ensure("payment_orders", new Index().on("appId", Sort.Direction.ASC).on("testMode", Sort.Direction.ASC)
                 .on("status", Sort.Direction.ASC).on("providerCreatedAt", Sort.Direction.DESC)
                 .named("payment_order_admin_list"));
+        ensure("payment_subscriptions", new Index().on("provider", Sort.Direction.ASC)
+                .on("providerSubscriptionId", Sort.Direction.ASC).unique().named("payment_subscription_provider_unique"));
+        ensure("payment_subscriptions", new Index().on("checkoutId", Sort.Direction.ASC)
+                .unique().named("payment_subscription_checkout_unique"));
+        ensure("payment_subscriptions", new Index().on("appId", Sort.Direction.ASC).on("testMode", Sort.Direction.ASC)
+                .on("status", Sort.Direction.ASC).on("providerCreatedAt", Sort.Direction.DESC)
+                .named("payment_subscription_admin_list"));
         ensure("payment_licenses", new Index().on("provider", Sort.Direction.ASC).on("providerLicenseId", Sort.Direction.ASC)
                 .unique().named("payment_license_provider_unique"));
         ensure("payment_licenses", new Index().on("appId", Sort.Direction.ASC).on("licenseKeyFingerprint", Sort.Direction.ASC)
@@ -94,6 +101,8 @@ public class OperationalIndexInitializer {
                 .on("providerInstanceId", Sort.Direction.ASC).unique().named("payment_entitlement_instance_unique"));
         ensure("payment_entitlements", new Index().on("checkoutId", Sort.Direction.ASC)
                 .named("payment_entitlement_checkout"));
+        ensure("payment_entitlements", new Index().on("providerSubscriptionId", Sort.Direction.ASC)
+                .unique().sparse().named("payment_entitlement_subscription_unique"));
         ensure("payment_entitlements", new Index().on("appId", Sort.Direction.ASC).on("testMode", Sort.Direction.ASC)
                 .on("status", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC)
                 .named("payment_entitlement_admin_list"));

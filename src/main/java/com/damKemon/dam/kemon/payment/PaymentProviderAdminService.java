@@ -22,7 +22,8 @@ import java.util.function.Supplier;
 public class PaymentProviderAdminService {
     private static final String PROVIDER = "lemon_squeezy";
     private static final List<String> WEBHOOK_EVENTS = List.of(
-            "order_created", "order_refunded", "license_key_created", "license_key_updated");
+            "order_created", "order_refunded", "license_key_created", "license_key_updated",
+            "subscription_created", "subscription_updated");
 
     private final PaymentStore store;
     private final LemonSqueezyClient lemon;
@@ -43,7 +44,8 @@ public class PaymentProviderAdminService {
     public record ProviderProduct(String id, String name, String status, String priceFormatted,
                                   String buyNowUrl, boolean testMode) {}
     public record ProviderVariant(String id, String productId, String name, String status, Long price,
-                                  boolean subscription, boolean licenseKeys, Integer activationLimit,
+                                  boolean subscription, String billingInterval, Integer billingIntervalCount,
+                                  boolean licenseKeys, Integer activationLimit,
                                   boolean activationUnlimited, boolean testMode) {}
     public record CatalogView(List<ProviderProduct> products, List<ProviderVariant> variants, Instant fetchedAt) {}
     public record ProviderWebhook(String id, long storeId, String url, List<String> events,
@@ -86,17 +88,35 @@ public class PaymentProviderAdminService {
             for (JsonNode variant : variantResponse.path("data")) {
                 JsonNode value = variant.path("attributes");
                 if (value.path("test_mode").asBoolean(false) != testMode) continue;
-                variants.add(new ProviderVariant(variant.path("id").asText(""), productId,
-                        value.path("name").asText(""), value.path("status").asText(""),
-                        value.path("price").isNumber() ? value.path("price").asLong() : null,
-                        value.path("is_subscription").asBoolean(false),
-                        value.path("has_license_keys").asBoolean(false),
-                        value.path("license_activation_limit").isNumber()
-                                ? value.path("license_activation_limit").asInt() : null,
-                        value.path("is_license_limit_unlimited").asBoolean(false), testMode));
+                variants.add(variantView(variant, productId, testMode));
             }
         }
         return new CatalogView(products, variants, Instant.now());
+    }
+
+    public ProviderVariant validatedVariant(long storeId, long productId, long variantId, boolean testMode) {
+        if (storeId <= 0 || productId <= 0 || variantId <= 0) {
+            throw new PaymentException(HttpStatus.BAD_REQUEST, "invalid_provider_ids",
+                    "Store, product, and variant IDs must be positive");
+        }
+        JsonNode product = null;
+        for (JsonNode candidate : lemon.products(storeId, testMode).path("data")) {
+            if (candidate.path("id").asText("").equals(Long.toString(productId))
+                    && candidate.path("attributes").path("test_mode").asBoolean(false) == testMode) {
+                product = candidate;
+                break;
+            }
+        }
+        if (product == null) throw new PaymentException(HttpStatus.BAD_REQUEST,
+                "provider_product_not_found", "The Lemon Squeezy product is not in the selected store and mode");
+        for (JsonNode candidate : lemon.variants(productId, testMode).path("data")) {
+            if (candidate.path("id").asText("").equals(Long.toString(variantId))
+                    && candidate.path("attributes").path("test_mode").asBoolean(false) == testMode) {
+                return variantView(candidate, Long.toString(productId), testMode);
+            }
+        }
+        throw new PaymentException(HttpStatus.BAD_REQUEST, "provider_variant_not_found",
+                "The Lemon Squeezy variant is not in the selected product and mode");
     }
 
     public List<ProviderWebhook> webhooks(String appId, long storeId, boolean testMode) {
@@ -289,6 +309,20 @@ public class PaymentProviderAdminService {
         return new ProviderWebhook(data.path("id").asText(""), attrs.path("store_id").asLong(0),
                 httpsOrNull(attrs.path("url").asText(null)), events,
                 instant(attrs.path("last_sent_at").asText(null)), instant(attrs.path("updated_at").asText(null)), testMode);
+    }
+
+    private static ProviderVariant variantView(JsonNode data, String productId, boolean testMode) {
+        JsonNode value = data.path("attributes");
+        return new ProviderVariant(data.path("id").asText(""), productId,
+                value.path("name").asText(""), value.path("status").asText(""),
+                value.path("price").isNumber() ? value.path("price").asLong() : null,
+                value.path("is_subscription").asBoolean(false),
+                value.path("interval").isTextual() ? value.path("interval").asText() : null,
+                value.path("interval_count").isNumber() ? value.path("interval_count").asInt() : null,
+                value.path("has_license_keys").asBoolean(false),
+                value.path("license_activation_limit").isNumber()
+                        ? value.path("license_activation_limit").asInt() : null,
+                value.path("is_license_limit_unlimited").asBoolean(false), testMode);
     }
 
     private static ProviderOrder orderView(JsonNode root) {

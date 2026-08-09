@@ -13,23 +13,25 @@ import java.time.Instant;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "payment_entitlements")
-public class PaymentEntitlement {
+@Document(collection = "payment_subscriptions")
+public class PaymentSubscription {
     @Id private String id;
+    @Builder.Default private String provider = "lemon_squeezy";
+    private String providerSubscriptionId;
+    private String providerOrderId;
+    private String checkoutId;
     private String appId;
     private String productCode;
-    private String entitlementCode;
     private String subjectType;
     private String subjectId;
-    private String checkoutId;
-    private String providerOrderId;
-    private String providerLicenseId;
-    private String providerSubscriptionId;
-    private String providerInstanceId;
     private String status;
+    private boolean cancelled;
     private boolean testMode;
-    private Instant expiresAt;
-    private Instant lastValidatedAt;
+    private Instant trialEndsAt;
+    private Instant renewsAt;
+    private Instant endsAt;
+    private Instant providerCreatedAt;
+    private Instant providerUpdatedAt;
     private Instant createdAt;
     private Instant updatedAt;
 }

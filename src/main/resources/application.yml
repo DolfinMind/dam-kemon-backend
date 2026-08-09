@@ -229,6 +229,8 @@ payments:
     webhook-url: ${LEMON_SQUEEZY_WEBHOOK_URL:https://damkemon.com/api/payments/v1/webhooks/lemon-squeezy}
   rewire:
     enabled: ${PAYMENTS_REWIRE_ENABLED:false}
+    # Lemon remains the plan/price source of truth; refresh its variants every 15 minutes.
+    sync-ms: ${PAYMENTS_REWIRE_SYNC_MS:900000}
     store-id: ${PAYMENTS_REWIRE_STORE_ID:0}
     product-id: ${PAYMENTS_REWIRE_PRODUCT_ID:0}
     variant-id: ${PAYMENTS_REWIRE_VARIANT_ID:0}

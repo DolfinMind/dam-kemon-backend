@@ -1,5 +1,8 @@
 # Reusable payment service
 
+For the day-to-day dashboard flow for creating plans, synchronizing variants, and
+changing prices, see [Payment plans and pricing operator guide](PAYMENT_ADMIN_GUIDE.md).
+
 Damkemon hosts a provider-neutral application boundary with Lemon Squeezy as
 the current payment provider. Rewire, Damkemon's own website, and future
 products use the same `/api/payments/v1` API; no merchant credential is shipped
@@ -51,6 +54,13 @@ The response contains an HTTPS `checkoutUrl`, internal `checkoutId`, status,
 expiry, and test-mode flag. Reusing the same idempotency key for the same
 subject returns the original checkout instead of creating another one.
 
+Lifetime and recurring products coexist as separate product codes mapped to
+separate Lemon variants. For example, an application can retain `lifetime`
+while also mapping tier-and-cadence codes such as `plus_weekly`, `pro_monthly`,
+and `premium_yearly`. Each application defines its own tiers, prices, and
+available cadences in Lemon. Checkout creation is the same for one-time and
+recurring variants; Lemon starts a subscription for the latter.
+
 ### Activate license
 
 ```http
@@ -94,6 +104,26 @@ product mapping, order state, and provider response. Provider outages return
 `502`; clients may preserve a recently validated offline entitlement but must
 not convert an explicit 4xx denial into access.
 
+### Validate a direct subscription entitlement
+
+Account- or installation-bound subscriptions that do not use Lemon license
+keys are granted directly from signed subscription webhooks:
+
+```http
+POST /api/payments/v1/apps/damkemon/entitlements/validate
+Content-Type: application/json
+
+{
+  "productCode": "pro_monthly",
+  "installationId": "dk_<same persisted value for a public flow>"
+}
+```
+
+The caller authentication rules are the same as checkout creation. The
+response contains `valid`, entitlement status/code, renewal and expiry times,
+validation time, and test-mode state. Validation fails closed after `endsAt`
+even if a delayed webhook has not yet marked the entitlement revoked.
+
 ### Webhook
 
 Configure Lemon to POST to:
@@ -102,11 +132,19 @@ Configure Lemon to POST to:
 https://damkemon.com/api/payments/v1/webhooks/lemon-squeezy
 ```
 
-Subscribe to `order_created`, `order_refunded`, `license_key_created`, and
-`license_key_updated`. The handler verifies the raw-body HMAC before parsing,
+Subscribe to `order_created`, `order_refunded`, `license_key_created`,
+`license_key_updated`, `subscription_created`, and `subscription_updated`.
+The two subscription events are Lemon's recommended minimum lifecycle signals;
+`subscription_updated` covers cancellation, resume, pause, failed-payment state,
+and expiry changes. The handler verifies the raw-body HMAC before parsing,
 cross-checks `X-Event-Name` against signed JSON metadata, rejects provider ID or
 test/live-mode mismatches, and is idempotent by payload SHA-256. It returns a
 non-2xx response on processing failures so Lemon retries.
+
+Subscription access remains valid during trial, active, paused, past-due,
+unpaid, and cancelled grace-period states. It is revoked when Lemon reports
+`expired`. A cancelled subscription keeps access through its provider `endsAt`
+date and can be resumed before then.
 
 ## Separate Mongo collections
 
@@ -116,6 +154,7 @@ non-2xx response on processing failures so Lemon retries.
 | `payment_products` | App product allowlist and provider mapping | unique app+code; unique provider+store+variant+mode |
 | `payment_checkouts` | Opaque purchaser subject and checkout lifecycle | unique app+subject+idempotency key; unique provider checkout ID |
 | `payment_orders` | Signed authoritative order/refund state, including partial-refund minor units | unique provider+order ID; subject timeline |
+| `payment_subscriptions` | Signed recurring lifecycle state and renewal/end dates | unique provider+subscription ID; unique checkout ID |
 | `payment_licenses` | Provider license state and HMAC key fingerprint | unique provider+license ID; app+fingerprint lookup |
 | `payment_entitlements` | Installation/account capability state | unique app+subject+provider instance |
 | `payment_webhook_events` | Idempotency and processing audit | payload digest primary key; received-time index |
@@ -135,7 +174,9 @@ applications, products, checkouts, orders, licenses, entitlements, webhook
 events, and provider-action audit records. Test/live mode is explicit on every
 relevant view. It also provides curated Lemon controls for connection status,
 catalog and webhook inspection, idempotent webhook creation/update, managed
-order inspection/refund, and managed license inspection/update. It is not a
+order inspection/refund, read-only synchronized subscription visibility, and
+managed license inspection/update. Subscription plans, prices, and subscriber
+management stay in Lemon Squeezy. It is not a
 generic Lemon proxy: full license keys, provider secrets, card data, receipt
 URLs, and customer name/email are never returned.
 
@@ -149,13 +190,18 @@ and create a `payment_admin_actions` record before calling Lemon. Refunds are
 bounded by the locally synchronized order total. License updates can change the
 activation limit, expiry, or disabled state; disabling a license revokes local
 entitlements immediately while the signed webhook remains authoritative.
+`GET /api/admin/payments/subscriptions` exposes synchronized lifecycle records
+without duplicating Lemon's subscriber-management dashboard.
 
 1. `POST /api/admin/payments/applications` with a stable lowercase `appId`,
    display name, and caller policy. Store the returned server key in that
    application's backend secret manager; it is not recoverable later.
 2. `POST /api/admin/payments/applications/{appId}/products` with a stable public
    product code, entitlement code, and the allowlisted Lemon store/product/
-   variant IDs.
+   variant IDs. The backend reads the selected variant from Lemon and stores its
+   one-time/subscription type, interval, interval count, and license requirement;
+   the admin request cannot spoof those fields. Rewire does not need this manual
+   step: its configured Lemon product is synchronized automatically.
 3. For Damkemon account flows, enable `acceptDamkemonJwt`. For another backend,
    keep public access off and use its server key. Enable public checkout/license
    only for intentionally anonymous installation-bound products.
@@ -168,6 +214,20 @@ entitlements immediately while the signed webhook remains authoritative.
 6. Disable or change an application's caller policy with
    `PATCH /api/admin/payments/applications/{appId}`. Disabling an application
    stops new payment calls without deleting audit data.
+
+Lemon supports daily, weekly, monthly, and yearly subscription intervals, but
+its public Products and Variants APIs currently expose only retrieve/list
+operations (see the [API reference](https://docs.lemonsqueezy.com/api)). Create
+and publish the product variants in the Lemon dashboard. Rewire refreshes that
+product every 15 minutes and derives tier-and-cadence mappings from each
+published variant's tier name and one-period cadence. For example,
+`Plus Weekly` becomes `plus_weekly` and `Premium Yearly` becomes
+`premium_yearly`. It creates missing mappings and refreshes
+the same variant's metadata, but never silently repoints an established product
+code to another variant. Damkemon creates hosted checkouts and
+synchronizes subscription access through signed webhooks; it cannot create the
+underlying Lemon product or variant through a supported API. The existing
+lifetime mapping remains independent and active.
 
 ## Configuration and rollout
 
@@ -190,6 +250,7 @@ PAYMENTS_REWIRE_STORE_ID=445309
 PAYMENTS_REWIRE_PRODUCT_ID=1276394
 PAYMENTS_REWIRE_VARIANT_ID=1995479
 PAYMENTS_REWIRE_TEST_MODE=false
+PAYMENTS_REWIRE_SYNC_MS=900000
 ```
 
 The legacy `LEMON_SQUEEZY_API_KEY` is accepted only as a test-key fallback for

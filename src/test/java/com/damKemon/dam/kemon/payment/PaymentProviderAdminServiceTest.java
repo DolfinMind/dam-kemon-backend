@@ -53,6 +53,24 @@ class PaymentProviderAdminServiceTest {
         verify(lemon, never()).currentUser(true);
     }
 
+    @Test void derivesRecurringPlanMetadataFromTheProviderVariant() throws Exception {
+        when(lemon.products(445309, true)).thenReturn(json.readTree("""
+                {"data":[{"id":"200","attributes":{"test_mode":true}}]}
+                """));
+        when(lemon.variants(200, true)).thenReturn(json.readTree("""
+                {"data":[{"id":"201","attributes":{"name":"Monthly","status":"published","price":999,
+                "is_subscription":true,"interval":"month","interval_count":1,"has_license_keys":false,
+                "is_license_limit_unlimited":false,"test_mode":true}}]}
+                """));
+
+        PaymentProviderAdminService.ProviderVariant variant = service.validatedVariant(445309, 200, 201, true);
+
+        assertEquals(true, variant.subscription());
+        assertEquals("month", variant.billingInterval());
+        assertEquals(1, variant.billingIntervalCount());
+        assertFalse(variant.licenseKeys());
+    }
+
     @Test void refundRequiresExactProviderOrderConfirmationBeforeMutation() {
         PaymentException error = assertThrows(PaymentException.class,
                 () -> service.refund("42", null, "wrong", "user:admin"));
@@ -81,4 +99,5 @@ class PaymentProviderAdminServiceTest {
         assertEquals("REFUNDED", entitlement.getStatus());
         verify(store, org.mockito.Mockito.times(2)).save(any(PaymentAdminAction.class));
     }
+
 }

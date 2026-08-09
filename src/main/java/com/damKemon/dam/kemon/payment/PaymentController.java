@@ -28,6 +28,7 @@ public class PaymentController {
     public record CheckoutRequest(String productCode, String installationId, String customerEmail) {}
     public record ActivateRequest(String productCode, String licenseKey, String installationId, String instanceName) {}
     public record LicenseRequest(String licenseKey, String installationId, String instanceId) {}
+    public record EntitlementRequest(String productCode, String installationId) {}
 
     @PostMapping("/apps/{appId}/checkouts")
     public ResponseEntity<PaymentService.CheckoutResult> checkout(
@@ -72,6 +73,17 @@ public class PaymentController {
             HttpServletRequest request) {
         PaymentService.Caller caller = caller(request, apiKey, externalSubject, body.installationId());
         return noStore(payments.deactivate(appId, caller, body.licenseKey(), body.instanceId()));
+    }
+
+    @PostMapping("/apps/{appId}/entitlements/validate")
+    public ResponseEntity<PaymentService.EntitlementResult> validateEntitlement(
+            @PathVariable String appId,
+            @RequestHeader(value = "X-Payment-Api-Key", required = false) String apiKey,
+            @RequestHeader(value = "X-Payment-Subject", required = false) String externalSubject,
+            @RequestBody EntitlementRequest body,
+            HttpServletRequest request) {
+        PaymentService.Caller caller = caller(request, apiKey, externalSubject, body.installationId());
+        return noStore(payments.validateEntitlement(appId, body.productCode(), caller));
     }
 
     @PostMapping("/webhooks/lemon-squeezy")

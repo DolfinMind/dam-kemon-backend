@@ -25,6 +25,10 @@ public class PaymentProduct {
     private long storeId;
     private long productId;
     private long variantId;
+    private boolean subscription;
+    private String billingInterval;
+    private int billingIntervalCount;
+    private boolean licenseRequired;
     private boolean testMode;
     @Builder.Default private boolean active = true;
     private String redirectUrl;

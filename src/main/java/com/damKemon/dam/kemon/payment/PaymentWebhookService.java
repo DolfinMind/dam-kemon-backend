@@ -5,6 +5,7 @@ import com.damKemon.dam.kemon.payment.model.PaymentEntitlement;
 import com.damKemon.dam.kemon.payment.model.PaymentLicense;
 import com.damKemon.dam.kemon.payment.model.PaymentOrder;
 import com.damKemon.dam.kemon.payment.model.PaymentProduct;
+import com.damKemon.dam.kemon.payment.model.PaymentSubscription;
 import com.damKemon.dam.kemon.payment.model.PaymentWebhookEvent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,13 +17,15 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class PaymentWebhookService {
     private static final String PROVIDER = "lemon_squeezy";
     private static final int MAX_PAYLOAD_BYTES = 256 * 1024;
     private static final Set<String> SUPPORTED = Set.of(
-            "order_created", "order_refunded", "license_key_created", "license_key_updated");
+            "order_created", "order_refunded", "license_key_created", "license_key_updated",
+            "subscription_created", "subscription_updated");
 
     private final PaymentStore store;
     private final PaymentSecurity security;
@@ -87,6 +90,8 @@ public class PaymentWebhookService {
             }
             boolean managed = eventName.startsWith("order_")
                     ? processOrder(root, eventName, event)
+                    : eventName.startsWith("subscription_")
+                    ? processSubscription(root, event)
                     : processLicense(root, eventName, event);
             if (!managed) return new WebhookResult("ignored", false);
             finish(event, "PROCESSED", null);
@@ -210,6 +215,105 @@ public class PaymentWebhookService {
                     store.save(entitlement);
                 }
             }
+        }
+        return true;
+    }
+
+    private boolean processSubscription(JsonNode root, PaymentWebhookEvent event) {
+        JsonNode attrs = root.path("data").path("attributes");
+        String providerSubscriptionId = text(root, "/data/id");
+        if (providerSubscriptionId.isBlank()) {
+            throw new PaymentException(HttpStatus.BAD_REQUEST, "webhook_subscription_missing",
+                    "Webhook subscription ID is missing");
+        }
+        PaymentSubscription subscription = store.subscription(PROVIDER, providerSubscriptionId)
+                .orElseGet(PaymentSubscription::new);
+        if (subscription.getCheckoutId() != null && !event.getCheckoutId().isBlank()
+                && !subscription.getCheckoutId().equals(event.getCheckoutId())) {
+            throw new PaymentException(HttpStatus.BAD_REQUEST, "webhook_checkout_mismatch",
+                    "Webhook checkout does not match the managed subscription");
+        }
+        PaymentCheckout checkout = event.getCheckoutId().isBlank()
+                ? null : store.checkout(event.getCheckoutId()).orElse(null);
+        if (checkout == null && subscription.getCheckoutId() != null) {
+            checkout = store.checkout(subscription.getCheckoutId()).orElse(null);
+        }
+        if (checkout == null) {
+            finish(event, "IGNORED", "checkout_not_managed");
+            return false;
+        }
+        PaymentProduct product = store.product(checkout.getAppId(), checkout.getProductCode())
+                .orElseThrow(() -> new PaymentException(HttpStatus.CONFLICT, "product_sync_missing",
+                        "Mapped payment product is missing"));
+        event.setAppId(checkout.getAppId());
+        event.setTestMode(product.isTestMode());
+        long storeId = attrs.path("store_id").asLong(-1);
+        long productId = attrs.path("product_id").asLong(-1);
+        long variantId = attrs.path("variant_id").asLong(-1);
+        boolean testMode = attrs.path("test_mode").asBoolean(false);
+        if (!product.isSubscription() || storeId != product.getStoreId() || productId != product.getProductId()
+                || variantId != product.getVariantId() || testMode != product.isTestMode()) {
+            throw new PaymentException(HttpStatus.BAD_REQUEST, "webhook_product_mismatch",
+                    "Webhook subscription mapping does not match the checkout");
+        }
+
+        Instant now = Instant.now();
+        if (subscription.getId() == null) {
+            subscription.setId(PROVIDER + ":" + providerSubscriptionId);
+            subscription.setProvider(PROVIDER);
+            subscription.setProviderSubscriptionId(providerSubscriptionId);
+            subscription.setCreatedAt(now);
+        }
+        subscription.setProviderOrderId(id(attrs, "order_id", root, "/data/relationships/order/data/id"));
+        subscription.setCheckoutId(checkout.getId());
+        subscription.setAppId(checkout.getAppId());
+        subscription.setProductCode(checkout.getProductCode());
+        subscription.setSubjectType(checkout.getSubjectType());
+        subscription.setSubjectId(checkout.getSubjectId());
+        subscription.setStatus(attrs.path("status").asText("unknown").toLowerCase(Locale.ROOT));
+        subscription.setCancelled(attrs.path("cancelled").asBoolean(false));
+        subscription.setTestMode(testMode);
+        subscription.setTrialEndsAt(parseInstant(attrs.path("trial_ends_at").asText(null)));
+        subscription.setRenewsAt(parseInstant(attrs.path("renews_at").asText(null)));
+        subscription.setEndsAt(parseInstant(attrs.path("ends_at").asText(null)));
+        subscription.setProviderCreatedAt(parseInstant(attrs.path("created_at").asText(null)));
+        subscription.setProviderUpdatedAt(parseInstant(attrs.path("updated_at").asText(null)));
+        subscription.setUpdatedAt(now);
+        store.save(subscription);
+
+        boolean expired = "expired".equals(subscription.getStatus());
+        if (product.isLicenseRequired()) {
+            for (PaymentEntitlement entitlement : store.entitlementsByCheckout(checkout.getId())) {
+                entitlement.setExpiresAt(subscription.getEndsAt());
+                if (expired) entitlement.setStatus("REVOKED");
+                entitlement.setUpdatedAt(now);
+                store.save(entitlement);
+            }
+        } else {
+            PaymentEntitlement entitlement = store.entitlementBySubscription(providerSubscriptionId)
+                    .orElseGet(PaymentEntitlement::new);
+            boolean created = entitlement.getId() == null;
+            if (created) {
+                entitlement.setId(UUID.randomUUID().toString());
+                entitlement.setCreatedAt(now);
+            }
+            entitlement.setAppId(checkout.getAppId());
+            entitlement.setProductCode(checkout.getProductCode());
+            entitlement.setEntitlementCode(product.getEntitlementCode());
+            entitlement.setSubjectType(checkout.getSubjectType());
+            entitlement.setSubjectId(checkout.getSubjectId());
+            entitlement.setCheckoutId(checkout.getId());
+            entitlement.setProviderOrderId(subscription.getProviderOrderId());
+            entitlement.setProviderSubscriptionId(providerSubscriptionId);
+            entitlement.setProviderInstanceId("subscription:" + providerSubscriptionId);
+            if (!"REFUNDED".equals(entitlement.getStatus())) {
+                entitlement.setStatus(expired ? "REVOKED" : "ACTIVE");
+            }
+            entitlement.setTestMode(testMode);
+            entitlement.setExpiresAt(subscription.getEndsAt());
+            entitlement.setLastValidatedAt(now);
+            entitlement.setUpdatedAt(now);
+            store.save(entitlement);
         }
         return true;
     }
