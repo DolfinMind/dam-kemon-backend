@@ -1,0 +1,3636 @@
+{
+  "name": "dam-kemon-backend",
+  "description": "Damkemon is a Bangladesh price-comparison backend that nightly indexes more than 60 e-commerce shops into MongoDB and serves fast catalog searches with cross-shop deduplication and grouped pricing. It is a Spring Boot 4 service on Java 17. Note: this project has over 100 source files; consider scoping analysis to a subdirectory for faster results.",
+  "languages": [
+    "batch",
+    "conf",
+    "dockerfile",
+    "gradle",
+    "jar",
+    "java",
+    "json",
+    "markdown",
+    "properties",
+    "service",
+    "shell",
+    "timer",
+    "txt",
+    "unknown",
+    "yaml"
+  ],
+  "frameworks": [
+    "Docker",
+    "GitHub Actions",
+    "JUnit",
+    "Spring Boot",
+    "Spring Data MongoDB",
+    "Spring Security",
+    "Spring Web MVC"
+  ],
+  "files": [
+    {
+      "path": ".agent/CONTINUITY.md",
+      "language": "markdown",
+      "sizeLines": 17,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".claude/CLAUDE.md",
+      "language": "markdown",
+      "sizeLines": 3,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".claude/hooks/check-gstack.sh",
+      "language": "shell",
+      "sizeLines": 20,
+      "fileCategory": "script"
+    },
+    {
+      "path": ".claude/settings.json",
+      "language": "json",
+      "sizeLines": 35,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".claude/skills/graphify/.graphify_version",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".claude/skills/graphify/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 677,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".claude/skills/graphify/references/add-watch.md",
+      "language": "markdown",
+      "sizeLines": 56,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".claude/skills/graphify/references/exports.md",
+      "language": "markdown",
+      "sizeLines": 87,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".claude/skills/graphify/references/extraction-spec.md",
+      "language": "markdown",
+      "sizeLines": 70,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".claude/skills/graphify/references/github-and-merge.md",
+      "language": "markdown",
+      "sizeLines": 46,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".claude/skills/graphify/references/hooks.md",
+      "language": "markdown",
+      "sizeLines": 33,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".claude/skills/graphify/references/query.md",
+      "language": "markdown",
+      "sizeLines": 311,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".claude/skills/graphify/references/transcribe.md",
+      "language": "markdown",
+      "sizeLines": 52,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".claude/skills/graphify/references/update.md",
+      "language": "markdown",
+      "sizeLines": 192,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".dockerignore",
+      "language": "unknown",
+      "sizeLines": 14,
+      "fileCategory": "infra"
+    },
+    {
+      "path": ".gitattributes",
+      "language": "unknown",
+      "sizeLines": 3,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".github/DEPLOYMENT.md",
+      "language": "markdown",
+      "sizeLines": 112,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".github/workflows/production-deploy.yml",
+      "language": "yaml",
+      "sizeLines": 329,
+      "fileCategory": "infra"
+    },
+    {
+      "path": ".github/workflows/staging-deploy.yml",
+      "language": "yaml",
+      "sizeLines": 64,
+      "fileCategory": "infra"
+    },
+    {
+      "path": ".ua/.understandignore",
+      "language": "unknown",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".ua/config.json",
+      "language": "json",
+      "sizeLines": 4,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".ua/fingerprints.json",
+      "language": "json",
+      "sizeLines": 43434,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".ua/knowledge-graph.json",
+      "language": "json",
+      "sizeLines": 48553,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".ua/meta.json",
+      "language": "json",
+      "sizeLines": 6,
+      "fileCategory": "config"
+    },
+    {
+      "path": "AGENTS.md",
+      "language": "markdown",
+      "sizeLines": 9,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "CLAUDE.md",
+      "language": "markdown",
+      "sizeLines": 13,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Dockerfile",
+      "language": "dockerfile",
+      "sizeLines": 15,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 423,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "build.gradle",
+      "language": "gradle",
+      "sizeLines": 69,
+      "fileCategory": "config"
+    },
+    {
+      "path": "ci-crawl.sh",
+      "language": "shell",
+      "sizeLines": 60,
+      "fileCategory": "script"
+    },
+    {
+      "path": "docs/PAYMENT_ADMIN_GUIDE.md",
+      "language": "markdown",
+      "sizeLines": 225,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/PAYMENT_SERVICE.md",
+      "language": "markdown",
+      "sizeLines": 341,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-07-13-loopback-ingest-without-admin-key.md",
+      "language": "markdown",
+      "sizeLines": 200,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-07-13-p0-search-reliability.md",
+      "language": "markdown",
+      "sizeLines": 359,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-07-05-user-auth-alerts-wishlist-design.md",
+      "language": "markdown",
+      "sizeLines": 78,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-07-13-loopback-ingest-without-admin-key-design.md",
+      "language": "markdown",
+      "sizeLines": 38,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-07-13-p0-search-reliability-design.md",
+      "language": "markdown",
+      "sizeLines": 103,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-07-13-remove-legacy-admin-secret-design.md",
+      "language": "markdown",
+      "sizeLines": 44,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.jar",
+      "language": "jar",
+      "sizeLines": 194,
+      "fileCategory": "code"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.properties",
+      "language": "properties",
+      "sizeLines": 7,
+      "fileCategory": "config"
+    },
+    {
+      "path": "gradlew",
+      "language": "unknown",
+      "sizeLines": 248,
+      "fileCategory": "code"
+    },
+    {
+      "path": "gradlew.bat",
+      "language": "batch",
+      "sizeLines": 93,
+      "fileCategory": "script"
+    },
+    {
+      "path": "graphify-out/2026-07-07/GRAPH_REPORT.md",
+      "language": "markdown",
+      "sizeLines": 800,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "graphify-out/2026-07-07/cost.json",
+      "language": "json",
+      "sizeLines": 11,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-07/graph.json",
+      "language": "json",
+      "sizeLines": 139990,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-07/manifest.json",
+      "language": "json",
+      "sizeLines": 1276,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-10/GRAPH_REPORT.md",
+      "language": "markdown",
+      "sizeLines": 841,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "graphify-out/2026-07-10/cost.json",
+      "language": "json",
+      "sizeLines": 11,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-10/graph.json",
+      "language": "json",
+      "sizeLines": 141541,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-10/manifest.json",
+      "language": "json",
+      "sizeLines": 1291,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-11/GRAPH_REPORT.md",
+      "language": "markdown",
+      "sizeLines": 786,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "graphify-out/2026-07-11/cost.json",
+      "language": "json",
+      "sizeLines": 11,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-11/graph.json",
+      "language": "json",
+      "sizeLines": 142324,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-11/manifest.json",
+      "language": "json",
+      "sizeLines": 1301,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-12/GRAPH_REPORT.md",
+      "language": "markdown",
+      "sizeLines": 876,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "graphify-out/2026-07-12/cost.json",
+      "language": "json",
+      "sizeLines": 11,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-12/graph.json",
+      "language": "json",
+      "sizeLines": 148165,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-12/manifest.json",
+      "language": "json",
+      "sizeLines": 1341,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-13/GRAPH_REPORT.md",
+      "language": "markdown",
+      "sizeLines": 937,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "graphify-out/2026-07-13/cost.json",
+      "language": "json",
+      "sizeLines": 11,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-13/graph.json",
+      "language": "json",
+      "sizeLines": 152576,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/2026-07-13/manifest.json",
+      "language": "json",
+      "sizeLines": 1411,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/GRAPH_REPORT.md",
+      "language": "markdown",
+      "sizeLines": 970,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "graphify-out/cache/semantic/1d5afbaccf36e952e71082591edfc9e4fbd9946eb85b01855a1d0bd810b7623d.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/38e86de6908a597a81e21ccbcb067d3d1d922902a5e57554b4f9b04b6586fe9e.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/581d8fb3bef0b08440c9d625107a022a879dd6209945effaf2f4a575138e9612.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/609de4b1331ddb2f8c80e97aac0a5de782a373d6f5af858e10a731c20b35c0e2.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/699997e4bfd08f3bf904b92c8e89606ad4bd96ebf51007c2eb807b2a5f6268bc.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/7aa8b606e5c19334b6c9fe62a12fc30eb46c0320d1dbb5726cfda0becdd04a5a.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/7c7827f2f29d6e2cb6cc6902558dac08380f60c414b4968f83e1bc4e61b3e268.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/7e8d40e6b9ea7699e21efacdf9bfbc06fe3c5e29d997c31a0d27e41f0c17de32.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/8bec33d94984d0e97b620ecdac5341019b50db7366bcb1bfdb0572b73853e87c.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/8cb1dbb82571a28740ec0b94978dfc39d48637a3b6687bd73b85b3927cd17afc.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/9cf5d515d0d8584aeef36708df34f560078772a568ed599cac5ba20b089e563d.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/9f20d4a8e2ca1dd4b61a695d6f7f766cf6f7a5a6a97b1a4daca5bb76364b2fac.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/a81a886d64ccd5ef64f41930b6b69817c911554fc65c292fc583031be463b3c0.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/ae20c8d85eb0524673602e34fbfb15f653cbdb208f903b28806bd9f178fb48b7.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/bc796ac1b5d19bd2eb4da229447d61274a2a0596e092ffcee079b6dacbdbeaca.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/c6f7fc2f062904d246b700d446ba3ad03e77f41809b12eccfb5e090a11f4fad2.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/cb1a1d6d985571f4644234cd712565c098b090fe41c148d2d858e0ad5c7d882c.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/cb5e2f3284265c08c88c08f445b96958b13a9115c0afc0a33206c293d1b1c187.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/df21e2a34feb27f1c628a0c9542d5601778cc771e36cc0c8f1df30d99db82c23.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/semantic/e7db27fc6a1d6327d22b3fec6fda38084c00c1e5a11c33dc67a3d14aa7854859.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/stat-index.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cost.json",
+      "language": "json",
+      "sizeLines": 11,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/graph.json",
+      "language": "json",
+      "sizeLines": 174505,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/manifest.json",
+      "language": "json",
+      "sizeLines": 1646,
+      "fileCategory": "config"
+    },
+    {
+      "path": "ops/nginx-social-preview.conf",
+      "language": "conf",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ops/selfheal/10-self-heal.conf",
+      "language": "conf",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ops/selfheal/20-mem.conf",
+      "language": "conf",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ops/selfheal/damkemon-watchdog-loop.sh",
+      "language": "shell",
+      "sizeLines": 12,
+      "fileCategory": "script"
+    },
+    {
+      "path": "ops/selfheal/damkemon-watchdog-user.service",
+      "language": "service",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ops/selfheal/damkemon-watchdog-user.timer",
+      "language": "timer",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ops/selfheal/damkemon-watchdog.service",
+      "language": "service",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ops/selfheal/damkemon-watchdog.sh",
+      "language": "shell",
+      "sizeLines": 71,
+      "fileCategory": "script"
+    },
+    {
+      "path": "ops/selfheal/damkemon-watchdog.timer",
+      "language": "timer",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ops/selfheal/install.sh",
+      "language": "shell",
+      "sizeLines": 32,
+      "fileCategory": "script"
+    },
+    {
+      "path": "ops/trigger.txt",
+      "language": "txt",
+      "sizeLines": 1,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ops/worker/damkemon-prod-worker.timer",
+      "language": "timer",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ops/worker/install-worker.sh",
+      "language": "shell",
+      "sizeLines": 76,
+      "fileCategory": "script"
+    },
+    {
+      "path": "settings.gradle",
+      "language": "gradle",
+      "sizeLines": 1,
+      "fileCategory": "config"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/DamKemonApplication.java",
+      "language": "java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "language": "java",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/AuditLogFilter.java",
+      "language": "java",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/CacheConfig.java",
+      "language": "java",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/JwtAuthFilter.java",
+      "language": "java",
+      "sizeLines": 54,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/MongoConfig.java",
+      "language": "java",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/OperationalIndexInitializer.java",
+      "language": "java",
+      "sizeLines": 126,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/ProductionSecretsValidator.java",
+      "language": "java",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/ProxyBootstrap.java",
+      "language": "java",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/ProxyPool.java",
+      "language": "java",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/RateLimitFilter.java",
+      "language": "java",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/RateLimiter.java",
+      "language": "java",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/RequestLogFilter.java",
+      "language": "java",
+      "sizeLines": 99,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/SecurityConfig.java",
+      "language": "java",
+      "sizeLines": 246,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/SyntheticHealthIndicator.java",
+      "language": "java",
+      "sizeLines": 45,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/config/WebConfig.java",
+      "language": "java",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AccountController.java",
+      "language": "java",
+      "sizeLines": 339,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminAnalyticsController.java",
+      "language": "java",
+      "sizeLines": 178,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminCatalogController.java",
+      "language": "java",
+      "sizeLines": 411,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminController.java",
+      "language": "java",
+      "sizeLines": 663,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminCrawlerController.java",
+      "language": "java",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminDiagController.java",
+      "language": "java",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminExtractorDebugController.java",
+      "language": "java",
+      "sizeLines": 119,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminFeedsController.java",
+      "language": "java",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminIngestController.java",
+      "language": "java",
+      "sizeLines": 152,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminJobsController.java",
+      "language": "java",
+      "sizeLines": 182,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminMaintenanceController.java",
+      "language": "java",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminNewsletterController.java",
+      "language": "java",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminReviewsController.java",
+      "language": "java",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminSaathiController.java",
+      "language": "java",
+      "sizeLines": 88,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminSellersController.java",
+      "language": "java",
+      "sizeLines": 245,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminSponsorshipController.java",
+      "language": "java",
+      "sizeLines": 105,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AdminUsersController.java",
+      "language": "java",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AffiliateController.java",
+      "language": "java",
+      "sizeLines": 139,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AnalyticsController.java",
+      "language": "java",
+      "sizeLines": 168,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AssistantController.java",
+      "language": "java",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/AuthController.java",
+      "language": "java",
+      "sizeLines": 546,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/CacheController.java",
+      "language": "java",
+      "sizeLines": 123,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/CompareController.java",
+      "language": "java",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/DashboardController.java",
+      "language": "java",
+      "sizeLines": 115,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/EngagementController.java",
+      "language": "java",
+      "sizeLines": 130,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/FcommerceController.java",
+      "language": "java",
+      "sizeLines": 265,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/ImageProxyController.java",
+      "language": "java",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/OffersController.java",
+      "language": "java",
+      "sizeLines": 184,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/OgImageController.java",
+      "language": "java",
+      "sizeLines": 147,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/OperatorStatsController.java",
+      "language": "java",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/ProductController.java",
+      "language": "java",
+      "sizeLines": 140,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/ProtectController.java",
+      "language": "java",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/ReviewController.java",
+      "language": "java",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/SaathiController.java",
+      "language": "java",
+      "sizeLines": 222,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/SaathiMessengerController.java",
+      "language": "java",
+      "sizeLines": 256,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/SaathiPublicController.java",
+      "language": "java",
+      "sizeLines": 128,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/ScrapeController.java",
+      "language": "java",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/SearchController.java",
+      "language": "java",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/SellerController.java",
+      "language": "java",
+      "sizeLines": 56,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/SharePreviewController.java",
+      "language": "java",
+      "sizeLines": 130,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/SiteController.java",
+      "language": "java",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/SitemapController.java",
+      "language": "java",
+      "sizeLines": 145,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/StatsController.java",
+      "language": "java",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/SubmitShopController.java",
+      "language": "java",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/controller/TrustController.java",
+      "language": "java",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/dto/CompareResponse.java",
+      "language": "java",
+      "sizeLines": 41,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/dto/DashboardStats.java",
+      "language": "java",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/dto/ScrapeRequest.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/dto/SearchResponse.java",
+      "language": "java",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/ApiSniffer.java",
+      "language": "java",
+      "sizeLines": 244,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java",
+      "language": "java",
+      "sizeLines": 1240,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/CatalogRemergeService.java",
+      "language": "java",
+      "sizeLines": 376,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/ChaldalHarvester.java",
+      "language": "java",
+      "sizeLines": 247,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/DarazHarvester.java",
+      "language": "java",
+      "sizeLines": 353,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/DiscoveredApiHarvester.java",
+      "language": "java",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/DomCardHarvester.java",
+      "language": "java",
+      "sizeLines": 250,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/HomepageCrawler.java",
+      "language": "java",
+      "sizeLines": 217,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/IndexerRunner.java",
+      "language": "java",
+      "sizeLines": 110,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/IndexingScheduler.java",
+      "language": "java",
+      "sizeLines": 196,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/JsonCatalogHarvester.java",
+      "language": "java",
+      "sizeLines": 234,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/ScraperLearningService.java",
+      "language": "java",
+      "sizeLines": 349,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/SearchSeedCrawler.java",
+      "language": "java",
+      "sizeLines": 222,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/SellerDepthHarvester.java",
+      "language": "java",
+      "sizeLines": 397,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/SellersBootstrap.java",
+      "language": "java",
+      "sizeLines": 170,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/ShopCatalogBootstrap.java",
+      "language": "java",
+      "sizeLines": 184,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/ShopDiscoveryService.java",
+      "language": "java",
+      "sizeLines": 270,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/ShopHarvester.java",
+      "language": "java",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/ShopLifecycleScheduler.java",
+      "language": "java",
+      "sizeLines": 258,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/ShopTrustBootstrap.java",
+      "language": "java",
+      "sizeLines": 121,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/ShopifyHarvester.java",
+      "language": "java",
+      "sizeLines": 132,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/SitemapCrawler.java",
+      "language": "java",
+      "sizeLines": 221,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/StartechHarvester.java",
+      "language": "java",
+      "sizeLines": 206,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/indexer/TechSeedCatalog.java",
+      "language": "java",
+      "sizeLines": 96,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/AhoCorasick.java",
+      "language": "java",
+      "sizeLines": 110,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/MinHashLSH.java",
+      "language": "java",
+      "sizeLines": 175,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "language": "java",
+      "sizeLines": 88,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/ProductCategory.java",
+      "language": "java",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/QueryClassifier.java",
+      "language": "java",
+      "sizeLines": 592,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/QueryExpander.java",
+      "language": "java",
+      "sizeLines": 218,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/QueryIntent.java",
+      "language": "java",
+      "sizeLines": 41,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/ResultValidator.java",
+      "language": "java",
+      "sizeLines": 156,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/Shingler.java",
+      "language": "java",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/SpecExtractor.java",
+      "language": "java",
+      "sizeLines": 123,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/Stemmer.java",
+      "language": "java",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramIndex.java",
+      "language": "java",
+      "sizeLines": 117,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndex.java",
+      "language": "java",
+      "sizeLines": 130,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/AffiliateClick.java",
+      "language": "java",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/AnalyticsEvent.java",
+      "language": "java",
+      "sizeLines": 100,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/AuditLogEntry.java",
+      "language": "java",
+      "sizeLines": 41,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/Feedback.java",
+      "language": "java",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/IndexerRunRecord.java",
+      "language": "java",
+      "sizeLines": 51,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/MarketplaceSeller.java",
+      "language": "java",
+      "sizeLines": 63,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/NewsletterSubscriber.java",
+      "language": "java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/PendingOffer.java",
+      "language": "java",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/PendingShop.java",
+      "language": "java",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/PriceAlertNotification.java",
+      "language": "java",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/PriceHistory.java",
+      "language": "java",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "language": "java",
+      "sizeLines": 93,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/ProtectedOrder.java",
+      "language": "java",
+      "sizeLines": 95,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/RequestLog.java",
+      "language": "java",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/Review.java",
+      "language": "java",
+      "sizeLines": 88,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/ReviewVote.java",
+      "language": "java",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/SaathiAccount.java",
+      "language": "java",
+      "sizeLines": 133,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/SaathiProduct.java",
+      "language": "java",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/SaathiQuery.java",
+      "language": "java",
+      "sizeLines": 56,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/SavedSearch.java",
+      "language": "java",
+      "sizeLines": 43,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/ScrapingJob.java",
+      "language": "java",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/Seller.java",
+      "language": "java",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "language": "java",
+      "sizeLines": 189,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/ShopDiagnostic.java",
+      "language": "java",
+      "sizeLines": 78,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/ShopTrust.java",
+      "language": "java",
+      "sizeLines": 117,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "language": "java",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/User.java",
+      "language": "java",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/model/WishlistItem.java",
+      "language": "java",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/EchoPaymentCatalogBootstrap.java",
+      "language": "java",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/LemonSqueezyClient.java",
+      "language": "java",
+      "sizeLines": 244,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/PaymentAdminController.java",
+      "language": "java",
+      "sizeLines": 383,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/PaymentCatalogBootstrap.java",
+      "language": "java",
+      "sizeLines": 133,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/PaymentController.java",
+      "language": "java",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/PaymentErrorHandler.java",
+      "language": "java",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/PaymentException.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/PaymentProviderAdminService.java",
+      "language": "java",
+      "sizeLines": 386,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/PaymentProviderException.java",
+      "language": "java",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/PaymentSecurity.java",
+      "language": "java",
+      "sizeLines": 101,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/PaymentService.java",
+      "language": "java",
+      "sizeLines": 544,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/PaymentStore.java",
+      "language": "java",
+      "sizeLines": 207,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/PaymentWebhookService.java",
+      "language": "java",
+      "sizeLines": 346,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentAdminAction.java",
+      "language": "java",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentApplication.java",
+      "language": "java",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentCheckout.java",
+      "language": "java",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentEntitlement.java",
+      "language": "java",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentLicense.java",
+      "language": "java",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentOrder.java",
+      "language": "java",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java",
+      "language": "java",
+      "sizeLines": 37,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentSubscription.java",
+      "language": "java",
+      "sizeLines": 37,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentWebhookEvent.java",
+      "language": "java",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/AffiliateClickRepository.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/AnalyticsEventRepository.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/AuditLogRepository.java",
+      "language": "java",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/FeedbackRepository.java",
+      "language": "java",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/IndexerRunRepository.java",
+      "language": "java",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/MarketplaceSellerRepository.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/NewsletterSubscriberRepository.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/PendingOfferRepository.java",
+      "language": "java",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/PendingShopRepository.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/PriceAlertNotificationRepository.java",
+      "language": "java",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/PriceHistoryRepository.java",
+      "language": "java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "language": "java",
+      "sizeLines": 97,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/ProtectedOrderRepository.java",
+      "language": "java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/RequestLogRepository.java",
+      "language": "java",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/ReviewRepository.java",
+      "language": "java",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/ReviewVoteRepository.java",
+      "language": "java",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/SaathiAccountRepository.java",
+      "language": "java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/SaathiProductRepository.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/SaathiQueryRepository.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/SavedSearchRepository.java",
+      "language": "java",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/ScrapingJobRepository.java",
+      "language": "java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/SellerRepository.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/ShopDiagnosticRepository.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "language": "java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/ShopTrustRepository.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/UserRepository.java",
+      "language": "java",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/repository/WishlistItemRepository.java",
+      "language": "java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/BaseScraper.java",
+      "language": "java",
+      "sizeLines": 122,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/BrowserFetcher.java",
+      "language": "java",
+      "sizeLines": 215,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/ExtractorRegistry.java",
+      "language": "java",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/GenericProductExtractor.java",
+      "language": "java",
+      "sizeLines": 402,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "language": "java",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java",
+      "language": "java",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/impl/DarazScraper.java",
+      "language": "java",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/impl/PickabooScraper.java",
+      "language": "java",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/impl/RyansScraper.java",
+      "language": "java",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/impl/ShopifyExtractor.java",
+      "language": "java",
+      "sizeLines": 219,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/impl/StartechScraper.java",
+      "language": "java",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/impl/StructuredDataExtractor.java",
+      "language": "java",
+      "sizeLines": 113,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/impl/WaltonScraper.java",
+      "language": "java",
+      "sizeLines": 122,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/scraper/impl/WooCommerceExtractor.java",
+      "language": "java",
+      "sizeLines": 188,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/AdminAnalyticsService.java",
+      "language": "java",
+      "sizeLines": 879,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/AdminUserService.java",
+      "language": "java",
+      "sizeLines": 324,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/AffiliateService.java",
+      "language": "java",
+      "sizeLines": 115,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/AnalyticsService.java",
+      "language": "java",
+      "sizeLines": 215,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/AssistantService.java",
+      "language": "java",
+      "sizeLines": 540,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/AtlasSearchService.java",
+      "language": "java",
+      "sizeLines": 93,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/CatalogSearchService.java",
+      "language": "java",
+      "sizeLines": 913,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/CategoryFocusService.java",
+      "language": "java",
+      "sizeLines": 74,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/CompareService.java",
+      "language": "java",
+      "sizeLines": 143,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/CrawlerControlService.java",
+      "language": "java",
+      "sizeLines": 113,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/EmailNotifier.java",
+      "language": "java",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/FeedSyncService.java",
+      "language": "java",
+      "sizeLines": 345,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/HeadlineStatsService.java",
+      "language": "java",
+      "sizeLines": 132,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/HotDropsService.java",
+      "language": "java",
+      "sizeLines": 318,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/IndexNowService.java",
+      "language": "java",
+      "sizeLines": 87,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/JwtService.java",
+      "language": "java",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/LiveStatsService.java",
+      "language": "java",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/MarketplaceSellerService.java",
+      "language": "java",
+      "sizeLines": 160,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/NewsletterService.java",
+      "language": "java",
+      "sizeLines": 219,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/OperatorStatsService.java",
+      "language": "java",
+      "sizeLines": 252,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/OwnerBootstrap.java",
+      "language": "java",
+      "sizeLines": 104,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/PriceAlertScheduler.java",
+      "language": "java",
+      "sizeLines": 214,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/PriceSnapshotScheduler.java",
+      "language": "java",
+      "sizeLines": 105,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/ProductService.java",
+      "language": "java",
+      "sizeLines": 626,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/ProtectService.java",
+      "language": "java",
+      "sizeLines": 385,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/RequestLogService.java",
+      "language": "java",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/ResendService.java",
+      "language": "java",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/ReviewReputationService.java",
+      "language": "java",
+      "sizeLines": 120,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/SaathiMessengerService.java",
+      "language": "java",
+      "sizeLines": 154,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/SaathiService.java",
+      "language": "java",
+      "sizeLines": 427,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/ScrapingService.java",
+      "language": "java",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/SellerDirectoryService.java",
+      "language": "java",
+      "sizeLines": 198,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/ShopApprovalService.java",
+      "language": "java",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/ShopHealthService.java",
+      "language": "java",
+      "sizeLines": 121,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/ShopVisibilityService.java",
+      "language": "java",
+      "sizeLines": 122,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/ShowcaseService.java",
+      "language": "java",
+      "sizeLines": 173,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/SyntheticMonitorService.java",
+      "language": "java",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/TrustService.java",
+      "language": "java",
+      "sizeLines": 273,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/service/WorldCupService.java",
+      "language": "java",
+      "sizeLines": 72,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/util/ClientIp.java",
+      "language": "java",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/java/com/damKemon/dam/kemon/util/TrafficClassifier.java",
+      "language": "java",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/main/resources/application-production.yml",
+      "language": "yaml",
+      "sizeLines": 116,
+      "fileCategory": "config"
+    },
+    {
+      "path": "src/main/resources/application-staging.yml",
+      "language": "yaml",
+      "sizeLines": 34,
+      "fileCategory": "config"
+    },
+    {
+      "path": "src/main/resources/application-worker.yml",
+      "language": "yaml",
+      "sizeLines": 32,
+      "fileCategory": "config"
+    },
+    {
+      "path": "src/main/resources/application.yml",
+      "language": "yaml",
+      "sizeLines": 370,
+      "fileCategory": "config"
+    },
+    {
+      "path": "src/main/resources/sellers.json",
+      "language": "json",
+      "sizeLines": 48,
+      "fileCategory": "config"
+    },
+    {
+      "path": "src/main/resources/shop-trust.json",
+      "language": "json",
+      "sizeLines": 1184,
+      "fileCategory": "config"
+    },
+    {
+      "path": "src/main/resources/shops.json",
+      "language": "json",
+      "sizeLines": 195,
+      "fileCategory": "config"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/DamKemonApplicationTests.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/config/AdminGateFilterTest.java",
+      "language": "java",
+      "sizeLines": 99,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/config/CacheSerializationTest.java",
+      "language": "java",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/config/ProductionSecretsValidatorTest.java",
+      "language": "java",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/config/RateLimiterTest.java",
+      "language": "java",
+      "sizeLines": 43,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/config/SyntheticHealthIndicatorTest.java",
+      "language": "java",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/controller/AccountControllerWishlistTest.java",
+      "language": "java",
+      "sizeLines": 198,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/controller/AdminIngestControllerTest.java",
+      "language": "java",
+      "sizeLines": 115,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/controller/AffiliateControllerTrafficTest.java",
+      "language": "java",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/controller/AnalyticsControllerActionTest.java",
+      "language": "java",
+      "sizeLines": 43,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/controller/AuthControllerTest.java",
+      "language": "java",
+      "sizeLines": 240,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/controller/OffersControllerTest.java",
+      "language": "java",
+      "sizeLines": 63,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/controller/ProductControllerGateTest.java",
+      "language": "java",
+      "sizeLines": 121,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/controller/SearchControllerTest.java",
+      "language": "java",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/controller/SharePreviewControllerTest.java",
+      "language": "java",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/controller/SubmitShopControllerTest.java",
+      "language": "java",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/indexer/BulkIndexerFastIngestTest.java",
+      "language": "java",
+      "sizeLines": 99,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/indexer/BulkIndexerMergeSafetyTest.java",
+      "language": "java",
+      "sizeLines": 74,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/indexer/SellerDepthHarvesterTest.java",
+      "language": "java",
+      "sizeLines": 111,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/indexer/ShopDedupeTest.java",
+      "language": "java",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/intelligence/QueryClassifierFocusTest.java",
+      "language": "java",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndexTest.java",
+      "language": "java",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/payment/EchoPaymentCatalogBootstrapTest.java",
+      "language": "java",
+      "sizeLines": 41,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/payment/LemonSqueezyClientTest.java",
+      "language": "java",
+      "sizeLines": 90,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/payment/PaymentCatalogBootstrapTest.java",
+      "language": "java",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/payment/PaymentProviderAdminServiceTest.java",
+      "language": "java",
+      "sizeLines": 103,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/payment/PaymentSecurityTest.java",
+      "language": "java",
+      "sizeLines": 43,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/payment/PaymentServiceTest.java",
+      "language": "java",
+      "sizeLines": 221,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/payment/PaymentWebhookServiceTest.java",
+      "language": "java",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/AdminUserServiceTest.java",
+      "language": "java",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/AnalyticsServiceTrafficTest.java",
+      "language": "java",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchAvailabilityTest.java",
+      "language": "java",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchModelMatchTest.java",
+      "language": "java",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchNormalizationTest.java",
+      "language": "java",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchRelevanceTest.java",
+      "language": "java",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchServiceRecallTest.java",
+      "language": "java",
+      "sizeLines": 146,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchTypoRecallTest.java",
+      "language": "java",
+      "sizeLines": 151,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/CrawlerControlServiceTest.java",
+      "language": "java",
+      "sizeLines": 131,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/EmailNotifierTest.java",
+      "language": "java",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/FeedSyncServiceTest.java",
+      "language": "java",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/HotDropsVisibleLowestTest.java",
+      "language": "java",
+      "sizeLines": 43,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/IndexNowServiceTest.java",
+      "language": "java",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/JwtServiceTest.java",
+      "language": "java",
+      "sizeLines": 37,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/NewsletterRenderTest.java",
+      "language": "java",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/PriceAlertSchedulerTest.java",
+      "language": "java",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/ProtectServiceTest.java",
+      "language": "java",
+      "sizeLines": 45,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/ReviewReputationServiceTest.java",
+      "language": "java",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/ShopHealthServiceTest.java",
+      "language": "java",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/service/ShopVisibilityServiceTest.java",
+      "language": "java",
+      "sizeLines": 87,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/test/java/com/damKemon/dam/kemon/util/TrafficClassifierTest.java",
+      "language": "java",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    }
+  ],
+  "totalFiles": 392,
+  "filteredByIgnore": 62,
+  "estimatedComplexity": "large",
+  "importMap": {
+    ".agent/CONTINUITY.md": [],
+    ".claude/CLAUDE.md": [],
+    ".claude/hooks/check-gstack.sh": [],
+    ".claude/settings.json": [],
+    ".claude/skills/graphify/.graphify_version": [],
+    ".claude/skills/graphify/SKILL.md": [],
+    ".claude/skills/graphify/references/add-watch.md": [],
+    ".claude/skills/graphify/references/exports.md": [],
+    ".claude/skills/graphify/references/extraction-spec.md": [],
+    ".claude/skills/graphify/references/github-and-merge.md": [],
+    ".claude/skills/graphify/references/hooks.md": [],
+    ".claude/skills/graphify/references/query.md": [],
+    ".claude/skills/graphify/references/transcribe.md": [],
+    ".claude/skills/graphify/references/update.md": [],
+    ".dockerignore": [],
+    ".gitattributes": [],
+    ".github/DEPLOYMENT.md": [],
+    ".github/workflows/production-deploy.yml": [],
+    ".github/workflows/staging-deploy.yml": [],
+    ".ua/.understandignore": [],
+    ".ua/config.json": [],
+    ".ua/fingerprints.json": [],
+    ".ua/knowledge-graph.json": [],
+    ".ua/meta.json": [],
+    "AGENTS.md": [],
+    "CLAUDE.md": [],
+    "Dockerfile": [],
+    "README.md": [],
+    "build.gradle": [],
+    "ci-crawl.sh": [],
+    "docs/PAYMENT_ADMIN_GUIDE.md": [],
+    "docs/PAYMENT_SERVICE.md": [],
+    "docs/superpowers/plans/2026-07-13-loopback-ingest-without-admin-key.md": [],
+    "docs/superpowers/plans/2026-07-13-p0-search-reliability.md": [],
+    "docs/superpowers/specs/2026-07-05-user-auth-alerts-wishlist-design.md": [],
+    "docs/superpowers/specs/2026-07-13-loopback-ingest-without-admin-key-design.md": [],
+    "docs/superpowers/specs/2026-07-13-p0-search-reliability-design.md": [],
+    "docs/superpowers/specs/2026-07-13-remove-legacy-admin-secret-design.md": [],
+    "gradle/wrapper/gradle-wrapper.jar": [],
+    "gradle/wrapper/gradle-wrapper.properties": [],
+    "gradlew": [],
+    "gradlew.bat": [],
+    "graphify-out/2026-07-07/GRAPH_REPORT.md": [],
+    "graphify-out/2026-07-07/cost.json": [],
+    "graphify-out/2026-07-07/graph.json": [],
+    "graphify-out/2026-07-07/manifest.json": [],
+    "graphify-out/2026-07-10/GRAPH_REPORT.md": [],
+    "graphify-out/2026-07-10/cost.json": [],
+    "graphify-out/2026-07-10/graph.json": [],
+    "graphify-out/2026-07-10/manifest.json": [],
+    "graphify-out/2026-07-11/GRAPH_REPORT.md": [],
+    "graphify-out/2026-07-11/cost.json": [],
+    "graphify-out/2026-07-11/graph.json": [],
+    "graphify-out/2026-07-11/manifest.json": [],
+    "graphify-out/2026-07-12/GRAPH_REPORT.md": [],
+    "graphify-out/2026-07-12/cost.json": [],
+    "graphify-out/2026-07-12/graph.json": [],
+    "graphify-out/2026-07-12/manifest.json": [],
+    "graphify-out/2026-07-13/GRAPH_REPORT.md": [],
+    "graphify-out/2026-07-13/cost.json": [],
+    "graphify-out/2026-07-13/graph.json": [],
+    "graphify-out/2026-07-13/manifest.json": [],
+    "graphify-out/GRAPH_REPORT.md": [],
+    "graphify-out/cache/semantic/1d5afbaccf36e952e71082591edfc9e4fbd9946eb85b01855a1d0bd810b7623d.json": [],
+    "graphify-out/cache/semantic/38e86de6908a597a81e21ccbcb067d3d1d922902a5e57554b4f9b04b6586fe9e.json": [],
+    "graphify-out/cache/semantic/581d8fb3bef0b08440c9d625107a022a879dd6209945effaf2f4a575138e9612.json": [],
+    "graphify-out/cache/semantic/609de4b1331ddb2f8c80e97aac0a5de782a373d6f5af858e10a731c20b35c0e2.json": [],
+    "graphify-out/cache/semantic/699997e4bfd08f3bf904b92c8e89606ad4bd96ebf51007c2eb807b2a5f6268bc.json": [],
+    "graphify-out/cache/semantic/7aa8b606e5c19334b6c9fe62a12fc30eb46c0320d1dbb5726cfda0becdd04a5a.json": [],
+    "graphify-out/cache/semantic/7c7827f2f29d6e2cb6cc6902558dac08380f60c414b4968f83e1bc4e61b3e268.json": [],
+    "graphify-out/cache/semantic/7e8d40e6b9ea7699e21efacdf9bfbc06fe3c5e29d997c31a0d27e41f0c17de32.json": [],
+    "graphify-out/cache/semantic/8bec33d94984d0e97b620ecdac5341019b50db7366bcb1bfdb0572b73853e87c.json": [],
+    "graphify-out/cache/semantic/8cb1dbb82571a28740ec0b94978dfc39d48637a3b6687bd73b85b3927cd17afc.json": [],
+    "graphify-out/cache/semantic/9cf5d515d0d8584aeef36708df34f560078772a568ed599cac5ba20b089e563d.json": [],
+    "graphify-out/cache/semantic/9f20d4a8e2ca1dd4b61a695d6f7f766cf6f7a5a6a97b1a4daca5bb76364b2fac.json": [],
+    "graphify-out/cache/semantic/a81a886d64ccd5ef64f41930b6b69817c911554fc65c292fc583031be463b3c0.json": [],
+    "graphify-out/cache/semantic/ae20c8d85eb0524673602e34fbfb15f653cbdb208f903b28806bd9f178fb48b7.json": [],
+    "graphify-out/cache/semantic/bc796ac1b5d19bd2eb4da229447d61274a2a0596e092ffcee079b6dacbdbeaca.json": [],
+    "graphify-out/cache/semantic/c6f7fc2f062904d246b700d446ba3ad03e77f41809b12eccfb5e090a11f4fad2.json": [],
+    "graphify-out/cache/semantic/cb1a1d6d985571f4644234cd712565c098b090fe41c148d2d858e0ad5c7d882c.json": [],
+    "graphify-out/cache/semantic/cb5e2f3284265c08c88c08f445b96958b13a9115c0afc0a33206c293d1b1c187.json": [],
+    "graphify-out/cache/semantic/df21e2a34feb27f1c628a0c9542d5601778cc771e36cc0c8f1df30d99db82c23.json": [],
+    "graphify-out/cache/semantic/e7db27fc6a1d6327d22b3fec6fda38084c00c1e5a11c33dc67a3d14aa7854859.json": [],
+    "graphify-out/cache/stat-index.json": [],
+    "graphify-out/cost.json": [],
+    "graphify-out/graph.json": [],
+    "graphify-out/manifest.json": [],
+    "ops/nginx-social-preview.conf": [],
+    "ops/selfheal/10-self-heal.conf": [],
+    "ops/selfheal/20-mem.conf": [],
+    "ops/selfheal/damkemon-watchdog-loop.sh": [],
+    "ops/selfheal/damkemon-watchdog-user.service": [],
+    "ops/selfheal/damkemon-watchdog-user.timer": [],
+    "ops/selfheal/damkemon-watchdog.service": [],
+    "ops/selfheal/damkemon-watchdog.sh": [],
+    "ops/selfheal/damkemon-watchdog.timer": [],
+    "ops/selfheal/install.sh": [],
+    "ops/trigger.txt": [],
+    "ops/worker/damkemon-prod-worker.timer": [],
+    "ops/worker/install-worker.sh": [],
+    "settings.gradle": [],
+    "src/main/java/com/damKemon/dam/kemon/DamKemonApplication.java": [],
+    "src/main/java/com/damKemon/dam/kemon/config/AppRole.java": [],
+    "src/main/java/com/damKemon/dam/kemon/config/AuditLogFilter.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AuditLogEntry.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AuditLogRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/config/CacheConfig.java": [],
+    "src/main/java/com/damKemon/dam/kemon/config/JwtAuthFilter.java": [
+      "src/main/java/com/damKemon/dam/kemon/service/JwtService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/config/MongoConfig.java": [],
+    "src/main/java/com/damKemon/dam/kemon/config/OperationalIndexInitializer.java": [],
+    "src/main/java/com/damKemon/dam/kemon/config/ProductionSecretsValidator.java": [],
+    "src/main/java/com/damKemon/dam/kemon/config/ProxyBootstrap.java": [],
+    "src/main/java/com/damKemon/dam/kemon/config/ProxyPool.java": [],
+    "src/main/java/com/damKemon/dam/kemon/config/RateLimitFilter.java": [],
+    "src/main/java/com/damKemon/dam/kemon/config/RateLimiter.java": [],
+    "src/main/java/com/damKemon/dam/kemon/config/RequestLogFilter.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/RequestLog.java",
+      "src/main/java/com/damKemon/dam/kemon/service/RequestLogService.java",
+      "src/main/java/com/damKemon/dam/kemon/util/ClientIp.java",
+      "src/main/java/com/damKemon/dam/kemon/util/TrafficClassifier.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/config/SecurityConfig.java": [
+      "src/main/java/com/damKemon/dam/kemon/service/JwtService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/config/SyntheticHealthIndicator.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndex.java",
+      "src/main/java/com/damKemon/dam/kemon/service/SyntheticMonitorService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/config/WebConfig.java": [],
+    "src/main/java/com/damKemon/dam/kemon/controller/AccountController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AnalyticsEvent.java",
+      "src/main/java/com/damKemon/dam/kemon/model/PriceAlertNotification.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SavedSearch.java",
+      "src/main/java/com/damKemon/dam/kemon/model/WishlistItem.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AnalyticsEventRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PriceAlertNotificationRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SavedSearchRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/WishlistItemRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AnalyticsService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminAnalyticsController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/RequestLog.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AdminAnalyticsService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminCatalogController.java": [
+      "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ProductService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminController.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java",
+      "src/main/java/com/damKemon/dam/kemon/indexer/ScraperLearningService.java",
+      "src/main/java/com/damKemon/dam/kemon/indexer/ShopDiscoveryService.java",
+      "src/main/java/com/damKemon/dam/kemon/model/AuditLogEntry.java",
+      "src/main/java/com/damKemon/dam/kemon/model/IndexerRunRecord.java",
+      "src/main/java/com/damKemon/dam/kemon/model/PendingShop.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/model/ShopDiagnostic.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AuditLogRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/IndexerRunRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PendingShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopDiagnosticRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/HotDropsService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/MarketplaceSellerService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminCrawlerController.java": [
+      "src/main/java/com/damKemon/dam/kemon/service/CrawlerControlService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminDiagController.java": [
+      "src/main/java/com/damKemon/dam/kemon/indexer/SellersBootstrap.java",
+      "src/main/java/com/damKemon/dam/kemon/indexer/ShopCatalogBootstrap.java",
+      "src/main/java/com/damKemon/dam/kemon/indexer/ShopTrustBootstrap.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PendingOfferRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SellerRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminExtractorDebugController.java": [
+      "src/main/java/com/damKemon/dam/kemon/scraper/ExtractorRegistry.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/GenericProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminFeedsController.java": [
+      "src/main/java/com/damKemon/dam/kemon/service/FeedSyncService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminIngestController.java": [
+      "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java",
+      "src/main/java/com/damKemon/dam/kemon/service/SellerDirectoryService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminJobsController.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java",
+      "src/main/java/com/damKemon/dam/kemon/indexer/CatalogRemergeService.java",
+      "src/main/java/com/damKemon/dam/kemon/indexer/SellerDepthHarvester.java",
+      "src/main/java/com/damKemon/dam/kemon/indexer/ShopDiscoveryService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/HotDropsService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/SellerDirectoryService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/SyntheticMonitorService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminMaintenanceController.java": [
+      "src/main/java/com/damKemon/dam/kemon/indexer/CatalogRemergeService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ProductService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminNewsletterController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/NewsletterSubscriber.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/NewsletterSubscriberRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/NewsletterService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminReviewsController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Review.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ProductService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminSaathiController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiAccount.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SaathiAccountRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/SaathiService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminSellersController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Seller.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SellerRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminSponsorshipController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AdminUsersController.java": [
+      "src/main/java/com/damKemon/dam/kemon/service/AdminUserService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AffiliateController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AffiliateClick.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AffiliateClickRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AffiliateService.java",
+      "src/main/java/com/damKemon/dam/kemon/util/ClientIp.java",
+      "src/main/java/com/damKemon/dam/kemon/util/TrafficClassifier.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AnalyticsController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AdminAnalyticsService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AnalyticsService.java",
+      "src/main/java/com/damKemon/dam/kemon/util/ClientIp.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AssistantController.java": [
+      "src/main/java/com/damKemon/dam/kemon/service/AssistantService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/AuthController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/NewsletterSubscriber.java",
+      "src/main/java/com/damKemon/dam/kemon/model/User.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/NewsletterSubscriberRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/UserRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AnalyticsService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/JwtService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ResendService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/CacheController.java": [
+      "src/main/java/com/damKemon/dam/kemon/scraper/BrowserFetcher.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/CompareController.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/CompareResponse.java",
+      "src/main/java/com/damKemon/dam/kemon/service/CompareService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/DashboardController.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/DashboardStats.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/ScrapingJob.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PriceHistoryRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ReviewRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ScrapingJobRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SellerRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/EngagementController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Feedback.java",
+      "src/main/java/com/damKemon/dam/kemon/model/NewsletterSubscriber.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/FeedbackRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/NewsletterSubscriberRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ResendService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/FcommerceController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Seller.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SellerRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/ImageProxyController.java": [],
+    "src/main/java/com/damKemon/dam/kemon/controller/OffersController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/PendingOffer.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PendingOfferRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/OgImageController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ProductService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/OperatorStatsController.java": [
+      "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java",
+      "src/main/java/com/damKemon/dam/kemon/service/OperatorStatsService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/ProductController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/PriceHistory.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Review.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ProductService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ShowcaseService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/ProtectController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/ProtectedOrder.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ProtectService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/ReviewController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Review.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ReviewReputationService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/SaathiController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiAccount.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiProduct.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiQuery.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/SaathiService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/SaathiMessengerController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiAccount.java",
+      "src/main/java/com/damKemon/dam/kemon/service/SaathiService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/SaathiPublicController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiAccount.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiProduct.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/SaathiService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/ScrapeController.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/ScrapeRequest.java",
+      "src/main/java/com/damKemon/dam/kemon/model/ScrapingJob.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ScrapingService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/SearchController.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/SearchResponse.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AnalyticsService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/CatalogSearchService.java",
+      "src/main/java/com/damKemon/dam/kemon/util/ClientIp.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/SellerController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Seller.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SellerRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/SharePreviewController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ProductService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/SiteController.java": [
+      "src/main/java/com/damKemon/dam/kemon/scraper/ExtractorRegistry.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/SitemapController.java": [
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/StatsController.java": [
+      "src/main/java/com/damKemon/dam/kemon/service/HeadlineStatsService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/HotDropsService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/LiveStatsService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/WorldCupService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/SubmitShopController.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/PendingShop.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PendingShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/controller/TrustController.java": [
+      "src/main/java/com/damKemon/dam/kemon/service/MarketplaceSellerService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/TrustService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/dto/CompareResponse.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/dto/DashboardStats.java": [],
+    "src/main/java/com/damKemon/dam/kemon/dto/ScrapeRequest.java": [],
+    "src/main/java/com/damKemon/dam/kemon/dto/SearchResponse.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/ApiSniffer.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BrowserFetcher.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/MinHashLSH.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryClassifier.java",
+      "src/main/java/com/damKemon/dam/kemon/model/IndexerRunRecord.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/IndexerRunRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ExtractorRegistry.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java",
+      "src/main/java/com/damKemon/dam/kemon/service/CategoryFocusService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/IndexNowService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ShopHealthService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/CatalogRemergeService.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/ChaldalHarvester.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/DarazHarvester.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/ProxyPool.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/DiscoveredApiHarvester.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/DomCardHarvester.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BrowserFetcher.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/HomepageCrawler.java": [
+      "src/main/java/com/damKemon/dam/kemon/scraper/BrowserFetcher.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/IndexerRunner.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ShopApprovalService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/IndexingScheduler.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ShopApprovalService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/JsonCatalogHarvester.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/ScraperLearningService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/model/ShopDiagnostic.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopDiagnosticRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ExtractorRegistry.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/GenericProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/SearchSeedCrawler.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BrowserFetcher.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/SellerDepthHarvester.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ExtractorRegistry.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/SellersBootstrap.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Seller.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SellerRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/ShopCatalogBootstrap.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/ShopDiscoveryService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/PendingShop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PendingShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/ShopHarvester.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/ShopLifecycleScheduler.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/model/PendingShop.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PendingShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/ShopTrustBootstrap.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/ShopTrust.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopTrustRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/TrustService.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/ShopifyHarvester.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/SitemapCrawler.java": [],
+    "src/main/java/com/damKemon/dam/kemon/indexer/StartechHarvester.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/indexer/TechSeedCatalog.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/AhoCorasick.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/MinHashLSH.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/ProductCategory.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/QueryClassifier.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/QueryExpander.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/QueryIntent.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/ResultValidator.java": [
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/Shingler.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/SpecExtractor.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/Stemmer.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramIndex.java": [],
+    "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndex.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/model/AffiliateClick.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/AnalyticsEvent.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/AuditLogEntry.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/Feedback.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/IndexerRunRecord.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/MarketplaceSeller.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/NewsletterSubscriber.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/PendingOffer.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/PendingShop.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/PriceAlertNotification.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/PriceHistory.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/Product.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/ProtectedOrder.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/RequestLog.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/Review.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/ReviewVote.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/SaathiAccount.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/SaathiProduct.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/SaathiQuery.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/SavedSearch.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/ScrapingJob.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/Seller.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/Shop.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/ShopDiagnostic.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/ShopTrust.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/User.java": [],
+    "src/main/java/com/damKemon/dam/kemon/model/WishlistItem.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/EchoPaymentCatalogBootstrap.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentApplication.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/payment/LemonSqueezyClient.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/payment/PaymentAdminController.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentAdminAction.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentApplication.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentCheckout.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentEntitlement.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentLicense.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentOrder.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentSubscription.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentWebhookEvent.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/payment/PaymentCatalogBootstrap.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentApplication.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/payment/PaymentController.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/PaymentErrorHandler.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/PaymentException.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/PaymentProviderAdminService.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentAdminAction.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentEntitlement.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentLicense.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentOrder.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/payment/PaymentProviderException.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/PaymentSecurity.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/PaymentService.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentApplication.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentCheckout.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentEntitlement.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentLicense.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentOrder.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/payment/PaymentStore.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/PaymentWebhookService.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentCheckout.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentEntitlement.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentLicense.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentOrder.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentSubscription.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentWebhookEvent.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentAdminAction.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentApplication.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentCheckout.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentEntitlement.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentLicense.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentOrder.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentSubscription.java": [],
+    "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentWebhookEvent.java": [],
+    "src/main/java/com/damKemon/dam/kemon/repository/AffiliateClickRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AffiliateClick.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/AnalyticsEventRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AnalyticsEvent.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/AuditLogRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AuditLogEntry.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/FeedbackRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Feedback.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/IndexerRunRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/IndexerRunRecord.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/MarketplaceSellerRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/MarketplaceSeller.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/NewsletterSubscriberRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/NewsletterSubscriber.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/PendingOfferRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/PendingOffer.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/PendingShopRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/PendingShop.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/PriceAlertNotificationRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/PriceAlertNotification.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/PriceHistoryRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/PriceHistory.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/ProtectedOrderRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/ProtectedOrder.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/RequestLogRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/RequestLog.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/ReviewRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Review.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/ReviewVoteRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/ReviewVote.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/SaathiAccountRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiAccount.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/SaathiProductRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/SaathiQueryRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiQuery.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/SavedSearchRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/SavedSearch.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/ScrapingJobRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/ScrapingJob.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/SellerRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Seller.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/ShopDiagnosticRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/ShopDiagnostic.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/ShopTrustRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/ShopTrust.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/UserRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/User.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/repository/WishlistItemRepository.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/WishlistItem.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/scraper/BaseScraper.java": [],
+    "src/main/java/com/damKemon/dam/kemon/scraper/BrowserFetcher.java": [],
+    "src/main/java/com/damKemon/dam/kemon/scraper/ExtractorRegistry.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/scraper/GenericProductExtractor.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java": [],
+    "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java": [],
+    "src/main/java/com/damKemon/dam/kemon/scraper/impl/DarazScraper.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BaseScraper.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BrowserFetcher.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/GenericProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/scraper/impl/PickabooScraper.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BaseScraper.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/GenericProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/scraper/impl/RyansScraper.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BaseScraper.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/GenericProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/scraper/impl/ShopifyExtractor.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BaseScraper.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/GenericProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/scraper/impl/StartechScraper.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BaseScraper.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/GenericProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/scraper/impl/StructuredDataExtractor.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BaseScraper.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/scraper/impl/WaltonScraper.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BaseScraper.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/GenericProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/scraper/impl/WooCommerceExtractor.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/PriceParser.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/BaseScraper.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/GenericProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ProductExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/AdminAnalyticsService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/RequestLog.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/RequestLogRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/util/TrafficClassifier.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/AdminUserService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AnalyticsEvent.java",
+      "src/main/java/com/damKemon/dam/kemon/model/RequestLog.java",
+      "src/main/java/com/damKemon/dam/kemon/model/User.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/UserRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/AffiliateService.java": [],
+    "src/main/java/com/damKemon/dam/kemon/service/AnalyticsService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AnalyticsEvent.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AnalyticsEventRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/util/ClientIp.java",
+      "src/main/java/com/damKemon/dam/kemon/util/TrafficClassifier.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/AssistantService.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/SearchResponse.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryExpander.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/AtlasSearchService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/CatalogSearchService.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/SearchResponse.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryClassifier.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryExpander.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryIntent.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/SpecExtractor.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/Stemmer.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramIndex.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndex.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/CategoryFocusService.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/ProductCategory.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/CompareService.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/CompareResponse.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/CrawlerControlService.java": [],
+    "src/main/java/com/damKemon/dam/kemon/service/EmailNotifier.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/WishlistItem.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/FeedSyncService.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/HeadlineStatsService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AffiliateClick.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AffiliateClickRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AnalyticsEventRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/HotDropsService.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/model/PriceHistory.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/IndexNowService.java": [],
+    "src/main/java/com/damKemon/dam/kemon/service/JwtService.java": [],
+    "src/main/java/com/damKemon/dam/kemon/service/LiveStatsService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AnalyticsEvent.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AnalyticsEventRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/MarketplaceSellerService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/MarketplaceSeller.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/MarketplaceSellerRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/NewsletterService.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/model/NewsletterSubscriber.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/NewsletterSubscriberRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/OperatorStatsService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AnalyticsEvent.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AnalyticsEventRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/OwnerBootstrap.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/User.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/UserRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/PriceAlertScheduler.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/model/PriceAlertNotification.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/User.java",
+      "src/main/java/com/damKemon/dam/kemon/model/WishlistItem.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PriceAlertNotificationRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/UserRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/WishlistItemRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/PriceSnapshotScheduler.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/model/PriceHistory.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PriceHistoryRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/ProductService.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/ProductCategory.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryClassifier.java",
+      "src/main/java/com/damKemon/dam/kemon/model/PriceHistory.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Review.java",
+      "src/main/java/com/damKemon/dam/kemon/model/ShopTrust.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AffiliateClickRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PriceHistoryRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ReviewRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/ProtectService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/ProtectedOrder.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProtectedOrderRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/RequestLogService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/RequestLog.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/ResendService.java": [],
+    "src/main/java/com/damKemon/dam/kemon/service/ReviewReputationService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Review.java",
+      "src/main/java/com/damKemon/dam/kemon/model/ReviewVote.java",
+      "src/main/java/com/damKemon/dam/kemon/model/User.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ReviewRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ReviewVoteRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/UserRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/SaathiMessengerService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiAccount.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiProduct.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/SaathiService.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/SearchResponse.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiAccount.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiProduct.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SaathiQuery.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Seller.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SaathiAccountRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SaathiProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SaathiQueryRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SellerRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/ScrapingService.java": [
+      "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java",
+      "src/main/java/com/damKemon/dam/kemon/model/ScrapingJob.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ScrapingJobRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/SellerDirectoryService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AffiliateClick.java",
+      "src/main/java/com/damKemon/dam/kemon/model/MarketplaceSeller.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Seller.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/MarketplaceSellerRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SellerRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/ShopApprovalService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/PendingShop.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PendingShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/ShopHealthService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/ShopVisibilityService.java": [
+      "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/ShowcaseService.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryClassifier.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/SyntheticMonitorService.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/SearchResponse.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/TrustService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/ShopTrust.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopTrustRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/service/WorldCupService.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/main/java/com/damKemon/dam/kemon/util/ClientIp.java": [],
+    "src/main/java/com/damKemon/dam/kemon/util/TrafficClassifier.java": [],
+    "src/main/resources/application-production.yml": [],
+    "src/main/resources/application-staging.yml": [],
+    "src/main/resources/application-worker.yml": [],
+    "src/main/resources/application.yml": [],
+    "src/main/resources/sellers.json": [],
+    "src/main/resources/shop-trust.json": [],
+    "src/main/resources/shops.json": [],
+    "src/test/java/com/damKemon/dam/kemon/DamKemonApplicationTests.java": [],
+    "src/test/java/com/damKemon/dam/kemon/config/AdminGateFilterTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/service/JwtService.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/config/CacheSerializationTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/config/ProductionSecretsValidatorTest.java": [],
+    "src/test/java/com/damKemon/dam/kemon/config/RateLimiterTest.java": [],
+    "src/test/java/com/damKemon/dam/kemon/config/SyntheticHealthIndicatorTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndex.java",
+      "src/main/java/com/damKemon/dam/kemon/service/SyntheticMonitorService.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/controller/AccountControllerWishlistTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/WishlistItem.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AnalyticsEventRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PriceAlertNotificationRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/SavedSearchRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/WishlistItemRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AnalyticsService.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/controller/AdminIngestControllerTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java",
+      "src/main/java/com/damKemon/dam/kemon/service/SellerDirectoryService.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/controller/AffiliateControllerTrafficTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AffiliateClick.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AffiliateClickRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AffiliateService.java",
+      "src/main/java/com/damKemon/dam/kemon/util/TrafficClassifier.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/controller/AnalyticsControllerActionTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AdminAnalyticsService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AnalyticsService.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/controller/AuthControllerTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/User.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/NewsletterSubscriberRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/UserRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/service/JwtService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ResendService.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/controller/OffersControllerTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/PendingOffer.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PendingOfferRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/controller/ProductControllerGateTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Review.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ProductService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ShowcaseService.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/controller/SearchControllerTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/SearchResponse.java",
+      "src/main/java/com/damKemon/dam/kemon/service/AnalyticsService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/CatalogSearchService.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/controller/SharePreviewControllerTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/controller/SubmitShopControllerTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/PendingShop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PendingShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/indexer/BulkIndexerFastIngestTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryClassifier.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/IndexerRunRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ExtractorRegistry.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java",
+      "src/main/java/com/damKemon/dam/kemon/service/CategoryFocusService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/IndexNowService.java",
+      "src/main/java/com/damKemon/dam/kemon/service/ShopHealthService.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/indexer/BulkIndexerMergeSafetyTest.java": [],
+    "src/test/java/com/damKemon/dam/kemon/indexer/SellerDepthHarvesterTest.java": [],
+    "src/test/java/com/damKemon/dam/kemon/indexer/ShopDedupeTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/intelligence/QueryClassifierFocusTest.java": [],
+    "src/test/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndexTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/payment/EchoPaymentCatalogBootstrapTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentApplication.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/payment/LemonSqueezyClientTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/payment/PaymentCatalogBootstrapTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentApplication.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/payment/PaymentProviderAdminServiceTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentAdminAction.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentEntitlement.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentOrder.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/payment/PaymentSecurityTest.java": [],
+    "src/test/java/com/damKemon/dam/kemon/payment/PaymentServiceTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentApplication.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentCheckout.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentEntitlement.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentLicense.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentOrder.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentSubscription.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/payment/PaymentWebhookServiceTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentCheckout.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentEntitlement.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentOrder.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentSubscription.java",
+      "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentWebhookEvent.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/AdminUserServiceTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/User.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/AnalyticsServiceTrafficTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/AnalyticsEvent.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/AnalyticsEventRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/util/TrafficClassifier.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchAvailabilityTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryClassifier.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryExpander.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndex.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchModelMatchTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchNormalizationTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryExpander.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchRelevanceTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryExpander.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchServiceRecallTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/SearchResponse.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/ProductCategory.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryClassifier.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryExpander.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryIntent.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndex.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/CatalogSearchTypoRecallTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/dto/SearchResponse.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryClassifier.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryExpander.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/QueryIntent.java",
+      "src/main/java/com/damKemon/dam/kemon/intelligence/TrigramSearchIndex.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/CrawlerControlServiceTest.java": [],
+    "src/test/java/com/damKemon/dam/kemon/service/EmailNotifierTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/WishlistItem.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/FeedSyncServiceTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/indexer/BulkIndexer.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/scraper/ScrapedProduct.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/HotDropsVisibleLowestTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/IndexNowServiceTest.java": [],
+    "src/test/java/com/damKemon/dam/kemon/service/JwtServiceTest.java": [],
+    "src/test/java/com/damKemon/dam/kemon/service/NewsletterRenderTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/NewsletterSubscriberRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/PriceAlertSchedulerTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/config/AppRole.java",
+      "src/main/java/com/damKemon/dam/kemon/model/PriceAlertNotification.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/User.java",
+      "src/main/java/com/damKemon/dam/kemon/model/WishlistItem.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/PriceAlertNotificationRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/UserRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/WishlistItemRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/ProtectServiceTest.java": [],
+    "src/test/java/com/damKemon/dam/kemon/service/ReviewReputationServiceTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Review.java",
+      "src/main/java/com/damKemon/dam/kemon/model/User.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ReviewRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ReviewVoteRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/UserRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/ShopHealthServiceTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ProductRepository.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/service/ShopVisibilityServiceTest.java": [
+      "src/main/java/com/damKemon/dam/kemon/model/Product.java",
+      "src/main/java/com/damKemon/dam/kemon/model/Shop.java",
+      "src/main/java/com/damKemon/dam/kemon/model/SitePrice.java",
+      "src/main/java/com/damKemon/dam/kemon/repository/ShopRepository.java"
+    ],
+    "src/test/java/com/damKemon/dam/kemon/util/TrafficClassifierTest.java": []
+  }
+}
