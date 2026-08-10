@@ -236,6 +236,18 @@ payments:
     variant-id: ${PAYMENTS_REWIRE_VARIANT_ID:0}
     test-mode: ${PAYMENTS_REWIRE_TEST_MODE:true}
     redirect-url: ${PAYMENTS_REWIRE_REDIRECT_URL:}
+  echo:
+    enabled: ${PAYMENTS_ECHO_ENABLED:false}
+    store-id: ${PAYMENTS_ECHO_STORE_ID:0}
+    pro-product-id: ${PAYMENTS_ECHO_PRO_PRODUCT_ID:0}
+    monthly-variant-id: ${PAYMENTS_ECHO_MONTHLY_VARIANT_ID:0}
+    lifetime-variant-id: ${PAYMENTS_ECHO_LIFETIME_VARIANT_ID:0}
+    diamonds-product-id: ${PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID:0}
+    diamonds-40-variant-id: ${PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID:0}
+    diamonds-100-variant-id: ${PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID:0}
+    diamonds-250-variant-id: ${PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID:0}
+    test-mode: ${PAYMENTS_ECHO_TEST_MODE:true}
+    redirect-url: ${PAYMENTS_ECHO_REDIRECT_URL:}
 
 # ───── Fixed-credential owner sign-in ─────
 # The owner signs in with this username + password via POST /api/auth/login.

@@ -1,8 +1,18 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "765bd46d39fa433cde7cde942dc112fae946b64e",
-  "generatedAt": "2026-08-08T08:59:44.054Z",
+  "gitCommitHash": "c5757e38edac5bebcd898b5174607125ffcb6de4",
+  "generatedAt": "2026-08-10T07:27:58.646Z",
   "files": {
+    ".agent/CONTINUITY.md": {
+      "filePath": ".agent/CONTINUITY.md",
+      "contentHash": "ab29b73f8f493427d72fae4a3da249287113d6cd8b734227d409bda2f29de81a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 23,
+      "hasStructuralAnalysis": true
+    },
     ".claude/CLAUDE.md": {
       "filePath": ".claude/CLAUDE.md",
       "contentHash": "02a04ed0e1ab7508becae462104dd9ed4d026863f43af6912d99f7972587f337",
@@ -165,12 +175,12 @@
     },
     ".github/workflows/production-deploy.yml": {
       "filePath": ".github/workflows/production-deploy.yml",
-      "contentHash": "4c63081713732e6ac54e730a80099077317844bcf3cb92bdc26648b844a15650",
+      "contentHash": "a88f8e8c5aa1d86684fefcf647fd10d49f7dcdc2547d9889760994173a391bb3",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 191,
+      "totalLines": 330,
       "hasStructuralAnalysis": true
     },
     ".github/workflows/staging-deploy.yml": {
@@ -181,6 +191,56 @@
       "imports": [],
       "exports": [],
       "totalLines": 65,
+      "hasStructuralAnalysis": true
+    },
+    ".ua/.understandignore": {
+      "filePath": ".ua/.understandignore",
+      "contentHash": "a5c08ca214ed706de6e0bbb440aecfe257613fd1d8892eeb145431cf72ef93fb",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 25,
+      "hasStructuralAnalysis": false
+    },
+    ".ua/config.json": {
+      "filePath": ".ua/config.json",
+      "contentHash": "9be9ed85367e7d7e5b531bcde6ba84e456b1f90e5eed14510c6e39b79efb439c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 5,
+      "hasStructuralAnalysis": true
+    },
+    ".ua/fingerprints.json": {
+      "filePath": ".ua/fingerprints.json",
+      "contentHash": "45f58856797a364329d02daa89ec4fbe94f9273462a5ccb6448c4c0420751039",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 43435,
+      "hasStructuralAnalysis": true
+    },
+    ".ua/knowledge-graph.json": {
+      "filePath": ".ua/knowledge-graph.json",
+      "contentHash": "100d9fe66ae649ff9e6e782d0c96b2d12d7ddf08c143259e3c362d38329421fa",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 47603,
+      "hasStructuralAnalysis": true
+    },
+    ".ua/meta.json": {
+      "filePath": ".ua/meta.json",
+      "contentHash": "93c936c9c896e00a54d1805cd93529bbf844150f03e6fcf228d692162abaca11",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 7,
       "hasStructuralAnalysis": true
     },
     "AGENTS.md": {
@@ -256,14 +316,24 @@
       "totalLines": 61,
       "hasStructuralAnalysis": true
     },
-    "docs/PAYMENT_SERVICE.md": {
-      "filePath": "docs/PAYMENT_SERVICE.md",
-      "contentHash": "3dbb073441a09ef38abe8a09dcd0a99e24b820c598f94da3694e117625bedd9f",
+    "docs/PAYMENT_ADMIN_GUIDE.md": {
+      "filePath": "docs/PAYMENT_ADMIN_GUIDE.md",
+      "contentHash": "ca762946888a739774046c3d146b36ba266a15394463821ba3a20bb33bd1114f",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 221,
+      "totalLines": 226,
+      "hasStructuralAnalysis": true
+    },
+    "docs/PAYMENT_SERVICE.md": {
+      "filePath": "docs/PAYMENT_SERVICE.md",
+      "contentHash": "f795a4e69c7373594610f376b158aaffe679c0b529497976a2a2c4e552f66d5b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 342,
       "hasStructuralAnalysis": true
     },
     "docs/superpowers/plans/2026-07-13-loopback-ingest-without-admin-key.md": {
@@ -568,12 +638,12 @@
     },
     "graphify-out/GRAPH_REPORT.md": {
       "filePath": "graphify-out/GRAPH_REPORT.md",
-      "contentHash": "02175d491da950d0b64ae59f6802a8546ac801b0d0a45c23e70f08f49be79306",
+      "contentHash": "0cc642f3a2c96cbbb84c4c299fe4a65403cc0d1522068057a719f54928f8df81",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 965,
+      "totalLines": 971,
       "hasStructuralAnalysis": true
     },
     "graphify-out/cache/semantic/1d5afbaccf36e952e71082591edfc9e4fbd9946eb85b01855a1d0bd810b7623d.json": {
@@ -778,7 +848,7 @@
     },
     "graphify-out/cache/stat-index.json": {
       "filePath": "graphify-out/cache/stat-index.json",
-      "contentHash": "c2e842a265cd2719d632c1633a56c0327b6881bcc87ad9202b1002e8e813f61f",
+      "contentHash": "09a5dfc3f03415d3bbdd954d5cf7f304be0323e12f461c40d76594be8423c32b",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -798,22 +868,22 @@
     },
     "graphify-out/graph.json": {
       "filePath": "graphify-out/graph.json",
-      "contentHash": "ee53e3b03d26438f4113f0f33327f58454819b3012e36f8045f2be2aa5a1c142",
+      "contentHash": "95c654edf89eb5e7cfdb323ebe3d9dfdcae108ee6731797b537e8bc1cd6d076b",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 156223,
+      "totalLines": 174506,
       "hasStructuralAnalysis": true
     },
     "graphify-out/manifest.json": {
       "filePath": "graphify-out/manifest.json",
-      "contentHash": "c1c1201b6b0ee625be527309391123db925a09b7d2b32d5b417b33f12763dc08",
+      "contentHash": "12562afa346cc75f203b84d19f3c0070deaf22816ad078fbc83c9d746a8a0c26",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1447,
+      "totalLines": 1647,
       "hasStructuralAnalysis": true
     },
     "ops/nginx-social-preview.conf": {
@@ -844,6 +914,36 @@
       "imports": [],
       "exports": [],
       "totalLines": 13,
+      "hasStructuralAnalysis": false
+    },
+    "ops/selfheal/damkemon-watchdog-loop.sh": {
+      "filePath": "ops/selfheal/damkemon-watchdog-loop.sh",
+      "contentHash": "5a513dec7b1744edaf0e45313ecc743b86ace72c6eabddb4db667e5a43940e43",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
+    "ops/selfheal/damkemon-watchdog-user.service": {
+      "filePath": "ops/selfheal/damkemon-watchdog-user.service",
+      "contentHash": "33de629ab0daf5e851bc67be32038a518f200af3a22a8110d0605a91ba3a9812",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 7,
+      "hasStructuralAnalysis": false
+    },
+    "ops/selfheal/damkemon-watchdog-user.timer": {
+      "filePath": "ops/selfheal/damkemon-watchdog-user.timer",
+      "contentHash": "44fee59020267bed8013d427cf2c97b9007c73569b49e6bb8f73c8a954931598",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 12,
       "hasStructuralAnalysis": false
     },
     "ops/selfheal/damkemon-watchdog.service": {
@@ -1567,7 +1667,7 @@
     },
     "src/main/java/com/damKemon/dam/kemon/config/OperationalIndexInitializer.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/config/OperationalIndexInitializer.java",
-      "contentHash": "a184c0ebd03accc63379f3eca3e134c0b0ab02ceebf6123a8b55ebbda29ea780",
+      "contentHash": "bf8c2cdb76d7da3e5f4d44f7008d132da2a5677fec571d14104078561b0cc630",
       "functions": [
         {
           "name": "OperationalIndexInitializer",
@@ -1582,7 +1682,7 @@
           "params": [],
           "returnType": "void",
           "exported": true,
-          "lineCount": 78
+          "lineCount": 87
         },
         {
           "name": "ensure",
@@ -1608,7 +1708,7 @@
             "mongo"
           ],
           "exported": true,
-          "lineCount": 97
+          "lineCount": 106
         }
       ],
       "imports": [
@@ -1672,7 +1772,7 @@
         "create",
         "OperationalIndexInitializer"
       ],
-      "totalLines": 118,
+      "totalLines": 127,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/config/ProductionSecretsValidator.java": {
@@ -20779,9 +20879,135 @@
       "totalLines": 62,
       "hasStructuralAnalysis": true
     },
+    "src/main/java/com/damKemon/dam/kemon/payment/EchoPaymentCatalogBootstrap.java": {
+      "filePath": "src/main/java/com/damKemon/dam/kemon/payment/EchoPaymentCatalogBootstrap.java",
+      "contentHash": "49bee3134903014535ee84a62805e0d9b7c9e6986a8fc21116ae9ff90b5bd7a3",
+      "functions": [
+        {
+          "name": "EchoPaymentCatalogBootstrap",
+          "params": [
+            "store",
+            "payments",
+            "storeId",
+            "proProductId",
+            "monthlyVariantId",
+            "lifetimeVariantId",
+            "diamondsProductId",
+            "diamonds40VariantId",
+            "diamonds100VariantId",
+            "diamonds250VariantId",
+            "testMode",
+            "redirectUrl"
+          ],
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "run",
+          "params": [
+            "args"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "add",
+          "params": [
+            "code",
+            "entitlement",
+            "productId",
+            "variantId",
+            "subscription",
+            "interval",
+            "licenseRequired"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 6
+        }
+      ],
+      "classes": [
+        {
+          "name": "EchoPaymentCatalogBootstrap",
+          "methods": [
+            "EchoPaymentCatalogBootstrap",
+            "run",
+            "add"
+          ],
+          "properties": [
+            "store",
+            "payments",
+            "storeId",
+            "proProductId",
+            "monthlyVariantId",
+            "lifetimeVariantId",
+            "diamondsProductId",
+            "diamonds40VariantId",
+            "diamonds100VariantId",
+            "diamonds250VariantId",
+            "testMode",
+            "redirectUrl"
+          ],
+          "exported": true,
+          "lineCount": 66
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentApplication",
+          "specifiers": [
+            "PaymentApplication"
+          ]
+        },
+        {
+          "source": "org.springframework.beans.factory.annotation.Value",
+          "specifiers": [
+            "Value"
+          ]
+        },
+        {
+          "source": "org.springframework.boot.ApplicationArguments",
+          "specifiers": [
+            "ApplicationArguments"
+          ]
+        },
+        {
+          "source": "org.springframework.boot.ApplicationRunner",
+          "specifiers": [
+            "ApplicationRunner"
+          ]
+        },
+        {
+          "source": "org.springframework.boot.autoconfigure.condition.ConditionalOnProperty",
+          "specifiers": [
+            "ConditionalOnProperty"
+          ]
+        },
+        {
+          "source": "org.springframework.stereotype.Component",
+          "specifiers": [
+            "Component"
+          ]
+        },
+        {
+          "source": "java.time.Instant",
+          "specifiers": [
+            "Instant"
+          ]
+        }
+      ],
+      "exports": [
+        "EchoPaymentCatalogBootstrap",
+        "run",
+        "EchoPaymentCatalogBootstrap"
+      ],
+      "totalLines": 78,
+      "hasStructuralAnalysis": true
+    },
     "src/main/java/com/damKemon/dam/kemon/payment/LemonSqueezyClient.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/payment/LemonSqueezyClient.java",
-      "contentHash": "7d3ee7a786a058396c2935bca3d5470bebb79bdcaaf89ecd9cfb6d156d8a4528",
+      "contentHash": "ec5ef5b86f4c31d8baa4cbd22a0c0040379a2848fc58461fa6d43269c32fc54b",
       "functions": [
         {
           "name": "LemonSqueezyClient",
@@ -20812,7 +21038,7 @@
           ],
           "returnType": "JsonNode",
           "exported": true,
-          "lineCount": 33
+          "lineCount": 35
         },
         {
           "name": "activateLicense",
@@ -20963,7 +21189,7 @@
           ],
           "returnType": "JsonNode",
           "exported": false,
-          "lineCount": 16
+          "lineCount": 17
         },
         {
           "name": "authenticatedGet",
@@ -20973,7 +21199,7 @@
           ],
           "returnType": "JsonNode",
           "exported": false,
-          "lineCount": 11
+          "lineCount": 12
         },
         {
           "name": "authenticatedJson",
@@ -20985,7 +21211,7 @@
           ],
           "returnType": "JsonNode",
           "exported": false,
-          "lineCount": 14
+          "lineCount": 15
         },
         {
           "name": "requireApiKey",
@@ -21020,6 +21246,16 @@
             "value"
           ],
           "returnType": "String",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "parseJson",
+          "params": [
+            "response",
+            "operation"
+          ],
+          "returnType": "JsonNode",
           "exported": false,
           "lineCount": 7
         },
@@ -21070,6 +21306,7 @@
             "apiKey",
             "clean",
             "numericId",
+            "parseJson",
             "providerError",
             "productOptions"
           ],
@@ -21077,10 +21314,11 @@
             "JSON_API",
             "http",
             "testApiKey",
-            "liveApiKey"
+            "liveApiKey",
+            "json"
           ],
           "exported": true,
-          "lineCount": 208
+          "lineCount": 222
         }
       ],
       "imports": [
@@ -21091,9 +21329,21 @@
           ]
         },
         {
+          "source": "com.fasterxml.jackson.core.JsonProcessingException",
+          "specifiers": [
+            "JsonProcessingException"
+          ]
+        },
+        {
           "source": "com.fasterxml.jackson.databind.JsonNode",
           "specifiers": [
             "JsonNode"
+          ]
+        },
+        {
+          "source": "com.fasterxml.jackson.databind.ObjectMapper",
+          "specifiers": [
+            "ObjectMapper"
           ]
         },
         {
@@ -21151,6 +21401,12 @@
           ]
         },
         {
+          "source": "java.time.temporal.ChronoUnit",
+          "specifiers": [
+            "ChronoUnit"
+          ]
+        },
+        {
           "source": "java.net.URI",
           "specifiers": [
             "URI"
@@ -21194,12 +21450,12 @@
         "updateWebhook",
         "LemonSqueezyClient"
       ],
-      "totalLines": 228,
+      "totalLines": 245,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/payment/PaymentAdminController.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/payment/PaymentAdminController.java",
-      "contentHash": "342aac477cde29602db15d6d85c50e16cd5030ba727db09774924e62ea872176",
+      "contentHash": "9e2feed70e879dd1a1d46652d4a47d3f4a832e01bf512dea648156bbe58b52a4",
       "functions": [
         {
           "name": "PaymentAdminController",
@@ -21254,7 +21510,7 @@
           ],
           "returnType": "ResponseEntity<ProductView>",
           "exported": true,
-          "lineCount": 5
+          "lineCount": 9
         },
         {
           "name": "products",
@@ -21273,7 +21529,7 @@
           ],
           "returnType": "ResponseEntity<Overview>",
           "exported": true,
-          "lineCount": 33
+          "lineCount": 38
         },
         {
           "name": "checkouts",
@@ -21300,6 +21556,19 @@
           "returnType": "ResponseEntity<PageView<OrderView>>",
           "exported": true,
           "lineCount": 9
+        },
+        {
+          "name": "subscriptions",
+          "params": [
+            "appId",
+            "testMode",
+            "status",
+            "offset",
+            "limit"
+          ],
+          "returnType": "ResponseEntity<PageView<SubscriptionView>>",
+          "exported": true,
+          "lineCount": 10
         },
         {
           "name": "licenses",
@@ -21502,6 +21771,7 @@
             "overview",
             "checkouts",
             "orders",
+            "subscriptions",
             "licenses",
             "entitlements",
             "webhookEvents",
@@ -21527,7 +21797,7 @@
             "provider"
           ],
           "exported": true,
-          "lineCount": 318
+          "lineCount": 355
         }
       ],
       "imports": [
@@ -21571,6 +21841,12 @@
           "source": "com.damKemon.dam.kemon.payment.model.PaymentProduct",
           "specifiers": [
             "PaymentProduct"
+          ]
+        },
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentSubscription",
+          "specifiers": [
+            "PaymentSubscription"
           ]
         },
         {
@@ -21681,6 +21957,7 @@
         "overview",
         "checkouts",
         "orders",
+        "subscriptions",
         "licenses",
         "entitlements",
         "webhookEvents",
@@ -21695,18 +21972,19 @@
         "updateLicense",
         "PaymentAdminController"
       ],
-      "totalLines": 346,
+      "totalLines": 384,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/payment/PaymentCatalogBootstrap.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/payment/PaymentCatalogBootstrap.java",
-      "contentHash": "036941506a969af65c5af3599b9e60a94eb0ed3a52349d4e0e772c58cda8d2ad",
+      "contentHash": "50042e3c8674267c83368b40904f658ce6cc43a13138b4f55c60e135f16e791b",
       "functions": [
         {
           "name": "PaymentCatalogBootstrap",
           "params": [
             "store",
             "payments",
+            "provider",
             "storeId",
             "productId",
             "variantId",
@@ -21714,7 +21992,7 @@
             "redirectUrl"
           ],
           "exported": true,
-          "lineCount": 14
+          "lineCount": 15
         },
         {
           "name": "run",
@@ -21723,7 +22001,39 @@
           ],
           "returnType": "void",
           "exported": true,
-          "lineCount": 11
+          "lineCount": 4
+        },
+        {
+          "name": "syncCatalog",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "synchronizeRecurringVariants",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 31
+        },
+        {
+          "name": "recurringPlan",
+          "params": [
+            "variant"
+          ],
+          "returnType": "CatalogPlan",
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "providerId",
+          "params": [
+            "value"
+          ],
+          "returnType": "long",
+          "exported": false,
+          "lineCount": 6
         }
       ],
       "classes": [
@@ -21731,11 +22041,17 @@
           "name": "PaymentCatalogBootstrap",
           "methods": [
             "PaymentCatalogBootstrap",
-            "run"
+            "run",
+            "syncCatalog",
+            "synchronizeRecurringVariants",
+            "recurringPlan",
+            "providerId"
           ],
           "properties": [
+            "log",
             "store",
             "payments",
+            "provider",
             "storeId",
             "productId",
             "variantId",
@@ -21743,7 +22059,7 @@
             "redirectUrl"
           ],
           "exported": true,
-          "lineCount": 38
+          "lineCount": 113
         }
       ],
       "imports": [
@@ -21751,6 +22067,24 @@
           "source": "com.damKemon.dam.kemon.payment.model.PaymentApplication",
           "specifiers": [
             "PaymentApplication"
+          ]
+        },
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentProduct",
+          "specifiers": [
+            "PaymentProduct"
+          ]
+        },
+        {
+          "source": "org.slf4j.Logger",
+          "specifiers": [
+            "Logger"
+          ]
+        },
+        {
+          "source": "org.slf4j.LoggerFactory",
+          "specifiers": [
+            "LoggerFactory"
           ]
         },
         {
@@ -21778,6 +22112,12 @@
           ]
         },
         {
+          "source": "org.springframework.scheduling.annotation.Scheduled",
+          "specifiers": [
+            "Scheduled"
+          ]
+        },
+        {
           "source": "org.springframework.stereotype.Component",
           "specifiers": [
             "Component"
@@ -21788,19 +22128,50 @@
           "specifiers": [
             "Instant"
           ]
+        },
+        {
+          "source": "java.util.LinkedHashMap",
+          "specifiers": [
+            "LinkedHashMap"
+          ]
+        },
+        {
+          "source": "java.util.LinkedHashSet",
+          "specifiers": [
+            "LinkedHashSet"
+          ]
+        },
+        {
+          "source": "java.util.Locale",
+          "specifiers": [
+            "Locale"
+          ]
+        },
+        {
+          "source": "java.util.Map",
+          "specifiers": [
+            "Map"
+          ]
+        },
+        {
+          "source": "java.util.Set",
+          "specifiers": [
+            "Set"
+          ]
         }
       ],
       "exports": [
         "PaymentCatalogBootstrap",
         "run",
+        "syncCatalog",
         "PaymentCatalogBootstrap"
       ],
-      "totalLines": 50,
+      "totalLines": 134,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/payment/PaymentController.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/payment/PaymentController.java",
-      "contentHash": "7a1ea8686af61635e35732da5d89ae0ffc41364c584298c3e48ef8bb659aa89f",
+      "contentHash": "53d32f361df7d1c125cb6d55c6d4e835322f55a186e8812d063451a19d8eaa33",
       "functions": [
         {
           "name": "PaymentController",
@@ -21865,6 +22236,33 @@
           "lineCount": 10
         },
         {
+          "name": "validateEntitlement",
+          "params": [
+            "appId",
+            "apiKey",
+            "externalSubject",
+            "body",
+            "request"
+          ],
+          "returnType": "ResponseEntity<PaymentService.EntitlementResult>",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "fulfillment",
+          "params": [
+            "appId",
+            "checkoutId",
+            "apiKey",
+            "externalSubject",
+            "body",
+            "request"
+          ],
+          "returnType": "ResponseEntity<PaymentService.FulfillmentResult>",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
           "name": "webhook",
           "params": [
             "signature",
@@ -21916,6 +22314,8 @@
             "activate",
             "validate",
             "deactivate",
+            "validateEntitlement",
+            "fulfillment",
             "webhook",
             "caller",
             "attribute",
@@ -21926,7 +22326,7 @@
             "webhooks"
           ],
           "exported": true,
-          "lineCount": 84
+          "lineCount": 109
         }
       ],
       "imports": [
@@ -22003,10 +22403,12 @@
         "activate",
         "validate",
         "deactivate",
+        "validateEntitlement",
+        "fulfillment",
         "webhook",
         "PaymentController"
       ],
-      "totalLines": 100,
+      "totalLines": 125,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/payment/PaymentErrorHandler.java": {
@@ -22164,7 +22566,7 @@
     },
     "src/main/java/com/damKemon/dam/kemon/payment/PaymentProviderAdminService.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/payment/PaymentProviderAdminService.java",
-      "contentHash": "a779e5a07313e823bf02d872077454462d31d4640696f419b559dbc34c1e8ad6",
+      "contentHash": "190e92e9ba2a1d423a03d63a7c023db3de62b32e10fa381fb20955fb7832fdd4",
       "functions": [
         {
           "name": "PaymentProviderAdminService",
@@ -22195,7 +22597,19 @@
           ],
           "returnType": "CatalogView",
           "exported": true,
-          "lineCount": 28
+          "lineCount": 21
+        },
+        {
+          "name": "validatedVariant",
+          "params": [
+            "storeId",
+            "productId",
+            "variantId",
+            "testMode"
+          ],
+          "returnType": "ProviderVariant",
+          "exported": true,
+          "lineCount": 24
         },
         {
           "name": "webhooks",
@@ -22370,6 +22784,17 @@
           "lineCount": 10
         },
         {
+          "name": "variantView",
+          "params": [
+            "data",
+            "productId",
+            "testMode"
+          ],
+          "returnType": "ProviderVariant",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
           "name": "orderView",
           "params": [
             "root"
@@ -22459,6 +22884,7 @@
             "PaymentProviderAdminService",
             "status",
             "catalog",
+            "validatedVariant",
             "webhooks",
             "ensureWebhook",
             "order",
@@ -22475,6 +22901,7 @@
             "revokeEntitlements",
             "webhookViews",
             "webhookView",
+            "variantView",
             "orderView",
             "licenseView",
             "mismatch",
@@ -22494,7 +22921,7 @@
             "webhookSecret"
           ],
           "exported": true,
-          "lineCount": 332
+          "lineCount": 366
         }
       ],
       "imports": [
@@ -22599,6 +23026,7 @@
         "PaymentProviderAdminService",
         "status",
         "catalog",
+        "validatedVariant",
         "webhooks",
         "ensureWebhook",
         "order",
@@ -22607,7 +23035,7 @@
         "refund",
         "PaymentProviderAdminService"
       ],
-      "totalLines": 353,
+      "totalLines": 387,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/payment/PaymentProviderException.java": {
@@ -22883,7 +23311,7 @@
     },
     "src/main/java/com/damKemon/dam/kemon/payment/PaymentService.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/payment/PaymentService.java",
-      "contentHash": "52a5d7ec96c3fe2e1ef052c688d7fa406ebc462f915fb6a68e364f243f6ab1f5",
+      "contentHash": "587aa62f5d6450bba77ae3fea83337a6e135b28e076ce8a41e6624ae70c0403b",
       "functions": [
         {
           "name": "PaymentService",
@@ -22906,7 +23334,7 @@
           ],
           "returnType": "CheckoutResult",
           "exported": true,
-          "lineCount": 45
+          "lineCount": 53
         },
         {
           "name": "activate",
@@ -22944,6 +23372,28 @@
           "returnType": "LicenseResult",
           "exported": true,
           "lineCount": 22
+        },
+        {
+          "name": "validateEntitlement",
+          "params": [
+            "appId",
+            "productCode",
+            "caller"
+          ],
+          "returnType": "EntitlementResult",
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "fulfillment",
+          "params": [
+            "appId",
+            "checkoutId",
+            "caller"
+          ],
+          "returnType": "FulfillmentResult",
+          "exported": true,
+          "lineCount": 26
         },
         {
           "name": "createApplication",
@@ -22990,13 +23440,17 @@
             "storeId",
             "productId",
             "variantId",
+            "subscription",
+            "billingInterval",
+            "billingIntervalCount",
+            "licenseRequired",
             "testMode",
             "active",
             "redirectUrl"
           ],
           "returnType": "PaymentProduct",
           "exported": true,
-          "lineCount": 22
+          "lineCount": 26
         },
         {
           "name": "applications",
@@ -23148,6 +23602,17 @@
           "lineCount": 8
         },
         {
+          "name": "billingInterval",
+          "params": [
+            "subscription",
+            "interval",
+            "count"
+          ],
+          "returnType": "String",
+          "exported": false,
+          "lineCount": 22
+        },
+        {
           "name": "normalizeEmail",
           "params": [
             "requested",
@@ -23194,6 +23659,8 @@
             "activate",
             "validate",
             "deactivate",
+            "validateEntitlement",
+            "fulfillment",
             "createApplication",
             "rotateApplicationKey",
             "updateApplication",
@@ -23213,6 +23680,7 @@
             "requirePattern",
             "requireLicenseKey",
             "requireHttps",
+            "billingInterval",
             "normalizeEmail",
             "shortKey",
             "blankToNull",
@@ -23231,7 +23699,7 @@
             "lemon"
           ],
           "exported": true,
-          "lineCount": 430
+          "lineCount": 523
         }
       ],
       "imports": [
@@ -23344,6 +23812,8 @@
         "activate",
         "validate",
         "deactivate",
+        "validateEntitlement",
+        "fulfillment",
         "createApplication",
         "rotateApplicationKey",
         "updateApplication",
@@ -23352,12 +23822,12 @@
         "products",
         "PaymentService"
       ],
-      "totalLines": 452,
+      "totalLines": 545,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/payment/PaymentStore.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/payment/PaymentStore.java",
-      "contentHash": "7fbef1b567d99a28cfcdf5e1223966897462d0d4dd6219e6bd299a1fadfda608",
+      "contentHash": "c3c510d81f224169beb4d310b9bb415807af659707803408a237f893ed8e8120",
       "functions": [
         {
           "name": "PaymentStore",
@@ -23491,6 +23961,25 @@
           "params": [
             "value"
           ],
+          "returnType": "PaymentSubscription",
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "subscription",
+          "params": [
+            "provider",
+            "providerSubscriptionId"
+          ],
+          "returnType": "Optional<PaymentSubscription>",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "save",
+          "params": [
+            "value"
+          ],
           "returnType": "PaymentLicense",
           "exported": true,
           "lineCount": 1
@@ -23545,6 +24034,26 @@
           "returnType": "Optional<PaymentEntitlement>",
           "exported": true,
           "lineCount": 5
+        },
+        {
+          "name": "entitlementBySubscription",
+          "params": [
+            "providerSubscriptionId"
+          ],
+          "returnType": "Optional<PaymentEntitlement>",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "entitlementByProduct",
+          "params": [
+            "appId",
+            "subjectId",
+            "productCode"
+          ],
+          "returnType": "Optional<PaymentEntitlement>",
+          "exported": true,
+          "lineCount": 6
         },
         {
           "name": "entitlementsByCheckout",
@@ -23614,6 +24123,19 @@
             "limit"
           ],
           "returnType": "Slice<PaymentOrder>",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "subscriptions",
+          "params": [
+            "appId",
+            "testMode",
+            "status",
+            "offset",
+            "limit"
+          ],
+          "returnType": "Slice<PaymentSubscription>",
           "exported": true,
           "lineCount": 3
         },
@@ -23766,11 +24288,15 @@
             "order",
             "orderByCheckout",
             "save",
+            "subscription",
+            "save",
             "license",
             "licenseByFingerprint",
             "save",
             "entitlement",
             "entitlementByLicense",
+            "entitlementBySubscription",
+            "entitlementByProduct",
             "entitlementsByCheckout",
             "insert",
             "save",
@@ -23778,6 +24304,7 @@
             "webhook",
             "checkouts",
             "orders",
+            "subscriptions",
             "licenses",
             "entitlements",
             "webhooks",
@@ -23794,7 +24321,7 @@
             "mongo"
           ],
           "exported": true,
-          "lineCount": 167
+          "lineCount": 191
         }
       ],
       "imports": [
@@ -23887,11 +24414,15 @@
         "order",
         "orderByCheckout",
         "save",
+        "subscription",
+        "save",
         "license",
         "licenseByFingerprint",
         "save",
         "entitlement",
         "entitlementByLicense",
+        "entitlementBySubscription",
+        "entitlementByProduct",
         "entitlementsByCheckout",
         "insert",
         "save",
@@ -23899,6 +24430,7 @@
         "webhook",
         "checkouts",
         "orders",
+        "subscriptions",
         "licenses",
         "entitlements",
         "webhooks",
@@ -23908,12 +24440,12 @@
         "revenue",
         "PaymentStore"
       ],
-      "totalLines": 184,
+      "totalLines": 208,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/payment/PaymentWebhookService.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/payment/PaymentWebhookService.java",
-      "contentHash": "0cdcd709b8ff409cce1646bbc538500fe8db458143873f73c10f47a889123c62",
+      "contentHash": "e722109b2502d95719410cbf91303bc6963aab4cc9267ea617bd6dbd2056a34a",
       "functions": [
         {
           "name": "PaymentWebhookService",
@@ -23933,7 +24465,7 @@
           ],
           "returnType": "WebhookResult",
           "exported": true,
-          "lineCount": 64
+          "lineCount": 66
         },
         {
           "name": "processOrder",
@@ -23956,6 +24488,16 @@
           "returnType": "boolean",
           "exported": false,
           "lineCount": 57
+        },
+        {
+          "name": "processSubscription",
+          "params": [
+            "root",
+            "event"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 98
         },
         {
           "name": "finish",
@@ -24017,6 +24559,7 @@
             "process",
             "processOrder",
             "processLicense",
+            "processSubscription",
             "finish",
             "text",
             "id",
@@ -24032,7 +24575,7 @@
             "json"
           ],
           "exported": true,
-          "lineCount": 223
+          "lineCount": 325
         }
       ],
       "imports": [
@@ -24064,6 +24607,12 @@
           "source": "com.damKemon.dam.kemon.payment.model.PaymentProduct",
           "specifiers": [
             "PaymentProduct"
+          ]
+        },
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentSubscription",
+          "specifiers": [
+            "PaymentSubscription"
           ]
         },
         {
@@ -24125,6 +24674,12 @@
           "specifiers": [
             "Set"
           ]
+        },
+        {
+          "source": "java.util.UUID",
+          "specifiers": [
+            "UUID"
+          ]
         }
       ],
       "exports": [
@@ -24132,7 +24687,7 @@
         "process",
         "PaymentWebhookService"
       ],
-      "totalLines": 243,
+      "totalLines": 347,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentAdminAction.java": {
@@ -24364,7 +24919,7 @@
     },
     "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentEntitlement.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentEntitlement.java",
-      "contentHash": "24679d42ee60c40a16319677e5fdf215f95a363d2b3bce3740bbd5cd1e69b348",
+      "contentHash": "2da486b2d0d90a46d73ad0405c5ae107ed0515cd6fbc434c31c245a4f6eb4349",
       "functions": [],
       "classes": [
         {
@@ -24380,6 +24935,7 @@
             "checkoutId",
             "providerOrderId",
             "providerLicenseId",
+            "providerSubscriptionId",
             "providerInstanceId",
             "status",
             "testMode",
@@ -24389,7 +24945,7 @@
             "updatedAt"
           ],
           "exported": true,
-          "lineCount": 23
+          "lineCount": 24
         }
       ],
       "imports": [
@@ -24439,7 +24995,7 @@
       "exports": [
         "PaymentEntitlement"
       ],
-      "totalLines": 35,
+      "totalLines": 36,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentLicense.java": {
@@ -24608,7 +25164,7 @@
     },
     "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java": {
       "filePath": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentProduct.java",
-      "contentHash": "f22feb558067182d38f5d8903c9402f870831fa95c78dbc24dba983c4eb34fb6",
+      "contentHash": "67b004d68f97e8cc7e09665e13809628b0b4b45debf99a8d2c944b544574794e",
       "functions": [],
       "classes": [
         {
@@ -24623,6 +25179,10 @@
             "storeId",
             "productId",
             "variantId",
+            "subscription",
+            "billingInterval",
+            "billingIntervalCount",
+            "licenseRequired",
             "testMode",
             "active",
             "redirectUrl",
@@ -24630,7 +25190,7 @@
             "updatedAt"
           ],
           "exported": true,
-          "lineCount": 22
+          "lineCount": 26
         }
       ],
       "imports": [
@@ -24680,7 +25240,90 @@
       "exports": [
         "PaymentProduct"
       ],
-      "totalLines": 34,
+      "totalLines": 38,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentSubscription.java": {
+      "filePath": "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentSubscription.java",
+      "contentHash": "a30410d4ec27f549134a6e7d69872d28c224b19a0e58095721b05ce2be32c28d",
+      "functions": [],
+      "classes": [
+        {
+          "name": "PaymentSubscription",
+          "methods": [],
+          "properties": [
+            "id",
+            "provider",
+            "providerSubscriptionId",
+            "providerOrderId",
+            "checkoutId",
+            "appId",
+            "productCode",
+            "subjectType",
+            "subjectId",
+            "status",
+            "cancelled",
+            "testMode",
+            "trialEndsAt",
+            "renewsAt",
+            "endsAt",
+            "providerCreatedAt",
+            "providerUpdatedAt",
+            "createdAt",
+            "updatedAt"
+          ],
+          "exported": true,
+          "lineCount": 26
+        }
+      ],
+      "imports": [
+        {
+          "source": "lombok.AllArgsConstructor",
+          "specifiers": [
+            "AllArgsConstructor"
+          ]
+        },
+        {
+          "source": "lombok.Builder",
+          "specifiers": [
+            "Builder"
+          ]
+        },
+        {
+          "source": "lombok.Data",
+          "specifiers": [
+            "Data"
+          ]
+        },
+        {
+          "source": "lombok.NoArgsConstructor",
+          "specifiers": [
+            "NoArgsConstructor"
+          ]
+        },
+        {
+          "source": "org.springframework.data.annotation.Id",
+          "specifiers": [
+            "Id"
+          ]
+        },
+        {
+          "source": "org.springframework.data.mongodb.core.mapping.Document",
+          "specifiers": [
+            "Document"
+          ]
+        },
+        {
+          "source": "java.time.Instant",
+          "specifiers": [
+            "Instant"
+          ]
+        }
+      ],
+      "exports": [
+        "PaymentSubscription"
+      ],
+      "totalLines": 38,
       "hasStructuralAnalysis": true
     },
     "src/main/java/com/damKemon/dam/kemon/payment/model/PaymentWebhookEvent.java": {
@@ -37764,12 +38407,12 @@
     },
     "src/main/resources/application.yml": {
       "filePath": "src/main/resources/application.yml",
-      "contentHash": "2f5db5b74f520d820ca75bd3fa2c6d1f1a2887e0a360b2c872c2849f4ada975f",
+      "contentHash": "0e1e4f157a79c9d395f2e5681439bbd18f99d3d29ef9ef64d49c24b98558ca0d",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 357,
+      "totalLines": 371,
       "hasStructuralAnalysis": true
     },
     "src/main/resources/sellers.json": {
@@ -40546,9 +41189,316 @@
       "totalLines": 80,
       "hasStructuralAnalysis": true
     },
+    "src/test/java/com/damKemon/dam/kemon/payment/EchoPaymentCatalogBootstrapTest.java": {
+      "filePath": "src/test/java/com/damKemon/dam/kemon/payment/EchoPaymentCatalogBootstrapTest.java",
+      "contentHash": "bc273f432008f205e02064d6285e4ed283bee6bc7b8ed70ebc014f7414af6037",
+      "functions": [
+        {
+          "name": "registersEchoProAndFixedDiamondPacks",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 27
+        }
+      ],
+      "classes": [
+        {
+          "name": "EchoPaymentCatalogBootstrapTest",
+          "methods": [
+            "registersEchoProAndFixedDiamondPacks"
+          ],
+          "properties": [],
+          "exported": false,
+          "lineCount": 29
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentApplication",
+          "specifiers": [
+            "PaymentApplication"
+          ]
+        },
+        {
+          "source": "org.junit.jupiter.api.Test",
+          "specifiers": [
+            "Test"
+          ]
+        },
+        {
+          "source": "java.util.Optional",
+          "specifiers": [
+            "Optional"
+          ]
+        },
+        {
+          "source": "org.mockito.ArgumentMatchers.any",
+          "specifiers": [
+            "any"
+          ]
+        },
+        {
+          "source": "org.mockito.Mockito.mock",
+          "specifiers": [
+            "mock"
+          ]
+        },
+        {
+          "source": "org.mockito.Mockito.verify",
+          "specifiers": [
+            "verify"
+          ]
+        },
+        {
+          "source": "org.mockito.Mockito.when",
+          "specifiers": [
+            "when"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 42,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/java/com/damKemon/dam/kemon/payment/LemonSqueezyClientTest.java": {
+      "filePath": "src/test/java/com/damKemon/dam/kemon/payment/LemonSqueezyClientTest.java",
+      "contentHash": "0600a56c81011cdff7dfe65e810ec544e0c2b3b1522f81eb64c92c3624682d28",
+      "functions": [
+        {
+          "name": "stopServer",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "checkoutExpiryIsSerializedAtWholeSecondPrecision",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "currentUserParsesProviderHealthResponse",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "licenseValidationParsesResponseWithLocalJackson",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 20
+        }
+      ],
+      "classes": [
+        {
+          "name": "LemonSqueezyClientTest",
+          "methods": [
+            "stopServer",
+            "checkoutExpiryIsSerializedAtWholeSecondPrecision",
+            "currentUserParsesProviderHealthResponse",
+            "licenseValidationParsesResponseWithLocalJackson"
+          ],
+          "properties": [
+            "server"
+          ],
+          "exported": false,
+          "lineCount": 74
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentProduct",
+          "specifiers": [
+            "PaymentProduct"
+          ]
+        },
+        {
+          "source": "com.sun.net.httpserver.HttpServer",
+          "specifiers": [
+            "HttpServer"
+          ]
+        },
+        {
+          "source": "org.junit.jupiter.api.AfterEach",
+          "specifiers": [
+            "AfterEach"
+          ]
+        },
+        {
+          "source": "org.junit.jupiter.api.Test",
+          "specifiers": [
+            "Test"
+          ]
+        },
+        {
+          "source": "java.net.InetSocketAddress",
+          "specifiers": [
+            "InetSocketAddress"
+          ]
+        },
+        {
+          "source": "java.nio.charset.StandardCharsets",
+          "specifiers": [
+            "StandardCharsets"
+          ]
+        },
+        {
+          "source": "java.time.Instant",
+          "specifiers": [
+            "Instant"
+          ]
+        },
+        {
+          "source": "java.util.concurrent.atomic.AtomicReference",
+          "specifiers": [
+            "AtomicReference"
+          ]
+        },
+        {
+          "source": "org.junit.jupiter.api.Assertions.assertEquals",
+          "specifiers": [
+            "assertEquals"
+          ]
+        },
+        {
+          "source": "org.junit.jupiter.api.Assertions.assertFalse",
+          "specifiers": [
+            "assertFalse"
+          ]
+        },
+        {
+          "source": "org.junit.jupiter.api.Assertions.assertTrue",
+          "specifiers": [
+            "assertTrue"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 91,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/java/com/damKemon/dam/kemon/payment/PaymentCatalogBootstrapTest.java": {
+      "filePath": "src/test/java/com/damKemon/dam/kemon/payment/PaymentCatalogBootstrapTest.java",
+      "contentHash": "6d81bde14de9142ceb1edb2081ca73f12e073f9536f827adb0b5d775c9ca6031",
+      "functions": [
+        {
+          "name": "synchronizesRecurringVariantsFromLemonWhileKeepingLifetime",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "neverRepointsAnEstablishedCodeToAnotherVariant",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "variant",
+          "params": [
+            "id",
+            "name",
+            "interval"
+          ],
+          "returnType": "PaymentProviderAdminService.ProviderVariant",
+          "exported": false,
+          "lineCount": 4
+        }
+      ],
+      "classes": [
+        {
+          "name": "PaymentCatalogBootstrapTest",
+          "methods": [
+            "synchronizesRecurringVariantsFromLemonWhileKeepingLifetime",
+            "neverRepointsAnEstablishedCodeToAnotherVariant",
+            "variant"
+          ],
+          "properties": [],
+          "exported": false,
+          "lineCount": 55
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentApplication",
+          "specifiers": [
+            "PaymentApplication"
+          ]
+        },
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentProduct",
+          "specifiers": [
+            "PaymentProduct"
+          ]
+        },
+        {
+          "source": "org.junit.jupiter.api.Test",
+          "specifiers": [
+            "Test"
+          ]
+        },
+        {
+          "source": "java.time.Instant",
+          "specifiers": [
+            "Instant"
+          ]
+        },
+        {
+          "source": "java.util.List",
+          "specifiers": [
+            "List"
+          ]
+        },
+        {
+          "source": "java.util.Optional",
+          "specifiers": [
+            "Optional"
+          ]
+        },
+        {
+          "source": "org.mockito.ArgumentMatchers.any",
+          "specifiers": [
+            "any"
+          ]
+        },
+        {
+          "source": "org.mockito.Mockito.mock",
+          "specifiers": [
+            "mock"
+          ]
+        },
+        {
+          "source": "org.mockito.Mockito.verify",
+          "specifiers": [
+            "verify"
+          ]
+        },
+        {
+          "source": "org.mockito.Mockito.verifyNoMoreInteractions",
+          "specifiers": [
+            "verifyNoMoreInteractions"
+          ]
+        },
+        {
+          "source": "org.mockito.Mockito.when",
+          "specifiers": [
+            "when"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 72,
+      "hasStructuralAnalysis": true
+    },
     "src/test/java/com/damKemon/dam/kemon/payment/PaymentProviderAdminServiceTest.java": {
       "filePath": "src/test/java/com/damKemon/dam/kemon/payment/PaymentProviderAdminServiceTest.java",
-      "contentHash": "79290a63a5cac505310858933d1faa442c0736edfef9d17668a136aae0d513d6",
+      "contentHash": "ef4ef8b1bb94dbf6cd8dd7e916a6a9cda21e2c24bfdcd6d0df93b1bd192b9062",
       "functions": [
         {
           "name": "setUp",
@@ -40563,6 +41513,13 @@
           "returnType": "void",
           "exported": false,
           "lineCount": 9
+        },
+        {
+          "name": "derivesRecurringPlanMetadataFromTheProviderVariant",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 17
         },
         {
           "name": "refundRequiresExactProviderOrderConfirmationBeforeMutation",
@@ -40585,6 +41542,7 @@
           "methods": [
             "setUp",
             "reportsMissingModeSpecificApiKeyWithoutCallingProvider",
+            "derivesRecurringPlanMetadataFromTheProviderVariant",
             "refundRequiresExactProviderOrderConfirmationBeforeMutation",
             "fullRefundUpdatesLocalOrderRevokesEntitlementAndWritesAudit"
           ],
@@ -40596,7 +41554,7 @@
             "order"
           ],
           "exported": false,
-          "lineCount": 62
+          "lineCount": 81
         }
       ],
       "imports": [
@@ -40704,7 +41662,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 85,
+      "totalLines": 104,
       "hasStructuralAnalysis": true
     },
     "src/test/java/com/damKemon/dam/kemon/payment/PaymentSecurityTest.java": {
@@ -40796,7 +41754,7 @@
     },
     "src/test/java/com/damKemon/dam/kemon/payment/PaymentServiceTest.java": {
       "filePath": "src/test/java/com/damKemon/dam/kemon/payment/PaymentServiceTest.java",
-      "contentHash": "31005b57ae0c1eabe4a9758846aa7ec7d0917441298dd0178c3709d5cb1eac21",
+      "contentHash": "af3c740b6fa76c1a4d75f70ca3056363cf4d1f82875ade2628b92ff319080aca",
       "functions": [
         {
           "name": "setUp",
@@ -40813,6 +41771,13 @@
           "lineCount": 22
         },
         {
+          "name": "retriesAnExistingFailedCheckoutWithoutCreatingAnotherRecord",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
           "name": "rejectsAValidLicenseOwnedByAnotherTrustedBackendSubject",
           "params": [],
           "returnType": "void",
@@ -40825,6 +41790,34 @@
           "returnType": "void",
           "exported": false,
           "lineCount": 27
+        },
+        {
+          "name": "validatesDirectSubscriptionEntitlementWithoutAProviderSecretInTheClient",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "returnsAReadOnlyFulfillmentProofForTheOwningPaidInstallation",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "neverRevealsFulfillmentForAnotherInstallation",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "rejectsRefundedFulfillment",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 15
         },
         {
           "name": "caller",
@@ -40849,8 +41842,13 @@
           "methods": [
             "setUp",
             "activatesOnlyAfterSignedOrderOwnershipWasSynchronized",
+            "retriesAnExistingFailedCheckoutWithoutCreatingAnotherRecord",
             "rejectsAValidLicenseOwnedByAnotherTrustedBackendSubject",
             "publicBearerLicenseCanUseAnotherInstallationWithinProviderLimit",
+            "validatesDirectSubscriptionEntitlementWithoutAProviderSecretInTheClient",
+            "returnsAReadOnlyFulfillmentProofForTheOwningPaidInstallation",
+            "neverRevealsFulfillmentForAnotherInstallation",
+            "rejectsRefundedFulfillment",
             "caller",
             "licenseJson"
           ],
@@ -40866,7 +41864,7 @@
             "subjectId"
           ],
           "exported": false,
-          "lineCount": 107
+          "lineCount": 198
         }
       ],
       "imports": [
@@ -40874,6 +41872,12 @@
           "source": "com.damKemon.dam.kemon.payment.model.PaymentApplication",
           "specifiers": [
             "PaymentApplication"
+          ]
+        },
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentCheckout",
+          "specifiers": [
+            "PaymentCheckout"
           ]
         },
         {
@@ -40898,6 +41902,12 @@
           "source": "com.damKemon.dam.kemon.payment.model.PaymentProduct",
           "specifiers": [
             "PaymentProduct"
+          ]
+        },
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentSubscription",
+          "specifiers": [
+            "PaymentSubscription"
           ]
         },
         {
@@ -40943,6 +41953,12 @@
           ]
         },
         {
+          "source": "java.time.Instant",
+          "specifiers": [
+            "Instant"
+          ]
+        },
+        {
           "source": "org.junit.jupiter.api.Assertions",
           "specifiers": [
             "*"
@@ -40962,12 +41978,12 @@
         }
       ],
       "exports": [],
-      "totalLines": 128,
+      "totalLines": 222,
       "hasStructuralAnalysis": true
     },
     "src/test/java/com/damKemon/dam/kemon/payment/PaymentWebhookServiceTest.java": {
       "filePath": "src/test/java/com/damKemon/dam/kemon/payment/PaymentWebhookServiceTest.java",
-      "contentHash": "fcc21cc096f77a021e53f1a323cd7874c22ae7b9d7722ea97babdd14a35fbc66",
+      "contentHash": "ca7d93bcd448b33a50806dc4802f0576aa7d09294121f305e77ed523d27db089",
       "functions": [
         {
           "name": "signedOrderCreatesAuthoritativePaidRecordForMappedCheckout",
@@ -40975,6 +41991,27 @@
           "returnType": "void",
           "exported": false,
           "lineCount": 35
+        },
+        {
+          "name": "signedSubscriptionCreatesDirectEntitlementForAccountPlan",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 35
+        },
+        {
+          "name": "subscriptionExpiryRevokesLicenseEntitlementsWithoutRemovingLifetimeSupport",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "activeSubscriptionUpdateRestoresDirectEntitlement",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 32
         },
         {
           "name": "hmac",
@@ -40992,11 +42029,14 @@
           "name": "PaymentWebhookServiceTest",
           "methods": [
             "signedOrderCreatesAuthoritativePaidRecordForMappedCheckout",
+            "signedSubscriptionCreatesDirectEntitlementForAccountPlan",
+            "subscriptionExpiryRevokesLicenseEntitlementsWithoutRemovingLifetimeSupport",
+            "activeSubscriptionUpdateRestoresDirectEntitlement",
             "hmac"
           ],
           "properties": [],
           "exported": false,
-          "lineCount": 43
+          "lineCount": 145
         }
       ],
       "imports": [
@@ -41004,6 +42044,12 @@
           "source": "com.damKemon.dam.kemon.payment.model.PaymentCheckout",
           "specifiers": [
             "PaymentCheckout"
+          ]
+        },
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentEntitlement",
+          "specifiers": [
+            "PaymentEntitlement"
           ]
         },
         {
@@ -41016,6 +42062,12 @@
           "source": "com.damKemon.dam.kemon.payment.model.PaymentProduct",
           "specifiers": [
             "PaymentProduct"
+          ]
+        },
+        {
+          "source": "com.damKemon.dam.kemon.payment.model.PaymentSubscription",
+          "specifiers": [
+            "PaymentSubscription"
           ]
         },
         {
@@ -41086,7 +42138,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 63,
+      "totalLines": 167,
       "hasStructuralAnalysis": true
     },
     "src/test/java/com/damKemon/dam/kemon/service/AdminUserServiceTest.java": {

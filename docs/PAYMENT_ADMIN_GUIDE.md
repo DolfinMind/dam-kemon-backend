@@ -9,7 +9,7 @@ receives.
 ## Mental model
 
 ```text
-Application (for example Rewire)
+Application (for example Rewire or Echo Memory)
   -> tier (for example Plus, Pro, or Premium)
     -> billing cadence (weekly, monthly, or yearly)
       -> Damkemon product code (for example pro_monthly)
@@ -30,7 +30,9 @@ variant; it remains available alongside any recurring variants.
 The product code identifies both what tier the customer bought and how it is
 billed. The entitlement identifies the capability to unlock. Rewire examples
 are `rewire_plus`, `rewire_pro`, and `rewire_premium`; another app uses its own
-entitlement namespace and prices.
+entitlement namespace and prices. Consumables such as Echo Memory diamonds use
+one stable code and one exact-value entitlement per pack rather than a billing
+cadence.
 
 ## Create a plan in Lemon Squeezy
 
@@ -47,12 +49,13 @@ them. Create or edit the underlying plans in the Lemon dashboard:
    **Repeat payments** to every 1 week, month, or year.
 6. For Lifetime, choose **Single payment** and set its one-time BDT price.
 7. Keep license generation and the activation limit aligned with the app's
-   policy. Rewire currently uses generated license keys with a three-device
-   activation limit.
+   policy. Rewire and Echo Pro use generated license keys with a three-device
+   activation limit; Echo Memory diamond packs do not generate licenses.
 8. Save the variant and make sure the product is published.
 
 Do this in Lemon's test mode first. Live and test catalogues are separate, and
-the backend synchronizes the mode selected by `PAYMENTS_REWIRE_TEST_MODE`.
+the backend synchronizes the mode selected by the application's
+`PAYMENTS_*_TEST_MODE` variable.
 
 ## How Damkemon connects to the plans
 
@@ -72,6 +75,12 @@ at startup and every 15 minutes:
 Keep only one published variant for each tier-and-cadence pair. If Lemon
 contains two published **Pro Monthly** variants, Damkemon treats that code as
 ambiguous and keeps the current mapping rather than choosing the wrong plan.
+
+Echo Memory is intentionally explicit rather than name-derived. Configure the
+monthly, lifetime, and three diamond variant IDs directly. Damkemon then checks
+the provider's price type/cadence and maps the five stable codes without
+guessing from names. Keep diamond values fixed at 40, 100, and 250 in both the
+app and Supabase fulfillment RPC.
 
 Open **Admin > Payments**, select Rewire and the configured mode, then verify
 that **Product mappings** shows the expected cadence and variant ID. This area
@@ -178,6 +187,11 @@ For a plan with generated license keys, including Rewire's current three-device
 policy, use the license activation and validation endpoints documented in
 [`PAYMENT_SERVICE.md`](PAYMENT_SERVICE.md). Subscription webhooks still bind
 those license entitlements to the paid period and revoke them on expiry.
+
+For a consumable, call the fulfillment endpoint only from a trusted backend,
+verify the paid ownership-bound result, and apply it through an idempotent
+credit ledger. Never credit from a checkout success redirect or a client-sent
+product/amount pair.
 
 A cancelled subscription remains valid until its paid `endsAt`. An expired
 subscription is rejected even if a webhook is delayed.

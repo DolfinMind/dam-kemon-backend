@@ -160,6 +160,53 @@ class PaymentServiceTest {
         verifyNoInteractions(lemon);
     }
 
+    @Test void returnsAReadOnlyFulfillmentProofForTheOwningPaidInstallation() {
+        PaymentCheckout checkout = PaymentCheckout.builder().id("checkout-1").appId("rewire")
+                .productCode("lifetime").entitlementCode("rewire_pro").subjectId(subjectId)
+                .status("PAID").testMode(true).build();
+        PaymentOrder order = PaymentOrder.builder().providerOrderId("42").checkoutId("checkout-1")
+                .appId("rewire").productCode("lifetime").subjectId(subjectId).status("paid").testMode(true).build();
+        when(store.checkout("checkout-1")).thenReturn(Optional.of(checkout));
+        when(store.orderByCheckout("checkout-1")).thenReturn(Optional.of(order));
+
+        PaymentService.FulfillmentResult result = service.fulfillment("rewire", "checkout-1", caller());
+
+        assertEquals("42", result.providerOrderId());
+        assertEquals("lifetime", result.productCode());
+        assertEquals("rewire_pro", result.entitlementCode());
+        assertEquals("PAID", result.status());
+        assertTrue(result.testMode());
+    }
+
+    @Test void neverRevealsFulfillmentForAnotherInstallation() {
+        PaymentCheckout checkout = PaymentCheckout.builder().id("checkout-1").appId("rewire")
+                .productCode("lifetime").subjectId("someone-else").status("PAID").testMode(true).build();
+        when(store.checkout("checkout-1")).thenReturn(Optional.of(checkout));
+
+        PaymentException error = assertThrows(PaymentException.class,
+                () -> service.fulfillment("rewire", "checkout-1", caller()));
+
+        assertEquals(HttpStatus.FORBIDDEN, error.status());
+        assertEquals("checkout_not_owned", error.code());
+        verify(store, never()).orderByCheckout(any());
+    }
+
+    @Test void rejectsRefundedFulfillment() {
+        PaymentCheckout checkout = PaymentCheckout.builder().id("checkout-1").appId("rewire")
+                .productCode("lifetime").entitlementCode("rewire_pro").subjectId(subjectId)
+                .status("REFUNDED").testMode(true).build();
+        PaymentOrder order = PaymentOrder.builder().providerOrderId("42").checkoutId("checkout-1")
+                .appId("rewire").productCode("lifetime").subjectId(subjectId).status("refunded").testMode(true).build();
+        when(store.checkout("checkout-1")).thenReturn(Optional.of(checkout));
+        when(store.orderByCheckout("checkout-1")).thenReturn(Optional.of(order));
+
+        PaymentException error = assertThrows(PaymentException.class,
+                () -> service.fulfillment("rewire", "checkout-1", caller()));
+
+        assertEquals(HttpStatus.FORBIDDEN, error.status());
+        assertEquals("order_not_paid", error.code());
+    }
+
     private PaymentService.Caller caller() {
         return new PaymentService.Caller(null, null, null, null, installationId);
     }

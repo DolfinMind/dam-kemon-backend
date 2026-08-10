@@ -46,6 +46,8 @@ public class PaymentService {
                                 String instanceId, Instant expiresAt, Instant validatedAt, boolean testMode) {}
     public record EntitlementResult(boolean valid, String status, String entitlementCode,
                                     Instant renewsAt, Instant expiresAt, Instant validatedAt, boolean testMode) {}
+    public record FulfillmentResult(String checkoutId, String providerOrderId, String productCode,
+                                    String entitlementCode, String status, Instant validatedAt, boolean testMode) {}
     public record ApplicationKey(PaymentApplication application, String apiKey) {}
 
     public CheckoutResult createCheckout(String appId, String productCode, String idempotencyKey,
@@ -268,6 +270,33 @@ public class PaymentService {
                 .map(com.damKemon.dam.kemon.payment.model.PaymentSubscription::getRenewsAt).orElse(null);
         return new EntitlementResult(valid, entitlement.getStatus(), entitlement.getEntitlementCode(), renewsAt,
                 entitlement.getExpiresAt(), now, entitlement.isTestMode());
+    }
+
+    public FulfillmentResult fulfillment(String appId, String checkoutId, Caller caller) {
+        PaymentApplication app = requireApplication(appId);
+        Subject subject = authenticate(app, caller, app.isPublicCheckout());
+        requirePattern(IDEMPOTENCY_KEY, checkoutId, "invalid_checkout_id", "Checkout ID is invalid");
+        PaymentCheckout checkout = store.checkout(checkoutId)
+                .orElseThrow(() -> new PaymentException(HttpStatus.NOT_FOUND, "checkout_not_found", "Checkout not found"));
+        if (!appId.equals(checkout.getAppId()) || !subject.id().equals(checkout.getSubjectId())) {
+            throw new PaymentException(HttpStatus.FORBIDDEN, "checkout_not_owned", "Checkout does not belong to this installation");
+        }
+        PaymentOrder order = store.orderByCheckout(checkoutId)
+                .orElseThrow(() -> new PaymentException(HttpStatus.CONFLICT, "payment_sync_pending", "Payment is still synchronizing; retry shortly"));
+        if (!checkoutId.equals(order.getCheckoutId()) || !appId.equals(order.getAppId())
+                || !checkout.getProductCode().equals(order.getProductCode())
+                || !checkout.getSubjectId().equals(order.getSubjectId())) {
+            throw new PaymentException(HttpStatus.CONFLICT, "payment_sync_mismatch", "Payment synchronization does not match this checkout");
+        }
+        if (!"PAID".equals(checkout.getStatus()) || !"paid".equalsIgnoreCase(order.getStatus())) {
+            throw new PaymentException(HttpStatus.FORBIDDEN, "order_not_paid", "The linked order is not paid");
+        }
+        PaymentProduct product = requireProduct(appId, checkout.getProductCode());
+        if (order.isTestMode() != product.isTestMode() || checkout.isTestMode() != product.isTestMode()) {
+            throw new PaymentException(HttpStatus.FORBIDDEN, "provider_mode_mismatch", "Order test/live mode does not match this product");
+        }
+        return new FulfillmentResult(checkoutId, order.getProviderOrderId(), checkout.getProductCode(),
+                checkout.getEntitlementCode(), "PAID", Instant.now(), checkout.isTestMode());
     }
 
     public ApplicationKey createApplication(String appId, String displayName, boolean acceptDamkemonJwt,

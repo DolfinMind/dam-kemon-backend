@@ -4,7 +4,7 @@ For the day-to-day dashboard flow for creating plans, synchronizing variants, an
 changing prices, see [Payment plans and pricing operator guide](PAYMENT_ADMIN_GUIDE.md).
 
 Damkemon hosts a provider-neutral application boundary with Lemon Squeezy as
-the current payment provider. Rewire, Damkemon's own website, and future
+the current payment provider. Rewire, Echo Memory, Damkemon's own website, and future
 products use the same `/api/payments/v1` API; no merchant credential is shipped
 to a browser or mobile binary.
 
@@ -124,6 +124,29 @@ response contains `valid`, entitlement status/code, renewal and expiry times,
 validation time, and test-mode state. Validation fails closed after `endsAt`
 even if a delayed webhook has not yet marked the entitlement revoked.
 
+### Verify a paid checkout for server-side fulfillment
+
+Consumable products must never be credited from a browser redirect or a client
+claim. A trusted fulfillment backend can ask Damkemon for an ownership-bound,
+read-only proof after the signed order webhook has synchronized:
+
+```http
+POST /api/payments/v1/apps/echo-memory/checkouts/<checkout-id>/fulfillment
+Content-Type: application/json
+
+{
+  "installationId": "<same persisted ID used to create checkout>"
+}
+```
+
+The response is returned only when the checkout belongs to that installation,
+the checkout and order agree on application/product/subject, both are paid, and
+their test/live mode matches the configured product. It includes the provider
+order ID, product code, entitlement code, validated time, and mode. Pending,
+refunded, cross-installation, mismatched, and unpaid orders fail closed. Echo
+Memory's Supabase Edge Function uses this proof and an idempotent database RPC
+to credit a fixed diamond amount exactly once.
+
 ### Webhook
 
 Configure Lemon to POST to:
@@ -200,8 +223,9 @@ without duplicating Lemon's subscriber-management dashboard.
    product code, entitlement code, and the allowlisted Lemon store/product/
    variant IDs. The backend reads the selected variant from Lemon and stores its
    one-time/subscription type, interval, interval count, and license requirement;
-   the admin request cannot spoof those fields. Rewire does not need this manual
-   step: its configured Lemon product is synchronized automatically.
+   the admin request cannot spoof those fields. Rewire and Echo Memory do not
+   need this manual step: their configured Lemon variants are synchronized
+   automatically.
 3. For Damkemon account flows, enable `acceptDamkemonJwt`. For another backend,
    keep public access off and use its server key. Enable public checkout/license
    only for intentionally anonymous installation-bound products.
@@ -253,6 +277,28 @@ PAYMENTS_REWIRE_TEST_MODE=false
 PAYMENTS_REWIRE_SYNC_MS=900000
 ```
 
+Echo Memory catalog configuration (use the separate Test or Live IDs for the
+selected mode):
+
+```text
+PAYMENTS_ECHO_ENABLED=true
+PAYMENTS_ECHO_STORE_ID=445309
+PAYMENTS_ECHO_PRO_PRODUCT_ID=<Echo Pro product ID>
+PAYMENTS_ECHO_MONTHLY_VARIANT_ID=<BDT 149 monthly variant ID>
+PAYMENTS_ECHO_LIFETIME_VARIANT_ID=<BDT 1499 lifetime variant ID>
+PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID=<Echo Memory Diamonds product ID>
+PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID=<BDT 99 variant ID>
+PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID=<BDT 249 variant ID>
+PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID=<BDT 499 variant ID>
+PAYMENTS_ECHO_TEST_MODE=true
+PAYMENTS_ECHO_REDIRECT_URL=<allowed HTTPS return URL>
+```
+
+The Echo bootstrap uses stable mappings: `pro_monthly` and `lifetime` grant
+`echo_pro`; `diamonds_40`, `diamonds_100`, and `diamonds_250` grant the exact
+`echo_diamonds_40`, `echo_diamonds_100`, and `echo_diamonds_250`
+entitlements. The diamond products do not generate licenses.
+
 The legacy `LEMON_SQUEEZY_API_KEY` is accepted only as a test-key fallback for
 a safe migration; use the mode-specific names for new deployments. Production
 startup fails closed if the module is enabled without its secrets, the API key
@@ -272,7 +318,8 @@ environment without printing values. Configure these GitHub **secrets**:
 `PAYMENTS_ENABLED`, `LEMON_SQUEEZY_WEBHOOK_URL`,
 `PAYMENTS_REWIRE_ENABLED`, `PAYMENTS_REWIRE_STORE_ID`,
 `PAYMENTS_REWIRE_PRODUCT_ID`, `PAYMENTS_REWIRE_VARIANT_ID`,
-`PAYMENTS_REWIRE_TEST_MODE`, and `PAYMENTS_REWIRE_REDIRECT_URL`. Set
+`PAYMENTS_REWIRE_TEST_MODE`, `PAYMENTS_REWIRE_REDIRECT_URL`, and the complete
+`PAYMENTS_ECHO_*` set shown above. Set
 `PAYMENTS_REWIRE_TEST_MODE=false` only after the live key and a live Lemon
 catalog mapping are in place. An unset live-key secret leaves the existing
 server setting untouched so sandbox deployments remain unchanged.
