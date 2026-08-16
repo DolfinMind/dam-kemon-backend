@@ -29,6 +29,13 @@ public class Product {
     @Indexed
     private String slug;
 
+    /** Deterministic product-identity key (brand+model+discriminators,
+     *  noise-stripped) used to group the SAME product across sellers robustly,
+     *  independent of the per-run fuzzy index. Two products share a matchKey iff
+     *  they are the same item. See BulkIndexer.productMatchKey. */
+    @Indexed
+    private String matchKey;
+
     /** Detected primary category (lower-case), eg "smartphone". */
     @Indexed
     private String category;
@@ -49,11 +56,38 @@ public class Product {
     @Indexed
     private Double lowestPrice;
     private Double highestPrice;
+    /** Cross-seller verdict set at index time: real_deal | fair | overpriced. */
+    private String priceVerdict;
     private Double averageRating;
     private Integer totalReviews;
 
     /** Last time a per-shop scrape refreshed this product. */
     private LocalDateTime lastScraped;
+    /** Indexed: the admin catalog lists newest-first — unindexed, that sort scans the whole collection. */
+    @Indexed
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    /**
+     * True when an advertiser has paid for placement. Sponsored products are
+     * still ranked alongside organic results but the API surfaces them
+     * separately so the UI can render a "Sponsored" chip.
+     */
+    @Indexed
+    private Boolean sponsored;
+
+    /**
+     * UTC instant the sponsorship expires. We cheaply gate visibility on
+     * read instead of running a cleanup job — Mongo TTL would also work but
+     * we want to keep the historical record for billing reconciliation.
+     */
+    private LocalDateTime sponsoredUntil;
+
+    /** Sponsor tier (1=top of all, 2=top of category, 3=anywhere). Higher = lower priority. */
+    private Integer sponsorTier;
+
+    /** Wire-only: true distinct-seller count when {@code prices} is capped for
+     *  anonymous callers, so the UI can still say "12 shops". Never persisted. */
+    @org.springframework.data.annotation.Transient
+    private Integer totalSellerCount;
 }

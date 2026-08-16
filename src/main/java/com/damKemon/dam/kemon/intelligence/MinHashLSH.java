@@ -82,7 +82,13 @@ public final class MinHashLSH {
         if (shingles.isEmpty()) return;
         int[] sig = signature(shingles);
         if (signatureById.put(id, sig) == null) size.incrementAndGet();
-        payloadById.put(id, payload);
+        // ConcurrentHashMap forbids null values. The memory-light indexer warms
+        // the LSH with id-only entries (payload == null) and reloads the matched
+        // Product by id on demand, so a null payload is expected and must NOT be
+        // stored — putting it here threw NPE in warmLsh and crashed every single
+        // indexer run (nightly/catch-up/retry), which is what froze the catalog.
+        if (payload != null) payloadById.put(id, payload);
+        else payloadById.remove(id);
         // index into LSH buckets band-by-band
         for (int b = 0; b < BANDS; b++) {
             long key = bandKey(sig, b);

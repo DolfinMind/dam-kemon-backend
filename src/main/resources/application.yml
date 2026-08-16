@@ -13,16 +13,36 @@ spring:
       # from atlas.mongodb.com (Database → Connect → "Connect your application").
       uri: ${MONGODB_URI:mongodb://localhost:27017/damkemon?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000&socketTimeoutMS=4000}
       auto-index-creation: true
+    # Redis = the cache store (Upstash). rediss:// is TLS. Fail-fast like Mongo so
+    # a Redis blip can't hang the web JVM; cache errors are swallowed (CacheConfig)
+    # so the site stays up if Redis is down. Secret stays in .env / prod env.
+    redis:
+      url: ${REDIS_URL:}
+      timeout: 2s
+      connect-timeout: 2s
   cache:
-    type: caffeine
+    # redis in prod (off-heap, survives the restart-based deploys, shared with the
+    # worker unit). CACHE_TYPE=caffeine for local dev with no Redis. TTL + JSON
+    # value serialization live in CacheConfig.
+    type: ${CACHE_TYPE:redis}
     cache-names:
       - search
       - dashboard-stats
       - live-stats
       - trending-searches
       - hot-drops
+      - headline-stats
+      - most-sellers
     caffeine:
       spec: maximumSize=500,expireAfterWrite=60s,recordStats
+  task:
+    execution:
+      # Analytics writes are fire-and-forget. Bound their executor so a Mongo
+      # slowdown sheds analytics work instead of growing the heap without limit.
+      pool:
+        core-size: ${ASYNC_CORE_SIZE:2}
+        max-size: ${ASYNC_MAX_SIZE:4}
+        queue-capacity: ${ASYNC_QUEUE_CAPACITY:500}
 
 # ───── Per-HTTP-request behaviour for scrapers ─────
 scraper:
@@ -36,6 +56,14 @@ scraper:
     - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0"
 
+# ───── IndexNow (Bing/Yandex instant indexing) ─────
+# The key doubles as the ownership proof: SitemapController serves it at
+# /{key}.txt. Pings only fire when enabled (set INDEXNOW_ENABLED=true on the
+# JVM that runs the indexer).
+indexnow:
+  enabled: ${INDEXNOW_ENABLED:false}
+  key: ${INDEXNOW_KEY:ad7958e779cb42a4b88f07514ebb823b}
+
 # ───── Nightly catalog indexer ─────
 indexer:
   # Cron expression for daily run. Default: 03:00 local time.
@@ -44,14 +72,92 @@ indexer:
   sitemap-timeout-ms: ${INDEXER_SITEMAP_TIMEOUT_MS:15000}
   max-urls-per-shop: ${INDEXER_MAX_URLS_PER_SHOP:1500}
   max-products-per-shop: ${INDEXER_MAX_PRODUCTS_PER_SHOP:500}
+  # Marketplace shops (Daraz etc.) carry many distinct-seller listings of the same
+  # model — those converge onto one product and lift sellers-per-product, so they
+  # get a far higher cap than first-party shops (which would just add breadth).
+  marketplace-max-offers: ${INDEXER_MARKETPLACE_MAX_OFFERS:4000}
   per-extract-timeout-ms: ${INDEXER_PER_EXTRACT_TIMEOUT_MS:15000}
   per-host-parallelism: ${INDEXER_PER_HOST_PARALLELISM:2}
   global-parallelism: ${INDEXER_GLOBAL_PARALLELISM:24}
   user-agent: "${INDEXER_USER_AGENT:Mozilla/5.0 DamKemon/1.0 (+contact hello@damkemon.com)}"
 
+# ───── Daraz marketplace harvest (the per-product seller depth lever) ─────
+# Each Daraz listing is a distinct sub-seller (SitePrice.sellerId). Deeper paging
+# = more distinct sellers AND more sellers per product. Daraz paces ~1.5s/request.
+daraz:
+  max-pages-per-query: ${DARAZ_MAX_PAGES_PER_QUERY:3}
+  max-per-query: ${DARAZ_MAX_PER_QUERY:40}
+  max-products: ${DARAZ_MAX_PRODUCTS:3000}
+
+# ───── Category focus ─────
+# Damkemon is scoped to computing + mobile only. The indexer drops any product
+# that doesn't classify into one of these categories at write time, and
+# POST /api/admin/catalog/focus-cleanup re-classifies + purges existing rows down
+# to this set. Categories are ProductCategory enum names (case-insensitive).
+# Default = smartphones, laptops, desktops/workstations + components & peripherals,
+# and accessories.
+category-focus:
+  enabled: ${CATEGORY_FOCUS_ENABLED:true}
+  # HEADPHONE = earbuds/headphones/speakers, kept as mobile accessories.
+  # Widened to the full consumer-electronics set (all model-numbered, so matchKey
+  # stays accurate + merges clean). Generic categories (fashion/grocery/etc.) stay
+  # OUT — their non-model names cause wrong merges.
+  allowed: ${CATEGORY_FOCUS_ALLOWED:SMARTPHONE,TABLET,LAPTOP,DESKTOP,MONITOR,STORAGE,NETWORKING,PRINTER,HEADPHONE,ACCESSORY,CAMERA,SMARTWATCH,GAMING,TV,SECURITY,POWER_BACKUP}
+
+# ───── Nightly catalog re-merge (duplicate-product consolidation) ─────
+# Consolidates near-duplicate product rows so their sellers stack onto one
+# product — runs after the indexer + retry land their offers. The single
+# biggest sellers-per-product lever (first run: avg 1.17 → 1.35).
+remerge:
+  enabled: ${REMERGE_ENABLED:true}
+  cron: ${REMERGE_CRON:0 30 4 * * *}
+
+# ───── Seller-depth fanout (the overlapping-supply lever) ─────
+# Searches the SAME canonical tech models across every tech shop so the same
+# product lands on one matchKey with many sellers — lifts sellers-per-product
+# AND adds new tech products. Browserless by default (jsoup search pages), so
+# it's safe on the small prod box. A rotating window of models hits a rotating
+# slice of shops each pass; successive passes sweep the whole set.
+seller-depth:
+  enabled: ${SELLER_DEPTH_ENABLED:true}
+  cron: ${SELLER_DEPTH_CRON:0 0 2 * * *}
+  # Defaults raised to lift sellers-per-product (the catalog runs ~1.56/product):
+  # try more candidate URLs per model (3→6), sweep more models per shop (14→22),
+  # scan deeper (80→120), and treat products with <6 sellers as "shallow" (3→6) so
+  # the fanout keeps deepening them. request-delay (politeness) is unchanged.
+  queries-per-shop: ${SELLER_DEPTH_QUERIES_PER_SHOP:22}
+  shops-per-run: ${SELLER_DEPTH_SHOPS_PER_RUN:50}
+  candidates-per-search: ${SELLER_DEPTH_CANDIDATES_PER_SEARCH:6}
+  url-scan-limit: ${SELLER_DEPTH_URL_SCAN_LIMIT:120}
+  request-delay-ms: ${SELLER_DEPTH_REQUEST_DELAY_MS:500}
+  run-budget-minutes: ${SELLER_DEPTH_RUN_BUDGET_MINUTES:20}
+  use-browser: ${SELLER_DEPTH_USE_BROWSER:false}
+  shallow-seller-threshold: ${SELLER_DEPTH_SHALLOW_THRESHOLD:6}
+  max-dynamic-queries: ${SELLER_DEPTH_MAX_DYNAMIC_QUERIES:70}
+
+# ───── Autonomous shop discovery + lifecycle ─────
+# Weekly job: discover new BD shops (e-CAB/BASIS directories), auto-activate the
+# ones that pass a product-URL probe, and revive previously auto-blocked shops
+# that have recovered. Scheduled 2h before the indexer so new shops are crawled
+# the same night. Auto-DISABLING of dead shops is handled by ShopHealthService.
+discovery:
+  enabled: ${DISCOVERY_ENABLED:true}
+  cron: ${DISCOVERY_CRON:0 0 1 * * SUN}
+  min-product-urls: ${DISCOVERY_MIN_PRODUCT_URLS:5}
+  max-per-run: ${DISCOVERY_MAX_PER_RUN:20}
+  # SERP discovery: search-API endpoint template with {q} (SerpAPI/Bing/Google CSE
+  # JSON). When set, the 'serp-discover' job finds shops by searching popular
+  # products and harvesting BD shop domains from results. Empty = disabled.
+  # e.g. https://serpapi.com/search.json?engine=google&num=20&q={q}&api_key=XXXX
+  search-api-url: ${DISCOVERY_SEARCH_API_URL:}
+
 # ───── Search behaviour ─────
 search:
   page-size: ${SEARCH_PAGE_SIZE:30}
+  # Hard ceiling on a single requested page size, and how deep the ranked pool
+  # goes (how far "Load more" can page within one query).
+  max-page-size: ${SEARCH_MAX_PAGE_SIZE:60}
+  max-candidates: ${SEARCH_MAX_CANDIDATES:300}
   # Atlas Search ($search aggregation). Requires a Mongo Atlas cluster with
   # an Atlas Search index named below. Falls back to $text when disabled or
   # the index doesn't exist — no external service requirement.
@@ -75,10 +181,30 @@ cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 
 # ───── Admin endpoints lockdown ─────
-# Leave blank in dev (admin endpoints stay open with a WARN log). MUST be set
-# in staging and production. 32+ chars recommended (openssl rand -hex 24).
+# Blank keys fail closed (except direct loopback catalog ingest). Use 32+ chars
+# in every environment that needs admin access (openssl rand -hex 24).
 admin:
   api-key: ${ADMIN_API_KEY:}
+
+
+# ───── Full-funnel analytics / request logging ─────
+# Every /api request is logged into request_log (the "every step" access log),
+# and search/view/click/pageview events into the events collection. Both carry
+# the RAW client IP when store-raw-ip is true so the operator can see who is
+# hitting the site (admin-only, surfaced under /api/admin/analytics). Set false
+# to fall back to the privacy-preserving hash-only behaviour. The timezone is
+# used to bucket "peak hour" and per-day stats — keep it on the audience's TZ.
+analytics:
+  store-raw-ip: ${ANALYTICS_STORE_RAW_IP:false}
+  timezone: ${ANALYTICS_TIMEZONE:Asia/Dhaka}
+  clean-traffic:
+    enabled: ${ANALYTICS_CLEAN_TRAFFIC_ENABLED:true}
+
+# Start disabled until staging confirms price freshness and Resend delivery.
+price-alerts:
+  enabled: ${PRICE_ALERTS_ENABLED:false}
+  cron: ${PRICE_ALERTS_CRON:0 30 * * * *}
+  max-age-hours: ${PRICE_ALERTS_MAX_AGE_HOURS:30}
 
 # ───── Per-IP rate limit on /api/search* ─────
 # Token bucket: capacity tokens, refilled at refill-per-sec tokens/sec.
@@ -86,26 +212,139 @@ admin:
 ratelimit:
   capacity: ${RATE_LIMIT_CAPACITY:60}
   refill-per-sec: ${RATE_LIMIT_REFILL_PER_SEC:1.0}
+  payment-capacity: ${RATE_LIMIT_PAYMENT_CAPACITY:20}
+  payment-refill-per-sec: ${RATE_LIMIT_PAYMENT_REFILL_PER_SEC:0.20}
+
+# ───── Reusable Lemon Squeezy payment module ─────
+# Disabled by default. Merchant credentials stay server-side; native/web clients
+# receive only hosted checkout URLs and license/entitlement status.
+payments:
+  enabled: ${PAYMENTS_ENABLED:false}
+  fingerprint-secret: ${PAYMENTS_FINGERPRINT_SECRET:}
+  lemon:
+    base-url: ${LEMON_SQUEEZY_BASE_URL:https://api.lemonsqueezy.com}
+    test-api-key: ${LEMON_SQUEEZY_TEST_API_KEY:${LEMON_SQUEEZY_API_KEY:}}
+    live-api-key: ${LEMON_SQUEEZY_LIVE_API_KEY:}
+    webhook-secret: ${LEMON_SQUEEZY_WEBHOOK_SECRET:}
+    webhook-url: ${LEMON_SQUEEZY_WEBHOOK_URL:https://damkemon.com/api/payments/v1/webhooks/lemon-squeezy}
+  rewire:
+    enabled: ${PAYMENTS_REWIRE_ENABLED:false}
+    # Lemon remains the plan/price source of truth; refresh its variants every 15 minutes.
+    sync-ms: ${PAYMENTS_REWIRE_SYNC_MS:900000}
+    store-id: ${PAYMENTS_REWIRE_STORE_ID:0}
+    product-id: ${PAYMENTS_REWIRE_PRODUCT_ID:0}
+    variant-id: ${PAYMENTS_REWIRE_VARIANT_ID:0}
+    test-mode: ${PAYMENTS_REWIRE_TEST_MODE:true}
+    redirect-url: ${PAYMENTS_REWIRE_REDIRECT_URL:}
+  echo:
+    enabled: ${PAYMENTS_ECHO_ENABLED:false}
+    store-id: ${PAYMENTS_ECHO_STORE_ID:0}
+    diamonds-product-id: ${PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID:0}
+    diamonds-40-variant-id: ${PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID:0}
+    diamonds-100-variant-id: ${PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID:0}
+    diamonds-250-variant-id: ${PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID:0}
+    pro-product-id: ${PAYMENTS_ECHO_PRO_PRODUCT_ID:0}
+    monthly-variant-id: ${PAYMENTS_ECHO_MONTHLY_VARIANT_ID:0}
+    lifetime-variant-id: ${PAYMENTS_ECHO_LIFETIME_VARIANT_ID:0}
+    test-mode: ${PAYMENTS_ECHO_TEST_MODE:true}
+    redirect-url: ${PAYMENTS_ECHO_REDIRECT_URL:}
 
 # ───── Fixed-credential owner sign-in ─────
 # The owner signs in with this username + password via POST /api/auth/login.
 # Override both env vars in staging+prod. The password is BCrypt-hashed at
 # boot before anything reaches Mongo, never stored raw.
 owner:
-  username: "${OWNER_USERNAME:ssm@2026}"
-  password: "${OWNER_PASSWORD:$Sm7406.2025}"
+  username: "${OWNER_USERNAME:}"
+  password: "${OWNER_PASSWORD:}"
   email: "${OWNER_EMAIL:}"
 
-# ───── JWT session signing ─────
-# Used to sign the bearer token issued by POST /api/auth/login. No external
+# ───── JWT session signing + Google sign-in ─────
+# jwt-secret signs the bearer token issued by POST /api/auth/login. No external
 # service — HMAC-SHA256 with this secret. 32+ chars in prod.
+# google-client-id is the OAuth web client id from Google Cloud console; the
+# SAME id must be built into the frontend (VITE_GOOGLE_CLIENT_ID). Blank = the
+# /api/auth/google endpoint answers 503 and the frontend hides the button —
+# safe to deploy unconfigured.
 auth:
   jwt-secret: ${AUTH_JWT_SECRET:}
   jwt-ttl-days: ${AUTH_JWT_TTL_DAYS:30}
+  google-client-id: ${GOOGLE_CLIENT_ID:}
+
+# Server-to-server control for the isolated Python crawler. Keep this separate
+# from browser/admin authentication; the admin JWT only reaches this API.
+crawler:
+  control-token: ${CRAWLER_CONTROL_TOKEN:${ADMIN_API_KEY:}}
+
+# ───── Resend API Integration ─────
+# Used for sending Newsletter welcomes and Feedback emails
+# Public site origin — used to build links inside transactional emails
+# (verify-email, password-reset, price-drop alerts).
+app:
+  site-url: ${APP_SITE_URL:https://damkemon.com}
+
+resend:
+  api-key: ${RESEND_API_KEY:}
+  from-email: ${RESEND_FROM_EMAIL:support@damkemon.com}
+  from-name: "${RESEND_FROM_NAME:DolfinMind}"
+
+# ───── Contact-us / feedback notifications ─────
+# Recipient for the public "Contact us" / feedback form (POST /api/feedback).
+# Set USER_FEEDBACK_EMAIL in .env (or the environment); falls back to the Resend
+# from-address when unset.
+feedback:
+  notify-email: ${USER_FEEDBACK_EMAIL:${resend.from-email:support@damkemon.com}}
+
+# ───── Homepage showcase rebuild ─────
+# The category rails are precomputed on the web node (startup + this interval)
+# and served from memory — the landing page never waits on category queries.
+showcase:
+  refresh-ms: ${SHOWCASE_REFRESH_MS:900000}
 
 # ───── Hot-drops rebuild ─────
+# Rebuilt once daily, 30 minutes after the 04:00 price-history snapshot. The
+# catalog crawl is nightly, so running the same history aggregation six times a
+# day only repeated results and created avoidable heap pressure.
 hot-drops:
-  cron: ${HOT_DROPS_CRON:0 0 5 * * *}
+  cron: ${HOT_DROPS_CRON:0 30 4 * * *}
+  # Parse-error guards: a real BD tech price never legitimately drops more than
+  # max-drop-pct from its same-shop 7-day typical price, and nothing in a computing/mobile catalog
+  # sells for under min-price taka — anything past either bound is a scraper
+  # mis-parse (e.g. "৳55,500" read as 55) and must never headline the rail.
+  max-drop-pct: ${HOT_DROPS_MAX_DROP_PCT:45}
+  min-price: ${HOT_DROPS_MIN_PRICE:500}
+  max-product-age-hours: ${HOT_DROPS_MAX_PRODUCT_AGE_HOURS:72}
+
+# ───── Weekly newsletter ─────
+# Monday 09:00 Asia/Dhaka. Composes the current hot-drops into an HTML digest
+# and sends one per subscriber via Resend. Disable with NEWSLETTER_ENABLED=false.
+newsletter:
+  enabled: ${NEWSLETTER_ENABLED:true}
+  cron: ${NEWSLETTER_CRON:0 0 9 * * MON}
+  site-url: ${NEWSLETTER_SITE_URL:https://damkemon.com}
+  max-products: ${NEWSLETTER_MAX_PRODUCTS:10}
+  send-delay-ms: ${NEWSLETTER_SEND_DELAY_MS:120}
+
+# ───── Outbound affiliate tracking ─────
+# Params appended to "Visit shop" outbound links, per partner program.
+# Star Tech uses a single ?tracking= id; Rokomari uses affId/affs/cma.
+# Override per-partner via env without a redeploy.
+affiliate:
+  startech:
+    tracking: ${AFFILIATE_STARTECH_TRACKING:6a32e1823fd8a}
+  rokomari:
+    aff-id: ${AFFILIATE_ROKOMARI_AFF_ID:3rM48i61o4MRi1O}
+    affs: ${AFFILIATE_ROKOMARI_AFFS:66715}
+    cma: ${AFFILIATE_ROKOMARI_CMA:604800}
+
+# ───── Merchant feed sync (pull published catalogs; no scraping) ─────
+# Worker-only + opt-in: pulls each shop's feedUrl (Shopify products.json / WooCommerce
+# Store API / Google-Merchant or RSS XML) and merges items into the catalog via the
+# same matchKey path as the crawler — adding products + sellers. Heavy merge, so it
+# never auto-runs on the web JVM. Enable on the worker with FEED_SYNC_ENABLED=true.
+feed-sync:
+  enabled: ${FEED_SYNC_ENABLED:false}
+  cron: ${FEED_SYNC_CRON:0 30 2 * * *}
+  max-items: ${FEED_SYNC_MAX_ITEMS:2000}
 
 # ───── Spring Boot Actuator (health, info) ─────
 management:

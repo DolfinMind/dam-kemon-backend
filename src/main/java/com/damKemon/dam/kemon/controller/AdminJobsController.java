@@ -1,8 +1,12 @@
 package com.damKemon.dam.kemon.controller;
 
+import com.damKemon.dam.kemon.config.AppRole;
 import com.damKemon.dam.kemon.indexer.BulkIndexer;
+import com.damKemon.dam.kemon.indexer.CatalogRemergeService;
+import com.damKemon.dam.kemon.indexer.SellerDepthHarvester;
 import com.damKemon.dam.kemon.indexer.ShopDiscoveryService;
 import com.damKemon.dam.kemon.service.HotDropsService;
+import com.damKemon.dam.kemon.service.SellerDirectoryService;
 import com.damKemon.dam.kemon.service.SyntheticMonitorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +36,18 @@ public class AdminJobsController {
     private final ShopDiscoveryService discovery;
     private final HotDropsService hotDrops;
     private final SyntheticMonitorService synthetic;
+    private final SellerDirectoryService sellerDirectory;
+    private final SellerDepthHarvester sellerDepth;
+    private final CatalogRemergeService remergeService;
+    private final AppRole appRole;
+
+    /** Jobs that spawn a crawl — refused on the API node (the worker owns them,
+     *  so a manual click or the operate-prod-indexer.sh script can't spike the
+     *  request-serving JVM). DB-only jobs (seller-sync, hot-drops, remerge,
+     *  synthetic) stay runnable here. */
+    private static final java.util.Set<String> CRAWL_JOBS = java.util.Set.of(
+            "indexer-nightly", "indexer-retry", "shop-discovery", "serp-discover",
+            "daraz-deep", "seller-depth", "deep-components", "revive-tech");
 
     /** id → ring-buffer of last N run timestamps (manual only). */
     private final ConcurrentHashMap<String, java.util.Deque<Map<String, Object>>> recent =
@@ -40,11 +56,19 @@ public class AdminJobsController {
     public AdminJobsController(BulkIndexer indexer,
                                ShopDiscoveryService discovery,
                                HotDropsService hotDrops,
-                               SyntheticMonitorService synthetic) {
+                               SyntheticMonitorService synthetic,
+                               SellerDirectoryService sellerDirectory,
+                               SellerDepthHarvester sellerDepth,
+                               CatalogRemergeService remergeService,
+                               AppRole appRole) {
         this.indexer = indexer;
         this.discovery = discovery;
         this.hotDrops = hotDrops;
         this.synthetic = synthetic;
+        this.sellerDirectory = sellerDirectory;
+        this.sellerDepth = sellerDepth;
+        this.remergeService = remergeService;
+        this.appRole = appRole;
     }
 
     @GetMapping
@@ -60,6 +84,20 @@ public class AdminJobsController {
                         "Recomputes products with ≥10% drop vs 7d peak"),
                 jobRow("shop-discovery", "Shop discovery", "manual",
                         "Walks e-cab + BASIS, queues new shops into pending_shops"),
+                jobRow("serp-discover", "SERP shop discovery", "manual",
+                        "Searches popular products, harvests BD shop domains into pending_shops (needs discovery.search-api-url)"),
+                jobRow("seller-sync", "Seller directory sync", "0 30 5 * * *",
+                        "Upserts active shops + marketplace storefronts into the sellers directory"),
+                jobRow("daraz-deep", "Daraz deep harvest", "manual",
+                        "Re-harvests Daraz only with deep paging — more distinct sellers per product"),
+                jobRow("seller-depth", "Seller-depth fanout", "0 0 2 * * *",
+                        "Searches the same canonical tech models across every tech shop — stacks more sellers per product + adds new products"),
+                jobRow("catalog-remerge", "Catalog re-merge", "0 30 4 * * *",
+                        "Consolidates duplicate product rows so their sellers stack onto one product — the biggest sellers-per-product lever"),
+                jobRow("revive-tech", "Revive dormant tech shops", "manual",
+                        "Re-crawls dormant tech/mobile shops (run with browser on) to add sellers per product"),
+                jobRow("deep-components", "Deep-crawl component shops", "manual",
+                        "Sequentially deep-crawls the big PC/component shops (Star Tech, Ryans, Techland…) — the SAME GPUs/RAM/monitors across shops merge into multi-seller products"),
                 jobRow("synthetic-monitor", "Synthetic search canary", "every 15 min",
                         "Runs sample queries; flips /actuator/health/synthetic")
         ));
@@ -67,12 +105,37 @@ public class AdminJobsController {
 
     @PostMapping("/{id}/run")
     public ResponseEntity<Map<String, Object>> runNow(@PathVariable String id) {
+        if (CRAWL_JOBS.contains(id) && !appRole.isWorker()) {
+            return ResponseEntity.status(409).body(Map.of(
+                    "started", false, "id", id, "error", "crawl_disabled_on_api",
+                    "message", "This job crawls — run it on the worker: "
+                            + "sudo systemctl start damkemon-prod-worker.service"));
+        }
         CompletableFuture.runAsync(() -> {
             try {
                 switch (id) {
                     case "indexer-nightly" -> indexer.runAll();
                     case "indexer-retry" -> indexer.runRetry();
                     case "shop-discovery" -> discovery.discover();
+                    case "serp-discover" -> discovery.discoverViaSearch();
+                    case "seller-sync" -> sellerDirectory.syncOnce();
+                    case "daraz-deep" -> indexer.runOne("daraz");
+                    case "seller-depth" -> sellerDepth.run();
+                    case "catalog-remerge" -> remergeService.remerge(false);
+                    case "deep-components" -> indexer.runShops(java.util.List.of(
+                            // the big PC/component retailers — all sell the same GPUs/RAM/
+                            // monitors/SSDs, so deep-crawling them stacks sellers per SKU
+                            "startech", "ryans", "techlandbd", "pchouse", "binarylogic",
+                            "computersource", "ucc", "potakait", "skyland", "ultratech",
+                            "computervillage", "techbangla", "pcbuilderbd", "mmcomputerbd",
+                            "selltech", "creatus", "techmoonbd", "smartdeal", "onixcomputer",
+                            "executivemachines", "vibegaming", "gadgetandgear", "techshopbd"));
+                    case "revive-tech" -> indexer.runShops(java.util.List.of(
+                            // mobile first (phone depth), then computing/accessories
+                            "sumashtech", "mobilebuzzbd", "mobilezonebd", "gadgetnova", "priyoshop",
+                            "computervillage", "skyland", "ultratech", "ittechbd", "techbangla",
+                            "dhakatechbd", "toolsterminal", "miniso", "pcbuilderbd", "earphonebd",
+                            "smartzone", "ekshop", "singerbd", "sindabad", "robishop", "techcity"));
                     case "hot-drops-rebuild" -> hotDrops.rebuild();
                     case "synthetic-monitor" -> synthetic.run();
                     default -> {

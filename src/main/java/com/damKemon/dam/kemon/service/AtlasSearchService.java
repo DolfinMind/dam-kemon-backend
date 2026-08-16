@@ -28,7 +28,7 @@ public class AtlasSearchService {
 
     private final MongoTemplate mongo;
 
-    @Value("${search.atlas-enabled:false}")
+    @Value("${search.atlas-enabled:true}")
     private boolean atlasEnabled;
 
     @Value("${search.atlas-index:default}")
@@ -45,11 +45,23 @@ public class AtlasSearchService {
         if (!atlasEnabled || query == null || query.isBlank()) return null;
 
         try {
+            // Move scoring logic into the query: Exact phrase matches get massive boost,
+            // exact token matches get medium boost, and fuzzy/autocomplete catch typos.
+            Document exactPhrase = new Document("phrase", new Document()
+                    .append("query", query)
+                    .append("path", "name")
+                    .append("score", new Document("boost", new Document("value", 10))));
+
+            Document exactTokens = new Document("text", new Document()
+                    .append("query", query)
+                    .append("path", "name")
+                    .append("score", new Document("boost", new Document("value", 5))));
+
             Document textClause = new Document("text", new Document()
                     .append("query", query)
                     .append("path", List.of("name", "description"))
-                    .append("fuzzy", new Document("maxEdits", 1))
-                    .append("score", new Document("boost", new Document("value", 3))));
+                    .append("fuzzy", new Document("maxEdits", 1).append("prefixLength", 3))
+                    .append("score", new Document("boost", new Document("value", 1))));
 
             Document autocompleteClause = new Document("autocomplete", new Document()
                     .append("query", query)
@@ -57,7 +69,8 @@ public class AtlasSearchService {
                     .append("score", new Document("boost", new Document("value", 2))));
 
             Document compound = new Document("compound",
-                    new Document("should", List.of(textClause, autocompleteClause)));
+                    new Document("should", List.of(exactPhrase, exactTokens, textClause, autocompleteClause))
+                    .append("minimumShouldMatch", 1));
 
             Document searchStage = new Document("$search", new Document()
                     .append("index", atlasIndexName)

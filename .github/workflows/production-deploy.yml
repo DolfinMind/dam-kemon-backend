@@ -1,0 +1,342 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - deployment-prod
+
+permissions:
+  contents: read
+
+concurrency:
+  group: damkemon-production
+  cancel-in-progress: false
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build with Gradle (clean build)
+        run: |
+          ./gradlew clean test bootJar
+          # Remove the plain JAR to avoid confusion
+          rm -f build/libs/*-plain.jar
+
+      - name: Copy JAR to production server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "build/libs/*.jar"
+          target: "/home/${{ vars.SERVER_USER }}/server/"
+          strip_components: 2
+
+      - name: Configure payment environment
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PAYMENTS_ENABLED: ${{ vars.PAYMENTS_ENABLED }}
+          PAYMENTS_FINGERPRINT_SECRET: ${{ secrets.PAYMENTS_FINGERPRINT_SECRET }}
+          LEMON_SQUEEZY_TEST_API_KEY: ${{ secrets.LEMON_SQUEEZY_TEST_API_KEY }}
+          LEMON_SQUEEZY_LIVE_API_KEY: ${{ secrets.LEMON_SQUEEZY_LIVE_API_KEY }}
+          LEMON_SQUEEZY_WEBHOOK_SECRET: ${{ secrets.LEMON_SQUEEZY_WEBHOOK_SECRET }}
+          LEMON_SQUEEZY_WEBHOOK_URL: ${{ vars.LEMON_SQUEEZY_WEBHOOK_URL }}
+          PAYMENTS_REWIRE_ENABLED: ${{ vars.PAYMENTS_REWIRE_ENABLED }}
+          PAYMENTS_REWIRE_STORE_ID: ${{ vars.PAYMENTS_REWIRE_STORE_ID }}
+          PAYMENTS_REWIRE_PRODUCT_ID: ${{ vars.PAYMENTS_REWIRE_PRODUCT_ID }}
+          PAYMENTS_REWIRE_VARIANT_ID: ${{ vars.PAYMENTS_REWIRE_VARIANT_ID }}
+          PAYMENTS_REWIRE_TEST_MODE: ${{ vars.PAYMENTS_REWIRE_TEST_MODE }}
+          PAYMENTS_REWIRE_REDIRECT_URL: ${{ vars.PAYMENTS_REWIRE_REDIRECT_URL }}
+          PAYMENTS_ECHO_ENABLED: ${{ vars.PAYMENTS_ECHO_ENABLED }}
+          PAYMENTS_ECHO_STORE_ID: ${{ vars.PAYMENTS_ECHO_STORE_ID }}
+          PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID: ${{ vars.PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID }}
+          PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID: ${{ vars.PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID }}
+          PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID: ${{ vars.PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID }}
+          PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID: ${{ vars.PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID }}
+          PAYMENTS_ECHO_PRO_PRODUCT_ID: ${{ vars.PAYMENTS_ECHO_PRO_PRODUCT_ID }}
+          PAYMENTS_ECHO_MONTHLY_VARIANT_ID: ${{ vars.PAYMENTS_ECHO_MONTHLY_VARIANT_ID }}
+          PAYMENTS_ECHO_LIFETIME_VARIANT_ID: ${{ vars.PAYMENTS_ECHO_LIFETIME_VARIANT_ID }}
+          PAYMENTS_ECHO_TEST_MODE: ${{ vars.PAYMENTS_ECHO_TEST_MODE }}
+          PAYMENTS_ECHO_REDIRECT_URL: ${{ vars.PAYMENTS_ECHO_REDIRECT_URL }}
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
+          envs: PAYMENTS_ENABLED,PAYMENTS_FINGERPRINT_SECRET,LEMON_SQUEEZY_TEST_API_KEY,LEMON_SQUEEZY_LIVE_API_KEY,LEMON_SQUEEZY_WEBHOOK_SECRET,LEMON_SQUEEZY_WEBHOOK_URL,PAYMENTS_REWIRE_ENABLED,PAYMENTS_REWIRE_STORE_ID,PAYMENTS_REWIRE_PRODUCT_ID,PAYMENTS_REWIRE_VARIANT_ID,PAYMENTS_REWIRE_TEST_MODE,PAYMENTS_REWIRE_REDIRECT_URL,PAYMENTS_ECHO_ENABLED,PAYMENTS_ECHO_STORE_ID,PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID,PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID,PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID,PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID,PAYMENTS_ECHO_PRO_PRODUCT_ID,PAYMENTS_ECHO_MONTHLY_VARIANT_ID,PAYMENTS_ECHO_LIFETIME_VARIANT_ID,PAYMENTS_ECHO_TEST_MODE,PAYMENTS_ECHO_REDIRECT_URL
+          script: |
+            set -eu
+            expected="/home/${{ vars.SERVER_USER }}/server/.env"
+            env_file=$(systemctl show damkemon-prod-app.service -p EnvironmentFiles --value | awk '{print $1}')
+            test "$env_file" = "$expected"
+            test -f "$env_file"
+            test "${#PAYMENTS_FINGERPRINT_SECRET}" -ge 32
+            test "${#LEMON_SQUEEZY_TEST_API_KEY}" -ge 100
+            if [ -n "$LEMON_SQUEEZY_LIVE_API_KEY" ]; then
+              test "${#LEMON_SQUEEZY_LIVE_API_KEY}" -ge 100
+            fi
+            test "${#LEMON_SQUEEZY_WEBHOOK_SECRET}" -ge 32
+            test "${#LEMON_SQUEEZY_WEBHOOK_SECRET}" -le 40
+
+            tmp=$(mktemp "${expected}.payments.XXXXXX")
+            trap 'rm -f "$tmp" "${tmp}.next"' EXIT
+            cp "$env_file" "$tmp"
+            upsert() {
+              key_name="$1"
+              value="$2"
+              awk -v key="$key_name" 'index($0, key "=") != 1 { print }' "$tmp" > "${tmp}.next"
+              mv "${tmp}.next" "$tmp"
+              printf '%s=%s\n' "$key_name" "$value" >> "$tmp"
+            }
+            upsert PAYMENTS_ENABLED "$PAYMENTS_ENABLED"
+            upsert PAYMENTS_FINGERPRINT_SECRET "$PAYMENTS_FINGERPRINT_SECRET"
+            upsert LEMON_SQUEEZY_TEST_API_KEY "$LEMON_SQUEEZY_TEST_API_KEY"
+            # A live key is optional during sandbox operation. Do not erase an
+            # existing server key when this optional GitHub secret is unset.
+            if [ -n "$LEMON_SQUEEZY_LIVE_API_KEY" ]; then
+              upsert LEMON_SQUEEZY_LIVE_API_KEY "$LEMON_SQUEEZY_LIVE_API_KEY"
+            fi
+            upsert LEMON_SQUEEZY_WEBHOOK_SECRET "$LEMON_SQUEEZY_WEBHOOK_SECRET"
+            upsert LEMON_SQUEEZY_WEBHOOK_URL "$LEMON_SQUEEZY_WEBHOOK_URL"
+            upsert PAYMENTS_REWIRE_ENABLED "$PAYMENTS_REWIRE_ENABLED"
+            upsert PAYMENTS_REWIRE_STORE_ID "$PAYMENTS_REWIRE_STORE_ID"
+            upsert PAYMENTS_REWIRE_PRODUCT_ID "$PAYMENTS_REWIRE_PRODUCT_ID"
+            upsert PAYMENTS_REWIRE_VARIANT_ID "$PAYMENTS_REWIRE_VARIANT_ID"
+            upsert PAYMENTS_REWIRE_TEST_MODE "$PAYMENTS_REWIRE_TEST_MODE"
+            upsert PAYMENTS_REWIRE_REDIRECT_URL "$PAYMENTS_REWIRE_REDIRECT_URL"
+            upsert PAYMENTS_ECHO_ENABLED "$PAYMENTS_ECHO_ENABLED"
+            upsert PAYMENTS_ECHO_STORE_ID "$PAYMENTS_ECHO_STORE_ID"
+            upsert PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID "$PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID"
+            upsert PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID "$PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID"
+            upsert PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID "$PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID"
+            upsert PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID "$PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID"
+            upsert PAYMENTS_ECHO_PRO_PRODUCT_ID "$PAYMENTS_ECHO_PRO_PRODUCT_ID"
+            upsert PAYMENTS_ECHO_MONTHLY_VARIANT_ID "$PAYMENTS_ECHO_MONTHLY_VARIANT_ID"
+            upsert PAYMENTS_ECHO_LIFETIME_VARIANT_ID "$PAYMENTS_ECHO_LIFETIME_VARIANT_ID"
+            upsert PAYMENTS_ECHO_TEST_MODE "$PAYMENTS_ECHO_TEST_MODE"
+            upsert PAYMENTS_ECHO_REDIRECT_URL "$PAYMENTS_ECHO_REDIRECT_URL"
+            chmod 600 "$tmp"
+            mv "$tmp" "$env_file"
+
+      - name: Deploy and restart application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
+          script: |
+            sudo systemctl restart damkemon-prod-app.service
+            ready=0
+            for attempt in $(seq 1 72); do
+              if curl --fail --silent --max-time 5 \
+                  http://127.0.0.1:8080/actuator/health/readiness >/dev/null; then
+                ready=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$ready" -ne 1 ]; then
+              systemctl status damkemon-prod-app.service --no-pager || true
+              echo "Application did not become ready within 6 minutes."
+              exit 1
+            fi
+            systemctl status damkemon-prod-app.service --no-pager
+
+      - name: Verify public API
+        run: |
+          curl --fail --show-error --silent --retry 12 --retry-delay 5 \
+            --max-time 10 https://damkemon.com/api/shops >/dev/null
+
+      - name: Ensure Lemon payment webhook
+        env:
+          LEMON_TEST_API_KEY: ${{ secrets.LEMON_SQUEEZY_TEST_API_KEY }}
+          LEMON_LIVE_API_KEY: ${{ secrets.LEMON_SQUEEZY_LIVE_API_KEY }}
+          WEBHOOK_SECRET: ${{ secrets.LEMON_SQUEEZY_WEBHOOK_SECRET }}
+          WEBHOOK_URL: ${{ vars.LEMON_SQUEEZY_WEBHOOK_URL }}
+          REWIRE_STORE_ID: ${{ vars.PAYMENTS_REWIRE_STORE_ID }}
+          ECHO_STORE_ID: ${{ vars.PAYMENTS_ECHO_STORE_ID }}
+          REWIRE_ENABLED: ${{ vars.PAYMENTS_REWIRE_ENABLED }}
+          REWIRE_TEST_MODE: ${{ vars.PAYMENTS_REWIRE_TEST_MODE }}
+          ECHO_ENABLED: ${{ vars.PAYMENTS_ECHO_ENABLED }}
+          ECHO_TEST_MODE: ${{ vars.PAYMENTS_ECHO_TEST_MODE }}
+        run: |
+          set -euo pipefail
+          if [ "$REWIRE_ENABLED" = "true" ]; then STORE_ID="$REWIRE_STORE_ID"; else STORE_ID="$ECHO_STORE_ID"; fi
+          ensure_webhook() {
+            LEMON_API_KEY="$1"
+            test "${#LEMON_API_KEY}" -ge 100
+            response=$(curl --fail --silent --show-error --get \
+              --header "Authorization: Bearer $LEMON_API_KEY" \
+              --header 'Accept: application/vnd.api+json' \
+              --data-urlencode "filter[store_id]=$STORE_ID" \
+              --data-urlencode 'page[size]=100' \
+              https://api.lemonsqueezy.com/v1/webhooks)
+            webhook_id=$(jq -r --arg url "$WEBHOOK_URL" \
+              '.data[] | select(.attributes.url == $url) | .id' <<<"$response" | head -n 1)
+            attributes=$(jq -n --arg url "$WEBHOOK_URL" --arg secret "$WEBHOOK_SECRET" \
+              '{url:$url,events:["order_created","order_refunded","license_key_created","license_key_updated","subscription_created","subscription_updated"],secret:$secret}')
+            if [ -z "$webhook_id" ]; then
+              payload=$(jq -n --arg store "$STORE_ID" --argjson attributes "$attributes" \
+                '{data:{type:"webhooks",attributes:$attributes,relationships:{store:{data:{type:"stores",id:$store}}}}}')
+              method=POST
+              target=https://api.lemonsqueezy.com/v1/webhooks
+            else
+              payload=$(jq -n --arg id "$webhook_id" --argjson attributes "$attributes" \
+                '{data:{type:"webhooks",id:$id,attributes:$attributes}}')
+              method=PATCH
+              target="https://api.lemonsqueezy.com/v1/webhooks/$webhook_id"
+            fi
+            curl --fail --silent --show-error --output /dev/null \
+              --request "$method" \
+              --header "Authorization: Bearer $LEMON_API_KEY" \
+              --header 'Accept: application/vnd.api+json' \
+              --header 'Content-Type: application/vnd.api+json' \
+              --data "$payload" \
+              "$target"
+          }
+          needs_test=false
+          needs_live=false
+          if [ "$REWIRE_ENABLED" = "true" ]; then
+            if [ "$REWIRE_TEST_MODE" = "true" ]; then needs_test=true; else needs_live=true; fi
+          fi
+          if [ "$ECHO_ENABLED" = "true" ]; then
+            if [ "$ECHO_TEST_MODE" = "true" ]; then needs_test=true; else needs_live=true; fi
+          fi
+          if [ "$needs_test" = "true" ]; then ensure_webhook "$LEMON_TEST_API_KEY"; fi
+          if [ "$needs_live" = "true" ]; then ensure_webhook "$LEMON_LIVE_API_KEY"; fi
+
+      # Prefer the root-installed systemd watchdog. Until its one-time installer
+      # is applied, keep the same conservative liveness check active from the
+      # deploy user's crontab; that user already has permission to restart this
+      # exact service.
+      - name: Copy self-heal ops files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "ops/selfheal/*"
+          target: "/home/${{ vars.SERVER_USER }}/selfheal/"
+          strip_components: 2
+
+      - name: Apply liveness watchdog
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
+          script: |
+            watchdog=/home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog.sh
+            chmod 700 "$watchdog"
+            if systemctl is-active --quiet damkemon-watchdog.timer; then
+              if command -v crontab >/dev/null; then
+                (crontab -l 2>/dev/null | grep -vF "$watchdog" || true) | crontab -
+              fi
+              echo "systemd watchdog active"
+            elif command -v crontab >/dev/null; then
+              (crontab -l 2>/dev/null | grep -vF "$watchdog" || true
+               echo "* * * * * $watchdog") | crontab -
+              crontab -l | grep -F "$watchdog"
+              echo "cron watchdog active"
+            elif [ "$(loginctl show-user "$(id -un)" -p Linger --value)" = "yes" ]; then
+              user_name=$(id -un)
+              export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+              export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+              mkdir -p "$HOME/.config/systemd/user"
+              install -m 0644 /home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog-user.service \
+                "$HOME/.config/systemd/user/"
+              install -m 0644 /home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog-user.timer \
+                "$HOME/.config/systemd/user/"
+              systemctl --user daemon-reload
+              systemctl --user enable --now damkemon-watchdog-user.timer
+              systemctl --user is-enabled damkemon-watchdog-user.timer
+              systemctl --user is-active damkemon-watchdog-user.timer
+              echo "user systemd watchdog active"
+            else
+              loop=/home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog-loop.sh
+              command -v flock >/dev/null
+              chmod 700 "$loop"
+              mkdir -p "$HOME/.local/state/damkemon-watchdog"
+              nohup "$loop" >>"$HOME/.local/state/damkemon-watchdog/loop.log" 2>&1 </dev/null &
+              sleep 2
+              pgrep -u "$(id -u)" -f "$loop" >/dev/null
+              echo "detached watchdog active"
+            fi
+            echo "Root hardening remains available at: sudo bash ~/selfheal/install.sh"
+            echo "current restart policy:"
+            systemctl show damkemon-prod-app.service -p Restart -p RestartSec
+
+      # Out-of-process crawl worker: a oneshot service + nightly timer installed
+      # from the SAME jar (worker profile, no HTTP server, memory-capped). This is
+      # what keeps all heavy scraping off the request-serving API JVM. Non-fatal so
+      # it never blocks a deploy.
+      - name: Copy crawl-worker ops files
+        continue-on-error: true
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "ops/worker/*"
+          target: "/home/${{ vars.SERVER_USER }}/worker/"
+          strip_components: 2
+
+      - name: Install crawl worker (oneshot service + nightly timer)
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # install-worker.sh needs root (writes /etc/systemd). Auto-apply only
+            # when the deploy user has passwordless sudo; otherwise stage + print.
+            if sudo -n true 2>/dev/null; then
+              bash /home/${{ vars.SERVER_USER }}/worker/install-worker.sh
+            else
+              echo "Crawl worker staged at ~/worker. The deploy user lacks passwordless sudo,"
+              echo "so activate it once by hand (persists across deploys & restarts):"
+              echo "    sudo bash ~/worker/install-worker.sh"
+            fi
+            echo "worker timer:"
+            systemctl list-timers damkemon-prod-worker.timer --no-pager 2>/dev/null || true
+
+      - name: Verify watchdog survived SSH logout
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
+          script: |
+            watchdog=/home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog.sh
+            loop=/home/${{ vars.SERVER_USER }}/selfheal/damkemon-watchdog-loop.sh
+            if systemctl is-active --quiet damkemon-watchdog.timer; then
+              exit 0
+            fi
+            if command -v crontab >/dev/null && crontab -l 2>/dev/null | grep -F "$watchdog" >/dev/null; then
+              exit 0
+            fi
+            export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+            export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+            if systemctl --user is-active --quiet damkemon-watchdog-user.timer 2>/dev/null; then
+              exit 0
+            fi
+            if pgrep -u "$(id -u)" -f "$loop" >/dev/null; then
+              exit 0
+            fi
+            echo "No liveness watchdog is active."
+            exit 1

@@ -4,6 +4,7 @@ import com.damKemon.dam.kemon.model.PendingShop;
 import com.damKemon.dam.kemon.repository.PendingShopRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -29,7 +30,7 @@ class SubmitShopControllerTest {
         when(shops.findAll()).thenReturn(List.of());
         when(pending.findByBaseUrl(anyString())).thenReturn(Optional.empty());
         when(pending.save(any(PendingShop.class))).thenAnswer(inv -> inv.getArgument(0));
-        controller = new SubmitShopController(pending, shops);
+        controller = new SubmitShopController(pending, shops, mock(MongoTemplate.class));
     }
 
     @Test

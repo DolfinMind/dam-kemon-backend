@@ -7,48 +7,77 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
- * Caps anonymous traffic on {@code /api/search} and {@code /api/search/suggest}
- * to a sane per-IP budget so scrapers can't pin the Mongo free tier.
+ * Per-IP rate limiting for the public API — the bot/scraper defense.
  *
- * <p>Defaults: 60 tokens, refilled at 1/s (≈ 60 req/min sustained, brief
- * bursts to 60). Tunable via {@code RATE_LIMIT_CAPACITY} and
- * {@code RATE_LIMIT_REFILL_PER_SEC}.
+ * <p>Each {@link Rule} meters a set of path prefixes with its own token bucket;
+ * the first matching rule wins and consumes one token. Over budget → {@code 429}
+ * with a {@code Retry-After}. Admin/auth/static paths match no rule and are
+ * never limited, so operator scripts and logins keep working.
+ *
+ * <p>The key is the real client IP. Behind nginx that's {@code X-Real-IP} (set
+ * by the proxy) or the LAST hop of {@code X-Forwarded-For} — the entry nginx
+ * appends — NOT the leftmost XFF value, which a client can spoof to rotate keys
+ * and slip the limit.
  */
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private final RateLimiter limiter;
+    /** A protection tier: requests under any of {@code prefixes} are metered by {@code limiter}. */
+    public record Rule(RateLimiter limiter, int retryAfterSec, List<String> prefixes) {
+        boolean matches(String path) {
+            for (String p : prefixes) if (path.startsWith(p)) return true;
+            return false;
+        }
+    }
 
-    public RateLimitFilter(RateLimiter limiter) {
-        this.limiter = limiter;
+    private final List<Rule> rules;
+
+    public RateLimitFilter(List<Rule> rules) {
+        this.rules = rules;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
         String path = req.getRequestURI();
-        if (path == null || !path.startsWith("/api/search")) {
-            chain.doFilter(req, res);
-            return;
-        }
-
-        String key = clientIp(req);
-        if (!limiter.tryConsume(key)) {
-            res.setStatus(429);
-            res.setHeader("Retry-After", "5");
-            res.setContentType("application/json");
-            res.getWriter().write("{\"error\":\"rate limit exceeded\",\"retryAfterSec\":5}");
-            return;
+        if (path != null) {
+            for (Rule r : rules) {
+                if (r.matches(path)) {
+                    long remaining = r.limiter().tryConsumeRemaining(clientIp(req));
+                    // Standard rate-limit headers — let clients/monitors (and us)
+                    // see the budget; also makes the limiter verifiable in prod.
+                    res.setHeader("X-RateLimit-Limit", Long.toString(r.limiter().capacity()));
+                    res.setHeader("X-RateLimit-Remaining", Long.toString(Math.max(remaining, 0)));
+                    if (remaining < 0) {
+                        res.setStatus(429);
+                        res.setHeader("Retry-After", Integer.toString(r.retryAfterSec()));
+                        res.setContentType("application/json");
+                        res.getWriter().write(
+                                "{\"error\":\"rate limit exceeded\",\"retryAfterSec\":" + r.retryAfterSec() + "}");
+                        return;
+                    }
+                    break; // one matching rule, one token per request
+                }
+            }
         }
         chain.doFilter(req, res);
     }
 
-    private static String clientIp(HttpServletRequest req) {
+    /**
+     * Spoof-resistant client IP. Trust only proxy-set values: {@code X-Real-IP}
+     * first, else the LAST entry of {@code X-Forwarded-For} (the hop nginx
+     * appended — a client spoofing XFF can only prepend entries). Never the
+     * leftmost XFF value. Falls back to the socket address.
+     */
+    static String clientIp(HttpServletRequest req) {
+        String real = req.getHeader("X-Real-IP");
+        if (real != null && !real.isBlank()) return real.trim();
         String fwd = req.getHeader("X-Forwarded-For");
         if (fwd != null && !fwd.isBlank()) {
-            int comma = fwd.indexOf(',');
-            return (comma < 0 ? fwd : fwd.substring(0, comma)).trim();
+            int comma = fwd.lastIndexOf(',');
+            return (comma < 0 ? fwd : fwd.substring(comma + 1)).trim();
         }
         return req.getRemoteAddr();
     }

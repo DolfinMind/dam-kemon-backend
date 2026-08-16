@@ -14,9 +14,11 @@ import java.time.LocalDateTime;
  * A signed-in user. We hold only the data that's truly useful to ship
  * features — never anything we'd be embarrassed to lose in a breach.
  *
- * <p>Passwordless: sign-in is via email magic links. The {@link #role}
- * field separates regular users from admins (admins also need to clear
- * the {@code X-Admin-Key} gate on admin endpoints).
+ * <p>Regular users sign up with email + password (BCrypt) and verify their
+ * address via a Resend token link; the owner keeps the fixed
+ * username+password path. The {@link #role} field separates regular users
+ * from admins (admins also need to clear the {@code X-Admin-Key} gate on
+ * admin endpoints).
  */
 @Data
 @NoArgsConstructor
@@ -48,8 +50,45 @@ public class User {
     @Builder.Default
     private String role = "user";
 
-    /** Optional avatar URL — null for now; populated when we add OAuth. */
+    /** Optional avatar URL — filled from the Google profile picture on OAuth sign-in. */
     private String avatarUrl;
+
+    /** Google account id (the ID token's {@code sub} claim) once linked. */
+    @Indexed(sparse = true)
+    private String googleSub;
+
+    /**
+     * Email ownership proven via the token link. Null on legacy rows (the
+     * owner predates verification). Only explicit {@code true} enables alert emails.
+     */
+    private Boolean emailVerified;
+
+    /** One-shot email-verification token + expiry (48h). Cleared on use. */
+    private String verifyToken;
+    private LocalDateTime verifyTokenExpiry;
+
+    /** One-shot password-reset token + expiry (1h). Cleared on use. */
+    private String resetToken;
+    private LocalDateTime resetTokenExpiry;
+
+    // ── Optional profile (Account → Profile tab; all nullable, user-editable) ──
+    /** BD mobile, as typed — normalised lightly, never required. */
+    private String phone;
+    /** One of Bangladesh's 64 districts. */
+    private String district;
+    /** "male" | "female" | "other" — free-form string, not an enum. */
+    private String gender;
+    private Integer birthYear;
+    /** Catalog categories the user cares about (phones, laptops, …). */
+    private java.util.List<String> interests;
+    /** Mirrors a NewsletterSubscriber row; kept in sync by profile updates. */
+    private Boolean newsletterOptIn;
+    /** Where the account came from: "signup" | "owner-bootstrap". */
+    private String signupSource;
+
+    /** Community standing: starts at 1; +10 per review upvote, -2 per downvote. */
+    @Builder.Default
+    private Integer reputation = 1;
 
     /** When the user last successfully signed in. */
     private LocalDateTime lastLoginAt;

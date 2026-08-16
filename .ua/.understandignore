@@ -1,0 +1,24 @@
+# Build systems and generated output
+.git/
+.gradle/
+build/
+bin/
+out/
+coverage/
+
+# Understand-Anything scratch data
+.ua/intermediate/
+.ua/tmp/
+.ua/.trash-*/
+.ua/diff-overlay.json
+
+# Local configuration and secret-bearing files
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.log

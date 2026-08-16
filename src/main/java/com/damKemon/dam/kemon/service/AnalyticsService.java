@@ -2,17 +2,16 @@ package com.damKemon.dam.kemon.service;
 
 import com.damKemon.dam.kemon.model.AnalyticsEvent;
 import com.damKemon.dam.kemon.repository.AnalyticsEventRepository;
+import com.damKemon.dam.kemon.util.ClientIp;
+import com.damKemon.dam.kemon.util.TrafficClassifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.HexFormat;
 
 /**
  * Fire-and-forget event recorder. Every call is {@code @Async} so we don't
@@ -30,18 +29,24 @@ public class AnalyticsService {
 
     private final AnalyticsEventRepository repo;
 
-    public AnalyticsService(AnalyticsEventRepository repo) {
+    /** When false, only the IP hash is kept (the original no-PII behaviour). */
+    private final boolean storeRawIp;
+
+    public AnalyticsService(AnalyticsEventRepository repo,
+                            @Value("${analytics.store-raw-ip:false}") boolean storeRawIp) {
         this.repo = repo;
+        this.storeRawIp = storeRawIp;
     }
 
     @Async
     public void recordSearch(String query, int resultCount, String anonId, String ip) {
-        recordSearch(query, resultCount, anonId, ip, null, null);
+        recordSearch(query, resultCount, anonId, ip, null, null, null, null);
     }
 
     @Async
     public void recordSearch(String query, int resultCount, String anonId, String ip,
-                             String userId, Long latencyMs) {
+                             String userId, Long latencyMs, java.util.List<String> resultShops,
+                             String userAgent) {
         if (query == null) return;
         String q = query.trim();
         if (q.isEmpty()) return;
@@ -50,35 +55,136 @@ public class AnalyticsService {
                 .type("search")
                 .query(q.toLowerCase())
                 .resultCount(resultCount)
+                .resultShops(resultShops == null || resultShops.isEmpty() ? null : resultShops)
                 .anonId(safe(anonId))
                 .userId(safe(userId))
                 .latencyMs(latencyMs)
-                .ipHash(hashIp(ip))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
+                .userAgent(safe256(userAgent))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
     }
 
     @Async
     public void recordView(String productId, String anonId, String ip) {
+        recordView(productId, anonId, ip, null, null);
+    }
+
+    @Async
+    public void recordView(String productId, String anonId, String ip, String userId, String userAgent) {
         if (productId == null || productId.isBlank()) return;
         save(AnalyticsEvent.builder()
                 .type("view")
                 .productId(productId)
                 .anonId(safe(anonId))
-                .ipHash(hashIp(ip))
+                .userId(safe(userId))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
+                .userAgent(safe256(userAgent))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
     }
 
     @Async
     public void recordClick(String productId, String sellerSlug, String anonId, String ip) {
+        recordClick(productId, sellerSlug, anonId, ip, null, null);
+    }
+
+    @Async
+    public void recordClick(String productId, String sellerSlug, String anonId, String ip,
+                            String userId, String userAgent) {
         if (productId == null && sellerSlug == null) return;
         save(AnalyticsEvent.builder()
                 .type("click")
                 .productId(productId)
                 .sellerSlug(sellerSlug)
                 .anonId(safe(anonId))
-                .ipHash(hashIp(ip))
+                .userId(safe(userId))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
+                .userAgent(safe256(userAgent))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
+                .ts(Instant.now())
+                .build());
+    }
+
+    /** Autosuggest dropdown click: the user typed {@code query} and picked
+     *  {@code productName} — the "searched X, chose Y" pair the search log shows. */
+    @Async
+    public void recordSuggestClick(String query, String productId, String productName,
+                                   String anonId, String ip) {
+        recordSuggestClick(query, productId, productName, anonId, ip, null, null);
+    }
+
+    @Async
+    public void recordSuggestClick(String query, String productId, String productName,
+                                   String anonId, String ip, String userId, String userAgent) {
+        if (productId == null && productName == null) return;
+        String q = query == null ? null : query.trim().toLowerCase();
+        if (q != null && q.length() > MAX_QUERY_LEN) q = q.substring(0, MAX_QUERY_LEN);
+        save(AnalyticsEvent.builder()
+                .type("suggest_click")
+                .query(q == null || q.isEmpty() ? null : q)
+                .productId(safe(productId))
+                .productName(safe256(productName))
+                .anonId(safe(anonId))
+                .userId(safe(userId))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
+                .userAgent(safe256(userAgent))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
+                .ts(Instant.now())
+                .build());
+    }
+
+    /** A single SPA page navigation. Captures the route, referrer and device. */
+    @Async
+    public void recordPageView(String path, String anonId, String ip,
+                               String userId, String referer, String userAgent) {
+        if (path == null || path.isBlank()) return;
+        String p = path.trim();
+        if (p.length() > MAX_QUERY_LEN) p = p.substring(0, MAX_QUERY_LEN);
+        save(AnalyticsEvent.builder()
+                .type("pageview")
+                .path(p)
+                .anonId(safe(anonId))
+                .userId(safe(userId))
+                .referer(safe256(referer))
+                .userAgent(safe256(userAgent))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
+                .ts(Instant.now())
+                .build());
+    }
+
+    /** Explicit account lifecycle events that cannot be inferred from authenticated requests. */
+    @Async
+    public void recordAccountActivity(String type, String userId) {
+        if (type == null || userId == null) return;
+        save(AnalyticsEvent.builder()
+                .type(safe(type))
+                .userId(safe(userId))
+                .ts(Instant.now())
+                .build());
+    }
+
+    /** Explicit conversion action; endpoint-level allowlisting keeps type cardinality bounded. */
+    @Async
+    public void recordAction(String type, String productId, String anonId, String ip,
+                             String userId, String userAgent) {
+        save(AnalyticsEvent.builder()
+                .type(safe(type))
+                .productId(safe(productId))
+                .anonId(safe(anonId))
+                .userId(safe(userId))
+                .ip(rawIp(ip))
+                .ipHash(ClientIp.hash(ip))
+                .userAgent(safe256(userAgent))
+                .trafficClass(TrafficClassifier.classify(userAgent, ip))
                 .ts(Instant.now())
                 .build());
     }
@@ -89,21 +195,21 @@ public class AnalyticsService {
         catch (Exception ex) { log.debug("analytics unexpected: {}", ex.getMessage()); }
     }
 
+    /** Raw IP only when the operator has opted in; otherwise null (hash still kept). */
+    private String rawIp(String ip) {
+        return storeRawIp ? ip : null;
+    }
+
     private static String safe(String s) {
         if (s == null) return null;
         s = s.trim();
         return s.length() > 64 ? s.substring(0, 64) : s;
     }
 
-    /** SHA-256 hex of the IP, truncated. Not reversible without the IP. */
-    private static String hashIp(String ip) {
-        if (ip == null || ip.isBlank()) return null;
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] h = md.digest(ip.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(h).substring(0, 16);
-        } catch (NoSuchAlgorithmException e) {
-            return null;
-        }
+    private static String safe256(String s) {
+        if (s == null) return null;
+        s = s.trim();
+        if (s.isEmpty()) return null;
+        return s.length() > 256 ? s.substring(0, 256) : s;
     }
 }

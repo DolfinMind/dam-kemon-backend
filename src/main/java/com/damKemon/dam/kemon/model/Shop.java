@@ -43,6 +43,18 @@ public class Shop {
      */
     private String sitemapUrl;
 
+    /** Verified sitemap entry-points found via robots.txt and common platform paths. */
+    @Builder.Default
+    private List<String> discoveredSitemapUrls = new ArrayList<>();
+
+    /**
+     * Merchant-published product feed URL — Shopify {@code /products.json},
+     * WooCommerce Store API, or a Google Merchant / RSS XML feed. When set,
+     * {@code FeedSyncService} pulls it on a schedule (no scraping) and merges the
+     * items into the catalog, adding products + sellers.
+     */
+    private String feedUrl;
+
     /**
      * Search URL template with {@code {q}} as the query placeholder, used as
      * fallback when {@code sitemapUrl} is null or returned 0 product URLs.
@@ -72,12 +84,29 @@ public class Shop {
     @Builder.Default
     private String status = "active";
 
+    /**
+     * Who blocked this shop: "operator" (admin console) or "auto" (health rule).
+     * The lifecycle reviver only ever reactivates "auto" blocks — an operator's
+     * explicit hide must never be silently undone by a passing health probe.
+     * Also the public-visibility switch: any non-active shop's offers are
+     * stripped from search/browse/product responses.
+     */
+    private String blockedBy;
+
     /** Last successful indexer run, null if never indexed. */
     private LocalDateTime lastIndexedAt;
 
     /** Products extracted from the most recent successful run. */
     @Builder.Default
     private Integer lastIndexedCount = 0;
+
+    /**
+     * Live catalog truth: distinct products currently carrying one of this
+     * shop's offers. Denormalised (recomputed on admin list loads, ≤10 min
+     * stale) because {@code lastIndexedCount} only reflects the last CRAWL —
+     * feed-sync, manual ingest, merges and remerges all drift away from it.
+     */
+    private Integer catalogCount;
 
     /** Most recent error message, if {@code status == "blocked"}. */
     private String lastError;
@@ -107,6 +136,42 @@ public class Shop {
     /** True when this shop should be retried in the next retry pass. */
     @Builder.Default
     private Boolean needsRetry = false;
+
+    /**
+     * Slug of the extractor the auto-learning service decided works best
+     * for this shop's product pages. Set by {@code ScraperLearningService}
+     * after a probe run; honored by {@code ExtractorRegistry.pickForShop}.
+     * Null means "fall back to URL-based routing in the registry".
+     *
+     * <p>Lets the engine self-heal: when a previously broken shop suddenly
+     * works because a competing extractor (Generic JSON-LD, WooCommerce
+     * theme path) now matches its HTML, future runs lock onto that
+     * extractor without a redeploy.
+     */
+    private String preferredExtractor;
+
+    /** Product-feed endpoint auto-discovered by ApiSniffer; replayed cheaply (no browser) by DiscoveredApiHarvester. */
+    private String discoveredApiUrl;
+
+    /**
+     * Auto-detected platform fingerprint from a learning probe. Distinct
+     * from the operator-set {@link #platform} — this is "what the page
+     * actually looks like" (e.g. WordPress body class, Shopify JS globals,
+     * OpenCart route= URLs). Used for diagnostics and to flag mismatches
+     * between {@code shops.json} and reality.
+     */
+    private String detectedPlatform;
+
+    /** Last bounded source-discovery pass and its result classification. */
+    private LocalDateTime sourceAuditAt;
+    private String sourceAuditStatus;
+
+    /**
+     * Last time {@code ScraperLearningService} ran a probe on this shop.
+     * Throttled to once per 24h to avoid burning the same shop's quota
+     * on every retry pass.
+     */
+    private LocalDateTime lastLearnedAt;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

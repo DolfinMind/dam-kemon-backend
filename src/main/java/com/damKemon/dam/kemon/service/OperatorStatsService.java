@@ -171,6 +171,29 @@ public class OperatorStatsService {
         }
     }
 
+    /** Last N autosuggest picks — "typed X, clicked product Y" — for the search log. */
+    public java.util.List<Map<String, Object>> recentSuggestClicks(int limit) {
+        try {
+            Instant week = Instant.now().minus(7, ChronoUnit.DAYS);
+            java.util.List<AnalyticsEvent> all = events.findByTypeAndTsAfter("suggest_click", week);
+            all.sort((a, b) -> b.getTs().compareTo(a.getTs()));
+            java.util.List<Map<String, Object>> out = new java.util.ArrayList<>();
+            for (AnalyticsEvent e : all) {
+                if (out.size() >= limit) break;
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("query", e.getQuery());
+                row.put("productId", e.getProductId());
+                row.put("productName", e.getProductName());
+                row.put("ts", e.getTs());
+                row.put("anonId", e.getAnonId());
+                out.add(row);
+            }
+            return out;
+        } catch (DataAccessException e) {
+            return java.util.List.of();
+        }
+    }
+
     /** Top viewed and top clicked products in the last 7 days. */
     public Map<String, Object> topProducts(int limit) {
         Map<String, Object> out = new LinkedHashMap<>();

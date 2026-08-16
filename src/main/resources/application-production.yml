@@ -1,28 +1,98 @@
 # Production profile — activated with SPRING_PROFILES_ACTIVE=production
 # Overlays application.yml. Anything not declared here inherits dev defaults.
 
+server:
+  # nginx is the only public entry point; never expose the Spring port directly.
+  address: 127.0.0.1
+
 spring:
   data:
     mongodb:
       auto-index-creation: true
   cache:
     caffeine:
-      # Longer cache in prod — search load benefits from hot keys staying warm
-      spec: maximumSize=5000,expireAfterWrite=300s,recordStats
+      # Smaller cache on the 1 GB box — frees heap for indexing (was 5000)
+      spec: maximumSize=1500,expireAfterWrite=300s,recordStats
 
-# Full-throttle indexer — assumes a dedicated host with bandwidth headroom
+# Deliberately no defaults: unresolved production secrets stop the web app at boot.
+auth:
+  jwt-secret: ${AUTH_JWT_SECRET}
+admin:
+  api-key: ${ADMIN_API_KEY}
+owner:
+  username: ${OWNER_USERNAME}
+  password: ${OWNER_PASSWORD}
+resend:
+  api-key: ${RESEND_API_KEY}
+
+# API-safe mode (prod box is 1 vCPU / 2 GB with a 1 GB API heap). Shops index sequentially with a tiny
+# URL pool; the dedup index warms from an id+name projection; ~66 Shopify/WooCommerce
+# shops are pulled via cheap bulk JSON (JsonCatalogHarvester) instead of page scraping.
+# Chromium stays OFF (too heavy here). A GENTLE 24/7 catch-up runs every 6h toward the
+# 30k target and self-stops. Re-enable Chromium + high parallelism after resizing to >= 2 GB.
 indexer:
-  global-parallelism: 64
-  per-host-parallelism: 3
-  max-products-per-shop: 500
+  global-parallelism: 4
+  per-host-parallelism: 2
+  max-products-per-shop: 1500
   max-urls-per-shop: 1500
   per-extract-timeout-ms: 30000
-  scheduled: true
+  # CRAWLING MOVED OUT-OF-PROCESS (2026-06-21): the heavy crawl that used to run
+  # here every 3h + ~10 min after each boot is what spiked CPU/memory and hung the
+  # API JVM. It now runs in damkemon-prod-worker.service (oneshot + nightly timer),
+  # so the API node is crawl-free — scheduled + catch-up OFF, browser OFF below.
+  scheduled: false
   cron: 0 0 3 * * *
   user-agent: "Mozilla/5.0 (compatible; DamKemonBot/1.0; +https://damkemon.com/bot)"
+  # Catch-up driver: keep running full passes until we hit the product target,
+  # then idle. Fires ~1 min after deploy, then every 2h after the previous pass
+  # completes. Backs off automatically if the catalog plateaus (shops drained).
+  catchup-enabled: false             # OFF on the API node — the worker owns catch-up now
+  target-products: 30000
+  catchup-interval-ms: 10800000      # 3h between passes — faster shop-set rotation (box is idle ~95% of the time)
+  catchup-initial-delay-ms: 600000   # first pass ~10 min after boot (not a tight loop if a run is heavy)
+  catchup-min-progress: 50           # < this many new products/pass = "no progress"
+  catchup-max-stagnant: 3            # flat cycles before backing off to probe-only
+  catchup-auto-approve: true         # promote discovered shops automatically — was false, so discovery
+                                     # found candidates that NEVER got crawled; the catch-up kept
+                                     # re-scraping the same drained shop set and the count plateaued.
+  catchup-approve-per-cycle: 25      # max pending shops approved per pass
+
+# Marketplace harvesters were pinned at ~500/shop — daraz & chaldal are the two
+# biggest single sources, so those caps were a hard ceiling on the catalog.
+# These are JSON harvests (low memory), safe to raise on the 1 GB box; the global
+# indexer.max-products-per-shop (1500) is still the real ceiling.
+daraz:
+  max-products: 5000
+  max-pages-per-query: 2             # was 1 — one page ≈ 40 items; two doubles reach per seed
+  max-per-query: 40                  # was 24
+chaldal:
+  max-products: 5000
+  max-pages-per-query: 3             # was 2
+  max-per-query: 30                  # was 16
+json-harvest:
+  max-pages: 30                      # was 15 — let big Shopify/Woo catalogs reach the 1500 cap
 
 browser:
-  enabled: true        # SPA shops (Daraz, Pickaboo, Aarong) need Playwright
+  enabled: false       # OFF on the API node — no Chromium in the request-serving JVM, ever.
+                       # SPA-shop rendering lives in the worker (WORKER_BROWSER_ENABLED, needs >= 2 GB).
+
+# The in-memory trigram index stores millions of posting-list entries and was
+# retaining the full 120k-product catalog on the 1 GB API node (>1 GB heap at
+# startup). Mongo text/prefix search remains available; keep fuzzy indexing off
+# until it is moved to a compact external index or the box is resized.
+search:
+  trigram:
+    enabled: false
+
+# Heavy crawl/consolidation @Scheduled jobs are OFF on the API node — the worker
+# (damkemon-prod-worker.service) owns them. Light, serving-side jobs stay ON here:
+# price-history snapshot, hot-drops rebuild, trigram refresh, price alerts, seller sync.
+remerge:
+  enabled: false
+seller-depth:
+  enabled: false
+discovery:
+  enabled: false
 
 price-history:
   enabled: true

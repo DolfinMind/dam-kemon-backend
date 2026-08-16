@@ -1,0 +1,6 @@
+[Unit]
+Description=Damkemon API liveness watchdog (user fallback)
+
+[Service]
+Type=oneshot
+ExecStart=%h/selfheal/damkemon-watchdog.sh

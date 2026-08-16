@@ -1,5 +1,7 @@
 package com.damKemon.dam.kemon.config;
 
+import org.springframework.scheduling.annotation.Scheduled;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -30,7 +32,20 @@ public class RateLimiter {
         this.refillPerSec = refillPerSec;
     }
 
+    /** Burst capacity (max tokens). Exposed for the {@code X-RateLimit-Limit} header. */
+    public long capacity() {
+        return capacity;
+    }
+
     public boolean tryConsume(String key) {
+        return tryConsumeRemaining(key) >= 0;
+    }
+
+    /**
+     * Consume one token. Returns the remaining whole-token count on success, or
+     * {@code -1} when over budget — lets the filter surface {@code X-RateLimit-Remaining}.
+     */
+    public long tryConsumeRemaining(String key) {
         if (key == null) key = "_null";
         long now = System.nanoTime();
         Bucket b = buckets.computeIfAbsent(key, k -> new Bucket(capacity, now));
@@ -42,12 +57,12 @@ public class RateLimiter {
                 b.tokens = Math.min(capacity, b.tokens + newTokens);
                 b.lastRefillNanos = now;
             }
+            b.lastTouched.set(now);
             if (b.tokens >= 1.0) {
                 b.tokens -= 1.0;
-                b.lastTouched.set(now);
-                return true;
+                return (long) Math.floor(b.tokens);
             }
-            return false;
+            return -1;
         }
     }
 
@@ -55,6 +70,11 @@ public class RateLimiter {
     public void evictIdle(int idleMinutes) {
         long cutoff = System.nanoTime() - idleMinutes * 60L * 1_000_000_000L;
         buckets.entrySet().removeIf(e -> e.getValue().lastTouched.get() < cutoff);
+    }
+
+    @Scheduled(fixedDelayString = "${ratelimit.cleanup-ms:600000}")
+    public void evictIdle() {
+        evictIdle(10);
     }
 
     private static final class Bucket {

@@ -1,0 +1,7 @@
+[Unit]
+Description=Damkemon API liveness watchdog (restarts the API if it hangs)
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/damkemon-watchdog.sh

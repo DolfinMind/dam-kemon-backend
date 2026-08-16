@@ -1,5 +1,6 @@
 package com.damKemon.dam.kemon.controller;
 
+import com.damKemon.dam.kemon.indexer.BulkIndexer;
 import com.damKemon.dam.kemon.model.Product;
 import com.damKemon.dam.kemon.model.SitePrice;
 import com.damKemon.dam.kemon.repository.ProductRepository;
@@ -14,9 +15,11 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.bson.Document;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,10 +54,17 @@ public class AdminCatalogController {
     public ResponseEntity<?> list(
             @RequestParam(value = "q", required = false) String q,
             @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "sort", required = false) String sort,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "30") int size) {
         try {
-            Query query = new Query().with(PageRequest.of(page, Math.min(size, 100)));
+            PageRequest pr = PageRequest.of(page, Math.min(size, 100));
+            if ("date_desc".equals(sort)) {
+                pr = PageRequest.of(page, Math.min(size, 100), org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+            } else if ("date_asc".equals(sort)) {
+                pr = PageRequest.of(page, Math.min(size, 100), org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "createdAt"));
+            }
+            Query query = new Query().with(pr);
             if (q != null && !q.isBlank()) {
                 query.addCriteria(Criteria.where("name").regex(java.util.regex.Pattern.quote(q), "i"));
             }
@@ -74,7 +84,239 @@ public class AdminCatalogController {
         }
     }
 
+    /**
+     * Seller-depth report — the core business metric. Server-side aggregation over
+     * {@code prices[]} length, so it's heap-safe at any catalog size. Returns the
+     * average sellers/product, the single-vs-multi split, and the deepest products.
+     * This is the number to watch: more sellers/product = real price comparison.
+     */
+    @GetMapping("/seller-depth")
+    public ResponseEntity<?> sellerDepth() {
+        try {
+            List<Document> pipeline = List.of(
+                new Document("$project", new Document("sellers",
+                        new Document("$size", new Document("$ifNull", List.of("$prices", List.of()))))),
+                new Document("$group", new Document("_id", null)
+                        .append("products", new Document("$sum", 1))
+                        .append("totalOffers", new Document("$sum", "$sellers"))
+                        .append("avgSellers", new Document("$avg", "$sellers"))
+                        .append("maxSellers", new Document("$max", "$sellers"))
+                        .append("single", countWhen(new Document("$lte", List.of("$sellers", 1))))
+                        .append("multi",  countWhen(new Document("$gte", List.of("$sellers", 2))))
+                        .append("atLeast3", countWhen(new Document("$gte", List.of("$sellers", 3))))
+                        .append("atLeast5", countWhen(new Document("$gte", List.of("$sellers", 5))))));
+            Document r = mongo.getCollection("products").aggregate(pipeline).first();
+            Map<String, Object> out = new LinkedHashMap<>();
+            if (r == null) { out.put("products", 0); return ResponseEntity.ok(out); }
+            long prods = num(r.get("products"));
+            long multi = num(r.get("multi"));
+            double avg = r.get("avgSellers") == null ? 0 : ((Number) r.get("avgSellers")).doubleValue();
+            out.put("products", prods);
+            out.put("totalOffers", num(r.get("totalOffers")));
+            out.put("avgSellersPerProduct", Math.round(avg * 100.0) / 100.0);
+            out.put("maxSellers", num(r.get("maxSellers")));
+            out.put("singleSeller", num(r.get("single")));
+            out.put("multiSeller", multi);
+            out.put("multiSellerPct", prods == 0 ? 0 : Math.round(multi * 1000.0 / prods) / 10.0);
+            out.put("atLeast3Sellers", num(r.get("atLeast3")));
+            out.put("atLeast5Sellers", num(r.get("atLeast5")));
+
+            // The deepest products — what good comparison looks like today.
+            List<Document> topPipe = List.of(
+                new Document("$project", new Document("name", 1)
+                        .append("sellers", new Document("$size", new Document("$ifNull", List.of("$prices", List.of()))))),
+                new Document("$sort", new Document("sellers", -1)),
+                new Document("$limit", 10));
+            List<Map<String, Object>> top = new ArrayList<>();
+            for (Document d : mongo.getCollection("products").aggregate(topPipe)) {
+                Map<String, Object> t = new LinkedHashMap<>();
+                t.put("name", d.getString("name"));
+                t.put("sellers", num(d.get("sellers")));
+                top.add(t);
+            }
+            out.put("deepestProducts", top);
+            return ResponseEntity.ok(out);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    private static Document countWhen(Document predicate) {
+        return new Document("$sum", new Document("$cond", List.of(predicate, 1, 0)));
+    }
+
+    private static long num(Object o) {
+        return o instanceof Number n ? n.longValue() : 0L;
+    }
+
     /** Edit core fields of a product. Operator override of indexer detection. */
+    public record OfferReq(String siteSlug, String siteName, Double price, Double originalPrice,
+                           String productUrl, String imageUrl, String sellerName) {}
+
+    public record SplitReq(Double threshold, String lowName, String highName) {}
+
+    /**
+     * Split a lane-MIXED product into two by price: offers below {@code threshold}
+     * stay on this doc (renamed {@code lowName}, the grey/unofficial lane); offers
+     * at/above it move to a NEW doc ({@code highName}, the official lane). This is
+     * how a single "iPhone 16 Plus" doc spanning ৳92k–185k becomes a clean grey
+     * doc (৳92–112k) and a clean official doc (৳165–185k). Both re-aggregate and
+     * get fresh matchKeys. No-op (400) if a side would be empty.
+     */
+    @PostMapping("/{id}/split")
+    public ResponseEntity<?> splitByPrice(@PathVariable String id, @RequestBody SplitReq req) {
+        if (req == null || req.threshold() == null || req.threshold() <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "positive threshold required"));
+        }
+        try {
+            Product p = products.findById(id).orElse(null);
+            if (p == null) return ResponseEntity.notFound().build();
+            List<SitePrice> low = new ArrayList<>(), high = new ArrayList<>();
+            for (SitePrice sp : (p.getPrices() == null ? List.<SitePrice>of() : p.getPrices())) {
+                if (sp.getPrice() != null && sp.getPrice() >= req.threshold()) high.add(sp);
+                else low.add(sp);
+            }
+            if (low.isEmpty() || high.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "split leaves a side empty",
+                        "low", low.size(), "high", high.size()));
+            }
+            // original keeps the LOW (grey) lane
+            p.setPrices(low);
+            if (req.lowName() != null && !req.lowName().isBlank()) p.setName(req.lowName());
+            BulkIndexer.recomputeAggregates(p);
+            p.setMatchKey(BulkIndexer.productMatchKey(p.getName()));
+            p.setUpdatedAt(LocalDateTime.now());
+            // new doc gets the HIGH (official) lane
+            String hiName = req.highName() != null && !req.highName().isBlank()
+                    ? req.highName() : p.getName() + " (Official)";
+            Product hi = Product.builder()
+                    .name(hiName)
+                    .slug(hiName.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", ""))
+                    .matchKey(BulkIndexer.productMatchKey(hiName))
+                    .category(p.getCategory())
+                    .brands(p.getBrands())
+                    .imageUrl(p.getImageUrl())
+                    .prices(high)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            BulkIndexer.recomputeAggregates(hi);
+            products.save(p);
+            Product savedHi = products.save(hi);
+            return ResponseEntity.ok(Map.of(
+                    "low", Map.of("id", id, "name", p.getName(), "sellers", low.size(),
+                            "lowestPrice", String.valueOf(p.getLowestPrice()), "highestPrice", String.valueOf(p.getHighestPrice())),
+                    "high", Map.of("id", String.valueOf(savedHi.getId()), "name", hiName, "sellers", high.size(),
+                            "lowestPrice", String.valueOf(hi.getLowestPrice()), "highestPrice", String.valueOf(hi.getHighestPrice()))));
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Append (or refresh) one seller's offer on a SPECIFIC product — the precise,
+     * lane-aware way to add a hand/web-verified price without the matchKey ingest
+     * possibly routing it to the wrong variant doc (official vs grey-market). A
+     * re-add from the same first-party shop replaces its prior offer. Aggregates
+     * are recomputed through the same trusted-price filter the indexer uses.
+     */
+    @PostMapping("/{id}/offer")
+    public ResponseEntity<?> addOffer(@PathVariable String id, @RequestBody OfferReq req) {
+        if (req == null || req.price() == null || req.price() <= 0
+                || req.siteSlug() == null || req.siteSlug().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "siteSlug and a positive price are required"));
+        }
+        try {
+            Product p = products.findById(id).orElse(null);
+            if (p == null) return ResponseEntity.notFound().build();
+            if (p.getPrices() == null) p.setPrices(new ArrayList<>());
+            // one offer per first-party shop: drop the same shop's prior offer, then add.
+            p.getPrices().removeIf(o -> java.util.Objects.equals(o.getSiteSlug(), req.siteSlug())
+                    && (o.getSellerId() == null || o.getSellerId().isBlank()));
+            p.getPrices().add(SitePrice.builder()
+                    .siteName(req.siteName() != null && !req.siteName().isBlank() ? req.siteName() : req.siteSlug())
+                    .siteSlug(req.siteSlug())
+                    .productUrl(req.productUrl())
+                    .price(req.price())
+                    .originalPrice(req.originalPrice())
+                    .currency("BDT")
+                    .inStock(true)
+                    .sellerName(req.sellerName())
+                    .lastUpdated(LocalDateTime.now())
+                    .build());
+            if ((p.getImageUrl() == null || p.getImageUrl().isBlank()) && req.imageUrl() != null) {
+                p.setImageUrl(req.imageUrl());
+            }
+            BulkIndexer.recomputeAggregates(p);
+            p.setUpdatedAt(LocalDateTime.now());
+            products.save(p);
+            return ResponseEntity.ok(Map.of("id", id, "name", p.getName(),
+                    "sellers", p.getPrices().size(),
+                    "lowestPrice", String.valueOf(p.getLowestPrice()),
+                    "highestPrice", String.valueOf(p.getHighestPrice())));
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    public record CreateReq(String name, String category, String description, String imageUrl,
+                            List<String> brands, OfferReq offer) {}
+
+    /**
+     * Manually add a product the crawler hasn't (or won't) pick up. Name is
+     * required; an optional first offer (shop + price) makes it immediately
+     * comparable. Gets a slug + matchKey like any indexed product, so the
+     * nightly re-merge can still consolidate a crawled duplicate onto it.
+     */
+    @PostMapping
+    public ResponseEntity<?> createProduct(@RequestBody CreateReq req) {
+        if (req == null || req.name() == null || req.name().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "name is required"));
+        }
+        if (req.offer() != null && (req.offer().siteSlug() == null || req.offer().siteSlug().isBlank()
+                || req.offer().price() == null || req.offer().price() <= 0)) {
+            return ResponseEntity.badRequest().body(Map.of("error",
+                    "offer needs a siteSlug and a positive price (or omit it)"));
+        }
+        try {
+            String name = req.name().trim();
+            String slug = name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", "");
+            List<SitePrice> prices = new ArrayList<>();
+            if (req.offer() != null) {
+                OfferReq o = req.offer();
+                prices.add(SitePrice.builder()
+                        .siteName(o.siteName() != null && !o.siteName().isBlank() ? o.siteName() : o.siteSlug())
+                        .siteSlug(o.siteSlug())
+                        .productUrl(o.productUrl())
+                        .price(o.price())
+                        .originalPrice(o.originalPrice())
+                        .currency("BDT")
+                        .inStock(true)
+                        .sellerName(o.sellerName())
+                        .lastUpdated(LocalDateTime.now())
+                        .build());
+            }
+            Product p = Product.builder()
+                    .name(name)
+                    .slug(slug)
+                    .matchKey(BulkIndexer.productMatchKey(name))
+                    .category(req.category() == null || req.category().isBlank() ? null : req.category().trim())
+                    .description(req.description())
+                    .imageUrl(req.imageUrl())
+                    .brands(req.brands() == null ? List.of() : req.brands())
+                    .prices(prices)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            BulkIndexer.recomputeAggregates(p);
+            Product saved = products.save(p);
+            log.info("AdminCatalog: manually created product {} ('{}')", saved.getId(), name);
+            return ResponseEntity.ok(saved);
+        } catch (DataAccessException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PatchMapping("/{id}")
     public ResponseEntity<?> editProduct(@PathVariable String id, @RequestBody Map<String, Object> body) {
         try {

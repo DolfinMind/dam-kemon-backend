@@ -1,0 +1,14 @@
+# Nightly trigger for the out-of-process crawl/index worker.
+# Activates damkemon-prod-worker.service (same base name) once a day.
+[Unit]
+Description=Nightly Dam Kemon crawl/index worker
+
+[Timer]
+# 03:00 local, with a randomized delay so a crawl never aligns with a deploy
+# restart of the API. Persistent: if the box was off at 03:00, run on next boot.
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=900
+Persistent=true
+
+[Install]
+WantedBy=timers.target

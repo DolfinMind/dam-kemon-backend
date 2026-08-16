@@ -1,20 +1,25 @@
 package com.damKemon.dam.kemon.service;
 
 import com.damKemon.dam.kemon.model.Shop;
+import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class ShopHealthServiceTest {
 
     private ShopHealthService svc;
+    private ProductRepository products;
 
     @BeforeEach
     void setUp() {
-        svc = new ShopHealthService(mock(ShopRepository.class));
+        products = mock(ProductRepository.class);
+        svc = new ShopHealthService(mock(ShopRepository.class), products);
     }
 
     @Test
@@ -34,16 +39,44 @@ class ShopHealthServiceTest {
     }
 
     @Test
-    void threeConsecutiveFailuresAutoDisable() {
+    void threeConsecutiveFailuresDoNotBlock() {
+        // The auto-disable rule is intentionally conservative: a few timeouts or a
+        // transient bot-block must NOT block a shop (that used to decimate the
+        // catalog). consecutiveFailures still drives the same-night retry.
         Shop s = Shop.builder().slug("x").status("active").build();
         svc.recordRun(s, 0, "timeout");
         svc.recordRun(s, 0, "timeout");
-        assertEquals("active", s.getStatus()); // still active after 2
-        assertTrue(s.getNeedsRetry());
         svc.recordRun(s, 0, "timeout");
-        assertEquals("blocked", s.getStatus()); // flipped after 3
+        assertEquals("active", s.getStatus()); // still active after 3
         assertEquals(3, s.getConsecutiveFailures());
+        assertTrue(s.getNeedsRetry());
+        assertEquals("dormant", s.getHealth()); // 0 successes in the window
+    }
+
+    @Test
+    void blocksAfterFullDeadWindowWhenNoLiveCatalogProducts() {
+        // A shop with 0 products in the catalog is genuinely dead — block it after
+        // a full window (~a week) of zero-yield runs.
+        when(products.countBySiteSlug(anyString())).thenReturn(0L);
+        Shop s = Shop.builder().slug("x").status("active").build();
+        for (int i = 0; i < 6; i++) {
+            svc.recordRun(s, 0, "timeout");
+            assertEquals("active", s.getStatus()); // not yet — window not full
+        }
+        svc.recordRun(s, 0, "timeout"); // 7th = full window
+        assertEquals("blocked", s.getStatus());
         assertEquals("dormant", s.getHealth());
+    }
+
+    @Test
+    void provenShopWithLiveProductsIsNeverBlocked() {
+        // Same dead window, but the shop still holds catalog products → our
+        // extractor regressed, not the shop. Keep it (dormant + retrying).
+        when(products.countBySiteSlug(anyString())).thenReturn(420L);
+        Shop s = Shop.builder().slug("x").status("active").build();
+        for (int i = 0; i < 8; i++) svc.recordRun(s, 0, "timeout");
+        assertEquals("active", s.getStatus()); // never blocked
+        assertTrue(s.getNeedsRetry());
     }
 
     @Test

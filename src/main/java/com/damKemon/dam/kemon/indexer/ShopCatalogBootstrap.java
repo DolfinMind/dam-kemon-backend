@@ -4,18 +4,25 @@ import com.damKemon.dam.kemon.model.Shop;
 import com.damKemon.dam.kemon.repository.ShopRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
+
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 /**
  * On boot, reads {@code resources/shops.json} and upserts each entry into
@@ -37,25 +44,42 @@ public class ShopCatalogBootstrap {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final ShopRepository shopRepository;
+    private final MongoTemplate mongoTemplate;
 
-    public ShopCatalogBootstrap(ShopRepository shopRepository) {
+    public ShopCatalogBootstrap(ShopRepository shopRepository, MongoTemplate mongoTemplate) {
         this.shopRepository = shopRepository;
+        this.mongoTemplate = mongoTemplate;
     }
 
-    @PostConstruct
+    // Runs on ApplicationReadyEvent, not @PostConstruct: @PostConstruct can fire
+    // before the Mongo connection is ready on a cold/slow box, throw, and silently
+    // no-op — leaving the shops collection (and so both the public and admin shop
+    // views) empty. By ready-time the data layer is up, so the upsert lands.
+    @EventListener(ApplicationReadyEvent.class)
     public void seed() {
+        // Heal first: two JVMs (web + worker) booting at once used to race this
+        // seed's exists-check and double-insert a slug. Once duplicated,
+        // findBySlug(slug) THROWS (non-unique result) — 500ing the admin hide
+        // button and aborting this very loop. Collapse dupes, then lock the
+        // invariant with a unique index so the race can never re-create them.
+        dedupeShops();
+        ensureUniqueSlugIndex();
+
         List<ShopEntry> entries = loadCatalog();
         if (entries.isEmpty()) return;
 
         int inserted = 0, updated = 0;
         for (ShopEntry e : entries) {
             try {
-                Optional<Shop> existing = shopRepository.findBySlug(e.slug);
-                Shop shop = existing.orElseGet(() -> Shop.builder()
-                        .slug(e.slug)
-                        .status("active")
-                        .createdAt(LocalDateTime.now())
-                        .build());
+                List<Shop> matches = shopRepository.findAllBySlug(e.slug);
+                Shop shop = matches.isEmpty()
+                        ? Shop.builder()
+                                .slug(e.slug)
+                                .status("active")
+                                .createdAt(LocalDateTime.now())
+                                .build()
+                        : matches.get(0);
+                boolean existed = !matches.isEmpty();
                 shop.setName(e.name);
                 shop.setBaseUrl(e.baseUrl);
                 shop.setSitemapUrl(e.sitemapUrl);
@@ -65,7 +89,10 @@ public class ShopCatalogBootstrap {
                 shop.setRequiresJs(Boolean.TRUE.equals(e.requiresJs));
                 shop.setUpdatedAt(LocalDateTime.now());
                 shopRepository.save(shop);
-                if (existing.isPresent()) updated++; else inserted++;
+                if (existed) updated++; else inserted++;
+            } catch (org.springframework.dao.DuplicateKeyException race) {
+                // the OTHER JVM inserted this slug between our check and save — fine
+                updated++;
             } catch (DataAccessException ex) {
                 log.warn("Shop catalog seed: Mongo unreachable ({}). Skipping further seeds.", ex.getMessage());
                 return;
@@ -74,6 +101,62 @@ public class ShopCatalogBootstrap {
             }
         }
         log.info("Shop catalog: {} inserted, {} updated, {} total in DB", inserted, updated, inserted + updated);
+    }
+
+    /**
+     * Collapse shops sharing a slug into one survivor: the doc with real crawl
+     * history wins (latest lastIndexedAt, then oldest createdAt as tiebreak).
+     * An operator's hide on ANY duplicate is carried onto the survivor — intent
+     * must outlive the cleanup. Loser docs are deleted.
+     */
+    void dedupeShops() {
+        List<Shop> all;
+        try {
+            all = shopRepository.findAll();
+        } catch (DataAccessException e) {
+            return;   // Mongo not up yet — seed() will bail on its own
+        }
+        Map<String, List<Shop>> bySlug = new LinkedHashMap<>();
+        for (Shop s : all) {
+            if (s.getSlug() == null) continue;
+            bySlug.computeIfAbsent(s.getSlug(), k -> new ArrayList<>()).add(s);
+        }
+        for (Map.Entry<String, List<Shop>> e : bySlug.entrySet()) {
+            List<Shop> dupes = e.getValue();
+            if (dupes.size() < 2) continue;
+            dupes.sort(Comparator
+                    .comparing(Shop::getLastIndexedAt, Comparator.nullsFirst(Comparator.naturalOrder())).reversed()
+                    .thenComparing(Shop::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())));
+            Shop survivor = dupes.get(0);
+            // A hide on ANY duplicate transfers to the survivor, keeping who set it.
+            Shop hidden = dupes.stream()
+                    .filter(d -> d.getStatus() != null && !"active".equals(d.getStatus()))
+                    .findFirst().orElse(null);
+            if (hidden != null && (survivor.getStatus() == null || "active".equals(survivor.getStatus()))) {
+                survivor.setStatus(hidden.getStatus());
+                survivor.setBlockedBy(hidden.getBlockedBy());
+            }
+            try {
+                shopRepository.save(survivor);
+                for (Shop loser : dupes.subList(1, dupes.size())) shopRepository.delete(loser);
+                log.warn("Shop catalog: deduped slug '{}' — kept {}, deleted {} duplicate row(s)",
+                        e.getKey(), survivor.getId(), dupes.size() - 1);
+            } catch (DataAccessException ex) {
+                log.warn("Shop catalog: dedupe of '{}' failed: {}", e.getKey(), ex.getMessage());
+            }
+        }
+    }
+
+    /** Unique index on slug — makes the boot-race double-insert impossible. */
+    private void ensureUniqueSlugIndex() {
+        try {
+            mongoTemplate.indexOps(Shop.class)
+                    .ensureIndex(new Index().on("slug", Sort.Direction.ASC).unique());
+        } catch (Exception e) {
+            // Leftover dupes (dedupe failed mid-way) block index creation; the
+            // next boot's dedupe pass gets another shot. Never fail startup.
+            log.warn("Shop catalog: unique slug index not created yet: {}", e.getMessage());
+        }
     }
 
     private List<ShopEntry> loadCatalog() {

@@ -12,17 +12,21 @@ import com.damKemon.dam.kemon.repository.ShopRepository;
 import com.damKemon.dam.kemon.scraper.ExtractorRegistry;
 import com.damKemon.dam.kemon.scraper.ProductExtractor;
 import com.damKemon.dam.kemon.scraper.ScrapedProduct;
+import com.damKemon.dam.kemon.service.CategoryFocusService;
+import com.damKemon.dam.kemon.service.IndexNowService;
 import com.damKemon.dam.kemon.service.ShopHealthService;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,13 +68,24 @@ public class BulkIndexer {
     private final ProductRepository productRepository;
     private final SitemapCrawler sitemapCrawler;
     private final HomepageCrawler homepageCrawler;
+    private final SearchSeedCrawler searchSeedCrawler;
     private final ExtractorRegistry extractors;
     private final QueryClassifier classifier;
     private final ShopHealthService shopHealth;
     private final IndexerRunRepository indexerRunRepository;
+    private final ScraperLearningService learner;
+    private final List<ShopHarvester> harvesters;
+    private final ApiSniffer apiSniffer;
+    private final DomCardHarvester domCardHarvester;
+    private final CategoryFocusService categoryFocus;
+    private final MongoTemplate mongoTemplate;
+    private final IndexNowService indexNow;
 
     /** Whether an indexing run is currently in flight. Prevents overlap. */
     private final AtomicLong runningSince = new AtomicLong(0);
+
+    /** Remaining browser-render budget for the current run (see maxJsRendersPerRun). */
+    private final AtomicInteger jsRenderBudget = new AtomicInteger(0);
 
     @Value("${indexer.per-host-parallelism:2}")
     private int perHostParallelism;
@@ -84,22 +99,93 @@ public class BulkIndexer {
     @Value("${indexer.max-products-per-shop:500}")
     private int maxProductsPerShop;
 
+    /** Per-harvest cap for MARKETPLACE shops (listings carry a distinct sellerId).
+     *  Much higher than the first-party cap because each extra listing is a
+     *  sub-seller that converges onto an existing product, not catalog breadth. */
+    @Value("${indexer.marketplace-max-offers:4000}")
+    private int marketplaceMaxOffers;
+
+    /** Per-run cap on browser renders (sniffer + learner) so a nightly pass can't
+     *  wedge on dozens of serial Playwright calls. Beyond it, 0-yield shops defer
+     *  to the next run (both paths are 24h-throttled anyway). */
+    @Value("${indexer.max-js-renders-per-run:25}")
+    private int maxJsRendersPerRun;
+
+    /** Wall-clock budget for a full run (runAll) before it defers the rest to the
+     *  next pass. Keeps the tiny prod box's cron bounded; set high on a beefy host
+     *  (e.g. a local backfill) so one pass sweeps every shop. runRetry uses 80%. */
+    @Value("${indexer.run-budget-minutes:25}")
+    private long runBudgetMinutes;
+
+    /** Breadth mode: read rendered DOM cards FIRST for shops that have never
+     *  produced (instead of grinding a dead sitemap), to get the long tail of
+     *  0-product shops showing fast. Off by default (prod's small box can't
+     *  render every shop); enable on a backfill host. */
+    @Value("${domcard.first-for-dormant:false}")
+    private boolean domCardFirst;
+
     public BulkIndexer(ShopRepository shopRepository,
                        ProductRepository productRepository,
                        SitemapCrawler sitemapCrawler,
                        HomepageCrawler homepageCrawler,
+                       SearchSeedCrawler searchSeedCrawler,
                        ExtractorRegistry extractors,
                        QueryClassifier classifier,
                        ShopHealthService shopHealth,
-                       IndexerRunRepository indexerRunRepository) {
+                       IndexerRunRepository indexerRunRepository,
+                       ScraperLearningService learner,
+                       List<ShopHarvester> harvesters,
+                       ApiSniffer apiSniffer,
+                       DomCardHarvester domCardHarvester,
+                       CategoryFocusService categoryFocus,
+                       MongoTemplate mongoTemplate,
+                       IndexNowService indexNow) {
         this.shopRepository = shopRepository;
         this.productRepository = productRepository;
         this.sitemapCrawler = sitemapCrawler;
         this.homepageCrawler = homepageCrawler;
+        this.searchSeedCrawler = searchSeedCrawler;
         this.extractors = extractors;
         this.classifier = classifier;
         this.shopHealth = shopHealth;
         this.indexerRunRepository = indexerRunRepository;
+        this.learner = learner;
+        this.harvesters = harvesters;
+        this.apiSniffer = apiSniffer;
+        this.domCardHarvester = domCardHarvester;
+        this.categoryFocus = categoryFocus;
+        this.mongoTemplate = mongoTemplate;
+        this.indexNow = indexNow;
+    }
+
+    /**
+     * Cross-process live status. The crawl runs in the WORKER JVM, but the admin
+     * console talks to the WEB JVM — whose in-memory {@link #lastRun} never sees
+     * a worker run (that's why the Indexer page showed "No runs yet" mid-crawl).
+     * The worker upserts this singleton doc at run start, after every shop, and
+     * at the end; the web's /index/status falls back to reading it.
+     */
+    private void heartbeat(String kind, RunSummary s, String currentShop) {
+        try {
+            org.bson.Document d = new org.bson.Document("_id", "live")
+                    .append("kind", kind)
+                    .append("currentShop", currentShop)
+                    .append("startedAtEpochMs", s.startedAtEpochMs)
+                    .append("finishedAtEpochMs", s.finishedAtEpochMs)
+                    .append("shopsAttempted", s.shopsAttempted)
+                    .append("shopsSucceeded", s.shopsSucceeded)
+                    .append("shopsFailed", s.shopsFailed)
+                    .append("productsInserted", s.productsInserted)
+                    .append("productsMerged", s.productsMerged)
+                    .append("urlsScraped", s.urlsScraped)
+                    .append("inProgress", s.inProgress)
+                    .append("heartbeatMs", System.currentTimeMillis());
+            mongoTemplate.getCollection("indexer_live").replaceOne(
+                    new org.bson.Document("_id", "live"), d,
+                    new com.mongodb.client.model.ReplaceOptions().upsert(true));
+        } catch (Exception e) {
+            log.debug("indexer heartbeat skipped: {}", e.getMessage());
+        }
     }
 
     private void persistRunRecord(String kind, RunSummary s) {
@@ -154,6 +240,7 @@ public class BulkIndexer {
         summary.startedAtEpochMs = now;
         summary.inProgress = true;
         lastRun = summary;
+        jsRenderBudget.set(maxJsRendersPerRun);
 
         List<Shop> shops;
         try {
@@ -166,7 +253,14 @@ public class BulkIndexer {
             return summary;
         }
 
-        log.info("Indexer: starting run over {} active shops", shops.size());
+        // Rotate coverage: least-recently-indexed shops first (never-indexed get
+        // top priority). A time-bounded run otherwise always processes the same
+        // head-of-list shops and never reaches the tail — which is why most shops
+        // sat at 0 products. Successive runs now sweep the whole shop set.
+        shops.sort(Comparator.comparing(Shop::getLastIndexedAt,
+                Comparator.nullsFirst(Comparator.naturalOrder())));
+
+        log.info("Indexer: starting run over {} active shops (least-recently-indexed first)", shops.size());
         summary.shopsAttempted = shops.size();
 
         AtomicInteger inserted = new AtomicInteger();
@@ -179,46 +273,52 @@ public class BulkIndexer {
         warmLsh(lsh);
 
         ConcurrentHashMap<String, Semaphore> hostLocks = new ConcurrentHashMap<>();
-        ExecutorService pool = Executors.newFixedThreadPool(globalParallelism);
+        // One small pool for URL fetches *within* a shop. Shops are processed
+        // sequentially below (NOT on this pool), so the blocking wait inside
+        // indexShop can never starve its own URL tasks — this fixes the prior
+        // same-pool deadlock (shop tasks blocking the threads their URL tasks
+        // need) and bounds memory to one shop's working set at a time, which is
+        // what makes a run survivable on a 1 GB box.
+        ExecutorService urlPool = Executors.newFixedThreadPool(globalParallelism);
         AtomicInteger succeeded = new AtomicInteger();
         AtomicInteger failed = new AtomicInteger();
 
-        // Process shops in parallel — the global pool + per-host semaphore are
-        // what actually bound throughput. Total time becomes max-single-shop
-        // rather than sum-of-all-shops.
-        List<java.util.concurrent.CompletableFuture<Void>> shopFutures = new ArrayList<>(shops.size());
+        long deadline = System.currentTimeMillis() + runBudgetMinutes * 60_000L;
+        heartbeat("full", summary, null);
         for (Shop shop : shops) {
-            shopFutures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
-                try {
-                    int got = indexShop(shop, pool, hostLocks, lsh, inserted, merged);
-                    urlsTotal.addAndGet(got);
-                    shop.setLastIndexedAt(LocalDateTime.now());
-                    shop.setLastIndexedCount(got);
-                    shop.setLastError(null);
-                    shopHealth.recordRun(shop, got, got == 0 ? "no products extracted" : null);
-                    safeSave(shop);
-                    succeeded.incrementAndGet();
-                } catch (Exception e) {
-                    log.warn("Indexer: shop '{}' failed: {}", shop.getSlug(), e.getMessage());
-                    shop.setLastError(e.getMessage());
-                    shopHealth.recordRun(shop, 0, e.getMessage());
-                    safeSave(shop);
-                    failed.incrementAndGet();
-                }
-            }, pool));
-        }
-        try {
-            // Cap total run at 30 min so a misbehaving shop can't stall the cron.
-            java.util.concurrent.CompletableFuture.allOf(shopFutures.toArray(new java.util.concurrent.CompletableFuture[0]))
-                    .get(30, TimeUnit.MINUTES);
-        } catch (Exception e) {
-            log.warn("Indexer: top-level wait timed out ({})", e.getClass().getSimpleName());
+            if (System.currentTimeMillis() > deadline) {
+                log.warn("Indexer: {}-min budget hit — deferring {} remaining shops to next run",
+                        runBudgetMinutes, shops.size() - (succeeded.get() + failed.get()));
+                break;
+            }
+            summary.shopsSucceeded = succeeded.get();
+            summary.shopsFailed = failed.get();
+            summary.productsInserted = inserted.get();
+            summary.productsMerged = merged.get();
+            summary.urlsScraped = urlsTotal.get();
+            heartbeat("full", summary, shop.getName());
+            try {
+                int got = indexShop(shop, urlPool, hostLocks, lsh, inserted, merged);
+                urlsTotal.addAndGet(got);
+                shop.setLastIndexedAt(LocalDateTime.now());
+                shop.setLastIndexedCount(got);
+                shop.setLastError(null);
+                shopHealth.recordRun(shop, got, got == 0 ? "no products extracted" : null);
+                safeSave(shop);
+                succeeded.incrementAndGet();
+            } catch (Exception e) {
+                log.warn("Indexer: shop '{}' failed: {}", shop.getSlug(), e.getMessage());
+                shop.setLastError(e.getMessage());
+                shopHealth.recordRun(shop, 0, e.getMessage());
+                safeSave(shop);
+                failed.incrementAndGet();
+            }
         }
         summary.shopsSucceeded = succeeded.get();
         summary.shopsFailed = failed.get();
 
-        pool.shutdown();
-        try { pool.awaitTermination(2, TimeUnit.MINUTES); }
+        urlPool.shutdown();
+        try { urlPool.awaitTermination(2, TimeUnit.MINUTES); }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); }
 
         summary.productsInserted = inserted.get();
@@ -232,6 +332,7 @@ public class BulkIndexer {
                 summary.shopsSucceeded, summary.shopsAttempted, summary.shopsFailed,
                 summary.urlsScraped, summary.productsInserted, summary.productsMerged,
                 (summary.finishedAtEpochMs - summary.startedAtEpochMs) / 1000);
+        heartbeat("full", summary, null);
         persistRunRecord("full", summary);
         return summary;
     }
@@ -269,52 +370,72 @@ public class BulkIndexer {
         return shop.getLastIndexedCount() == null ? 0 : shop.getLastIndexedCount();
     }
 
+    /** Synchronously index a specific set of shops by slug, sharing one LSH warm.
+     *  Used to revive dormant shops on demand (e.g. with the browser enabled). */
+    public int runShops(List<String> slugs) {
+        List<Shop> shops = new ArrayList<>();
+        for (String slug : slugs) {
+            try { shopRepository.findBySlug(slug).ifPresent(shops::add); }
+            catch (DataAccessException ignored) { /* skip */ }
+        }
+        if (shops.isEmpty()) return 0;
+        RunSummary s = runSubset(shops);
+        return s.productsInserted + s.productsMerged;
+    }
+
     private RunSummary runSubset(List<Shop> shops) {
         RunSummary summary = new RunSummary();
         summary.startedAtEpochMs = System.currentTimeMillis();
         summary.inProgress = true;
         summary.shopsAttempted = shops.size();
+        jsRenderBudget.set(maxJsRendersPerRun);
 
         MinHashLSH lsh = new MinHashLSH();
         warmLsh(lsh);
 
         ConcurrentHashMap<String, Semaphore> hostLocks = new ConcurrentHashMap<>();
-        ExecutorService pool = Executors.newFixedThreadPool(Math.max(2, Math.min(globalParallelism, shops.size() * 4)));
+        // Same model as runAll: sequential shops + a small dedicated URL pool.
+        ExecutorService urlPool = Executors.newFixedThreadPool(globalParallelism);
         AtomicInteger inserted = new AtomicInteger();
         AtomicInteger merged = new AtomicInteger();
         AtomicInteger urlsTotal = new AtomicInteger();
         AtomicInteger succeeded = new AtomicInteger();
         AtomicInteger failed = new AtomicInteger();
 
-        List<java.util.concurrent.CompletableFuture<Void>> futures = new ArrayList<>(shops.size());
+        long deadline = System.currentTimeMillis() + (long) (runBudgetMinutes * 0.8) * 60_000L;
+        String kind = shops.size() == 1 ? "single" : "retry";
+        lastRun = summary;   // subset runs count as "the latest run" too
+        heartbeat(kind, summary, null);
         for (Shop shop : shops) {
-            futures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
-                try {
-                    int got = indexShop(shop, pool, hostLocks, lsh, inserted, merged);
-                    urlsTotal.addAndGet(got);
-                    shop.setLastIndexedAt(LocalDateTime.now());
-                    shop.setLastIndexedCount(got);
-                    shop.setLastError(null);
-                    shopHealth.recordRun(shop, got, got == 0 ? "no products extracted" : null);
-                    safeSave(shop);
-                    succeeded.incrementAndGet();
-                } catch (Exception e) {
-                    log.warn("Indexer: shop '{}' retry failed: {}", shop.getSlug(), e.getMessage());
-                    shop.setLastError(e.getMessage());
-                    shopHealth.recordRun(shop, 0, e.getMessage());
-                    safeSave(shop);
-                    failed.incrementAndGet();
-                }
-            }, pool));
+            if (System.currentTimeMillis() > deadline) {
+                log.warn("Indexer: subset budget hit — deferring remaining shops");
+                break;
+            }
+            summary.shopsSucceeded = succeeded.get();
+            summary.shopsFailed = failed.get();
+            summary.productsInserted = inserted.get();
+            summary.productsMerged = merged.get();
+            summary.urlsScraped = urlsTotal.get();
+            heartbeat(kind, summary, shop.getName());
+            try {
+                int got = indexShop(shop, urlPool, hostLocks, lsh, inserted, merged);
+                urlsTotal.addAndGet(got);
+                shop.setLastIndexedAt(LocalDateTime.now());
+                shop.setLastIndexedCount(got);
+                shop.setLastError(null);
+                shopHealth.recordRun(shop, got, got == 0 ? "no products extracted" : null);
+                safeSave(shop);
+                succeeded.incrementAndGet();
+            } catch (Exception e) {
+                log.warn("Indexer: shop '{}' retry failed: {}", shop.getSlug(), e.getMessage());
+                shop.setLastError(e.getMessage());
+                shopHealth.recordRun(shop, 0, e.getMessage());
+                safeSave(shop);
+                failed.incrementAndGet();
+            }
         }
-        try {
-            java.util.concurrent.CompletableFuture.allOf(futures.toArray(new java.util.concurrent.CompletableFuture[0]))
-                    .get(20, TimeUnit.MINUTES);
-        } catch (Exception e) {
-            log.warn("Indexer: subset wait timed out ({})", e.getClass().getSimpleName());
-        }
-        pool.shutdown();
-        try { pool.awaitTermination(1, TimeUnit.MINUTES); }
+        urlPool.shutdown();
+        try { urlPool.awaitTermination(1, TimeUnit.MINUTES); }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); }
 
         summary.shopsSucceeded = succeeded.get();
@@ -324,17 +445,23 @@ public class BulkIndexer {
         summary.urlsScraped = urlsTotal.get();
         summary.finishedAtEpochMs = System.currentTimeMillis();
         summary.inProgress = false;
-        persistRunRecord(shops.size() == 1 ? "single" : "retry", summary);
+        heartbeat(kind, summary, null);
+        persistRunRecord(kind, summary);
         return summary;
     }
 
-    /** Seed the LSH with already-saved products so cross-run dedup works. */
+    /**
+     * Seed the LSH with already-saved products so cross-run dedup works.
+     * Uses an id+name projection (not full Product docs) and stores only the id
+     * as the LSH payload — so heap stays flat regardless of catalog size. The
+     * matched Product is loaded on demand in {@link #persistOrMerge}.
+     */
     private void warmLsh(MinHashLSH lsh) {
         try {
             int count = 0;
-            for (Product p : productRepository.findAll()) {
+            for (ProductRepository.NameView p : productRepository.findAllNameViews()) {
                 if (p.getName() != null && p.getId() != null) {
-                    lsh.add(p.getId(), normaliseForMatching(p.getName()), p);
+                    lsh.add(p.getId(), normaliseForMatching(p.getName()), null);
                     count++;
                 }
             }
@@ -350,12 +477,52 @@ public class BulkIndexer {
                           MinHashLSH lsh,
                           AtomicInteger inserted,
                           AtomicInteger merged) {
+        // API-harvested shops (Chaldal, Daraz) skip URL discovery + per-page
+        // extraction entirely — their catalog comes from a JSON endpoint. Isolated
+        // to shops a harvester claims, so every other shop's path is unchanged.
+        for (ShopHarvester h : harvesters) {
+            if (h.supports(shop)) {
+                int got = harvestApi(shop, h.harvest(shop), lsh, inserted, merged);
+                if (got > 0) return got;
+                break; // harvester claimed the shop but got nothing → fall through to the normal pipeline
+            }
+        }
+
+        // Breadth mode: a shop that has never produced via the URL pipeline is
+        // almost always JS-rendered/custom/blocked — read its rendered DOM cards
+        // FIRST instead of grinding a sitemap that yields nothing (one browser
+        // pass beats 1500 dead page fetches). Proven shops skip this and keep the
+        // fast sitemap/json-ld path. The 0-yield fallback below won't re-run the
+        // DOM harvester for these (guarded), so no shop renders twice.
+        if (domCardFirst && domCardHarvester.isEnabled() && neverProduced(shop)
+                && jsRenderBudget.getAndDecrement() > 0) {
+            try {
+                List<ScrapedProduct> cards = domCardHarvester.harvest(shop);
+                int got = cards.isEmpty() ? 0 : harvestApi(shop, cards, lsh, inserted, merged);
+                if (got > 0) {
+                    log.info("Indexer: shop '{}' — DOM-card harvester (first) got {} products", shop.getSlug(), got);
+                    return got;
+                }
+            } catch (Exception e) {
+                log.debug("Indexer: DOM-card (first) failed for '{}': {}", shop.getSlug(), e.getMessage());
+            }
+        }
+
         boolean js = Boolean.TRUE.equals(shop.getRequiresJs());
         List<String> urls = new ArrayList<>();
         if (shop.getSitemapUrl() != null && !shop.getSitemapUrl().isBlank()) {
             urls = sitemapCrawler.crawl(shop.getSitemapUrl());
         }
-        // Fallback: crawl homepage + category pages for shops without a
+        // Fallback 0: auto-discover the sitemap (robots.txt + common paths) when
+        // the configured one is missing or came back empty (Yoast/WP/Magento
+        // shops that 404 on /sitemap.xml but expose /sitemap_index.xml etc.).
+        if (urls.isEmpty() && shop.getBaseUrl() != null && !shop.getBaseUrl().isBlank()) {
+            urls = sitemapCrawler.discoverAndCrawl(shop.getBaseUrl());
+            if (!urls.isEmpty()) {
+                log.info("Indexer: shop '{}' sitemap auto-discovered ({} URLs)", shop.getSlug(), urls.size());
+            }
+        }
+        // Fallback 1: crawl homepage + category pages for shops without a
         // useful sitemap (BD-Shop, Pickaboo, Othoba, Walton, etc).
         // For SPA shops, use Playwright to render the homepage.
         if (urls.isEmpty() && shop.getBaseUrl() != null && !shop.getBaseUrl().isBlank()) {
@@ -365,8 +532,18 @@ public class BulkIndexer {
                         shop.getSlug(), urls.size(), js ? " [js-rendered]" : "");
             }
         }
+        // Fallback 2: drive the shop's own search URL with category seed
+        // queries. Catches retailers whose homepage doesn't directly link
+        // products (Walton, Singer, Rangs, Esquire, etc).
         if (urls.isEmpty()) {
-            log.info("Indexer: shop '{}' yielded no URLs from sitemap or homepage", shop.getSlug());
+            urls = searchSeedCrawler.crawl(shop, js);
+            if (!urls.isEmpty()) {
+                log.info("Indexer: shop '{}' falling back to search-URL seed crawl ({} URLs)",
+                        shop.getSlug(), urls.size());
+            }
+        }
+        if (urls.isEmpty()) {
+            log.info("Indexer: shop '{}' yielded no URLs from sitemap, homepage, or search seeds", shop.getSlug());
             return 0;
         }
         if (urls.size() > maxProductsPerShop) {
@@ -391,15 +568,16 @@ public class BulkIndexer {
                     }
                 }
                 try {
-                    ProductExtractor extractor = extractors.pick(url);
+                    ProductExtractor extractor = extractors.pickForShop(url, shop);
                     ScrapedProduct sp = extractor.extract(url, js);
                     if (sp == null || sp.getName() == null || sp.getPrice() == null) return;
                     // Sanity: BD products under ৳10 are almost always parse errors
                     // (currency unit confusion, leading zeros, etc).
                     if (sp.getPrice() < 10) return;
 
-                    persistOrMerge(sp, url, shop, lsh, inserted, merged);
-                    localOk.incrementAndGet();
+                    if (persistOrMerge(sp, url, shop, lsh, inserted, merged, false)) {
+                        localOk.incrementAndGet();
+                    }
                 } catch (Exception e) {
                     log.debug("Indexer: extract failed for {}: {}", url, e.getMessage());
                 } finally {
@@ -420,15 +598,163 @@ public class BulkIndexer {
         } catch (Exception e) {
             log.warn("Indexer: shop '{}' partial ({}): {}", shop.getSlug(), e.getClass().getSimpleName(), e.getMessage());
         }
+
+        // Self-healing for a 0-yield shop — but spend the per-run browser budget
+        // so a nightly pass can't queue dozens of serial Playwright renders.
+        if (localOk.get() == 0) {
+            boolean browserBudget = jsRenderBudget.getAndDecrement() > 0;
+
+            // Magical last resort: render the shop, auto-discover the JSON product
+            // feed its own frontend loads, and harvest that (no per-shop code).
+            if (browserBudget && apiSniffer.isEnabled()) {
+                try {
+                    List<ScrapedProduct> sniffed = apiSniffer.sniff(shop);
+                    int got = sniffed.isEmpty() ? 0 : harvestApi(shop, sniffed, lsh, inserted, merged);
+                    if (got > 0) {
+                        log.info("Indexer: shop '{}' — API sniffer rescued {} products", shop.getSlug(), got);
+                        return got;
+                    }
+                } catch (Exception e) {
+                    log.debug("Indexer: API sniffer failed for '{}': {}", shop.getSlug(), e.getMessage());
+                }
+            }
+
+            // "Read the page like a shopper": render the listing pages and read
+            // product cards straight from the rendered DOM. Platform-agnostic, so
+            // it cracks the JS-rendered / custom-stack / bot-walled shops the
+            // feed/json-ld/sniffer paths can't — which is what gets the long tail
+            // of 0-product shops to start showing.
+            if (browserBudget && domCardHarvester.isEnabled() && !(domCardFirst && neverProduced(shop))) {
+                try {
+                    List<ScrapedProduct> cards = domCardHarvester.harvest(shop);
+                    int got = cards.isEmpty() ? 0 : harvestApi(shop, cards, lsh, inserted, merged);
+                    if (got > 0) {
+                        log.info("Indexer: shop '{}' — DOM-card harvester rescued {} products", shop.getSlug(), got);
+                        return got;
+                    }
+                } catch (Exception e) {
+                    log.debug("Indexer: DOM-card harvester failed for '{}': {}", shop.getSlug(), e.getMessage());
+                }
+            }
+
+            // Auto-learning diagnosis (also browser-bound; 24h-throttled per shop).
+            if (browserBudget) {
+                try { learner.learnFromBrokenShop(shop); }
+                catch (Exception e) {
+                    log.debug("Indexer: learner threw on '{}' (ignored): {}", shop.getSlug(), e.getMessage());
+                }
+            }
+        }
         return localOk.get();
     }
 
-    private synchronized void persistOrMerge(ScrapedProduct sp,
-                                             String url,
-                                             Shop shop,
-                                             MinHashLSH lsh,
-                                             AtomicInteger inserted,
-                                             AtomicInteger merged) {
+    /**
+     * A live merge session that keeps one warmed {@link MinHashLSH} across many
+     * per-shop batches, so an out-of-band enrichment pass (the
+     * {@link SellerDepthHarvester}) can stream matched offers through the exact
+     * same cross-shop matchKey/LSH/URL merge path the nightly indexer uses —
+     * without re-reading the catalog for every shop. Open once, feed many shops,
+     * read the counters when done.
+     */
+    public final class EnrichSession {
+        private final MinHashLSH lsh = new MinHashLSH();
+        private final AtomicInteger inserted = new AtomicInteger();
+        private final AtomicInteger merged = new AtomicInteger();
+        private EnrichSession() { warmLsh(lsh); }
+        public int inserted() { return inserted.get(); }
+        public int merged()   { return merged.get(); }
+    }
+
+    /** Open an enrichment session (warms the dedup index once). */
+    public EnrichSession openEnrichSession() { return new EnrichSession(); }
+
+    /** Result for the bounded HTTP ingestion path. */
+    public record FastIngestResult(int submitted, int accepted, int inserted,
+                                   int merged, int outOfScope) {}
+
+    /**
+     * Persist one small HTTP batch without warming the full-catalog LSH. Exact URL
+     * and deterministic match-key lookups still merge against the existing catalog;
+     * the empty LSH only catches fuzzy duplicates within this batch.
+     */
+    public FastIngestResult enrichFast(Shop shop, List<ScrapedProduct> offers) {
+        if (shop == null || offers == null || offers.isEmpty())
+            return new FastIngestResult(0, 0, 0, 0, 0);
+        MinHashLSH lsh = new MinHashLSH();
+        AtomicInteger inserted = new AtomicInteger();
+        AtomicInteger merged = new AtomicInteger();
+        int accepted = 0;
+        int outOfScope = 0;
+        for (ScrapedProduct offer : offers) {
+            String url = offer.getProductUrl();
+            if (persistOrMerge(offer, url, shop, lsh, inserted, merged, true)) accepted++;
+            else outOfScope++;
+        }
+        return new FastIngestResult(offers.size(), accepted, inserted.get(),
+                merged.get(), outOfScope);
+    }
+
+    /**
+     * Merge a batch of matched offers for one shop into the catalog within an
+     * open {@link EnrichSession}. New products are inserted (catalog breadth);
+     * offers for products we already know attach as additional sellers (depth).
+     * Returns the number persisted.
+     */
+    public int enrich(EnrichSession session, Shop shop, List<ScrapedProduct> offers) {
+        if (session == null || shop == null || offers == null || offers.isEmpty()) return 0;
+        return harvestApi(shop, offers, session.lsh, session.inserted, session.merged);
+    }
+
+    /**
+     * Persist products pulled by an API harvester (e.g. Chaldal) directly,
+     * reusing the same cross-shop merge path as the URL pipeline. The
+     * productUrl carried on each {@link ScrapedProduct} is the dedup key.
+     */
+    private int harvestApi(Shop shop,
+                           List<ScrapedProduct> products,
+                           MinHashLSH lsh,
+                           AtomicInteger inserted,
+                           AtomicInteger merged) {
+        // Marketplace harvests (Daraz etc.) carry a distinct sellerId per listing,
+        // and many of those listings are the SAME model from different storefronts —
+        // exactly the sub-sellers that converge onto one product via matchKey and
+        // lift sellers-per-product (our core metric). Capping them at the first-party
+        // per-shop limit threw away that depth (Daraz returned 3000 listings but only
+        // 500 persisted). Let marketplace listings persist far deeper; first-party
+        // shops keep the breadth cap so they don't bloat the catalog.
+        boolean marketplace = products.stream().anyMatch(
+                sp -> sp != null && sp.getSellerId() != null && !sp.getSellerId().isBlank());
+        int cap = Math.min(products.size(), marketplace ? marketplaceMaxOffers : maxProductsPerShop);
+        int ok = 0;
+        int dropped = 0;
+        for (int i = 0; i < cap; i++) {
+            ScrapedProduct sp = products.get(i);
+            // Same sanity floor the URL pipeline applies: sub-৳10 is almost
+            // always a parse error.
+            if (sp == null || sp.getName() == null || sp.getPrice() == null || sp.getPrice() < 10) continue;
+            String url = sp.getProductUrl() != null ? sp.getProductUrl() : shop.getBaseUrl();
+            try {
+                if (persistOrMerge(sp, url, shop, lsh, inserted, merged, false)) ok++;
+                else dropped++;
+            } catch (Exception e) {
+                log.debug("Indexer: shop '{}' API persist failed: {}", shop.getSlug(), e.getMessage());
+            }
+        }
+        log.info("Indexer: shop '{}' API harvest → {} persisted, {} out-of-scope dropped",
+                shop.getSlug(), ok, dropped);
+        return ok;
+    }
+
+    /** @return true when the offer was written (merged or inserted); false when
+     *  the category gate dropped it. Callers use this for honest yield counts —
+     *  a shop whose items are all out-of-scope must record 0, not look healthy. */
+    private synchronized boolean persistOrMerge(ScrapedProduct sp,
+                                                String url,
+                                                Shop shop,
+                                                MinHashLSH lsh,
+                                                AtomicInteger inserted,
+                                                AtomicInteger merged,
+                                                boolean strict) {
         SitePrice price = SitePrice.builder()
                 .siteName(shop.getName())
                 .siteSlug(shop.getSlug())
@@ -440,53 +766,72 @@ public class BulkIndexer {
                 .inStock(sp.getInStock() == null ? true : sp.getInStock())
                 .rating(sp.getRating())
                 .reviewCount(sp.getReviewCount())
+                .sellerName(sp.getSellerName())
+                .sellerId(sp.getSellerId())
+                .soldCount(sp.getSoldCount())
                 .lastUpdated(LocalDateTime.now())
                 .build();
 
-        // 1. Try exact URL match first (re-crawl of a known URL just refreshes the price)
-        Optional<Product> byUrl = safeFindByUrl(url);
+        String key = productMatchKey(sp.getName());
+        String normName = normaliseForMatching(sp.getName());
+
+        // 1. Exact URL match — a re-crawl of a known listing just refreshes that
+        //    seller's offer in place.
+        Optional<Product> byUrl = strict
+                ? productRepository.findByPriceUrl(url)
+                : safeFindByUrl(url);
         if (byUrl.isPresent()) {
             Product existing = byUrl.get();
             existing.getPrices().removeIf(p -> Objects.equals(p.getProductUrl(), url));
-            existing.getPrices().add(price);
-            applyDescriptiveFieldsIfMissing(existing, sp);
-            recomputeAggregates(existing);
-            existing.setLastScraped(LocalDateTime.now());
-            existing.setUpdatedAt(LocalDateTime.now());
-            safeSave(existing);
-            merged.incrementAndGet();
-            return;
+            mergeOffer(existing, price, sp, key, lsh, merged, strict);
+            return true;
         }
 
-        // 2. Fuzzy match across shops via LSH. Match on a NORMALISED name so
-        //    "Apple AirPods Pro 3 (USB-C)" matches "Apple Airpods Pro 3" matches
-        //    "Airpods Pro 3 USB-C". Threshold loosened to 0.42 — most BD shops
-        //    pad product names with brand/colour/storage variants that drag
-        //    Jaccard down even when the underlying product is the same.
-        String normName = normaliseForMatching(sp.getName());
-        MinHashLSH.Match match = lsh.findBest(normName, 0.42);
-        if (match != null) {
-            Product existing = (Product) match.payload();
-            existing.getPrices().removeIf(p -> Objects.equals(p.getSiteSlug(), shop.getSlug()));
-            existing.getPrices().add(price);
-            applyDescriptiveFieldsIfMissing(existing, sp);
-            recomputeAggregates(existing);
-            existing.setLastScraped(LocalDateTime.now());
-            existing.setUpdatedAt(LocalDateTime.now());
-            Product saved = safeSave(existing);
-            if (saved != null && saved.getId() != null) {
-                // Re-add to LSH under the canonical (possibly upgraded) name
-                lsh.add(saved.getId(), normaliseForMatching(saved.getName()), saved);
+        // 2. Deterministic matchKey — the SAME product from ANY seller, robust
+        //    across indexer runs and concurrency (unlike the per-run in-memory
+        //    fuzzy index, which let parallel sweeps duplicate the same product).
+        //    "Honor 400 (Official)" and "Honor 400" share a key and group;
+        //    "GTR 3 Pro" and "GTR 4" don't.
+        if (key != null) {
+            Optional<Product> byKey = strict
+                    ? productRepository.findFirstByMatchKey(key)
+                    : safeFindByKey(key);
+            if (byKey.isPresent()) {
+                Product existing = byKey.get();
+                dropSupersededOffer(existing, price, shop);
+                mergeOffer(existing, price, sp, key, lsh, merged, strict);
+                return true;
             }
-            merged.incrementAndGet();
-            return;
         }
 
-        // 3. Brand-new product
+        // 3. Fuzzy LSH + sameProduct — catches name variance the exact key misses
+        //    (brand-prefix, word order). The MinHash is only a candidate finder;
+        //    sameProduct() guards against gluing different models.
+        MinHashLSH.Match match = lsh.findBest(normName, 0.50);
+        if (match != null) {
+            Product existing = null;
+            try { existing = productRepository.findById(match.id()).orElse(null); }
+            catch (DataAccessException ignored) { /* stale entry → insert fresh */ }
+            if (existing != null && sameProduct(existing.getName(), sp.getName())
+                    && priceCompatible(existing, sp.getPrice())) {
+                dropSupersededOffer(existing, price, shop);
+                mergeOffer(existing, price, sp, key, lsh, merged, strict);
+                return true;
+            }
+        }
+
+        // 4. Brand-new product
         var intent = classifier.classify(sp.getName());
+        // Category focus: Damkemon indexes computing + mobile only. An out-of-scope
+        // item (TV, grocery, fashion…) is dropped here so it never enters the
+        // catalog. Merges into EXISTING in-scope products above are unaffected.
+        if (categoryFocus.isEnabled() && !categoryFocus.isAllowed(intent.primaryCategory())) {
+            return false;
+        }
         Product p = Product.builder()
                 .name(sp.getName())
                 .slug(slugify(sp.getName()))
+                .matchKey(key)
                 .category(intent.primaryCategory().getLabel().toLowerCase())
                 .brands(intent.getBrands())
                 .imageUrl(sp.getImageUrl())
@@ -496,11 +841,193 @@ public class BulkIndexer {
                 .updatedAt(LocalDateTime.now())
                 .build();
         recomputeAggregates(p);
-        Product saved = safeSave(p);
+        Product saved = strict ? productRepository.save(p) : safeSave(p);
         if (saved != null && saved.getId() != null) {
-            lsh.add(saved.getId(), normaliseForMatching(saved.getName()), saved);
+            lsh.add(saved.getId(), normName, null);
+            indexNow.submit(saved.getSlug());
         }
         inserted.incrementAndGet();
+        return true;
+    }
+
+    /** Marketplace-aware: drop this seller's superseded offer before re-adding,
+     *  so many sellers from one marketplace coexist but a re-crawl replaces (not
+     *  duplicates) the same seller's prior offer / legacy seller-less aggregate. */
+    private void dropSupersededOffer(Product existing, SitePrice price, Shop shop) {
+        final String ok = offerKey(price);
+        existing.getPrices().removeIf(p ->
+                Objects.equals(offerKey(p), ok)
+                || (price.getSellerId() != null
+                    && Objects.equals(p.getSiteSlug(), shop.getSlug())
+                    && (p.getSellerId() == null || p.getSellerId().isBlank())));
+    }
+
+    /** Add the offer to an existing product and persist: cap sellers, fill in
+     *  missing descriptive fields, backfill the matchKey, recompute aggregates,
+     *  and re-index in the LSH. Caller has already removed any superseded offer. */
+    private void mergeOffer(Product existing, SitePrice price, ScrapedProduct sp,
+                            String key, MinHashLSH lsh, AtomicInteger merged,
+                            boolean strict) {
+        existing.getPrices().add(price);
+        capSellers(existing);
+        applyDescriptiveFieldsIfMissing(existing, sp);
+        if (existing.getMatchKey() == null || existing.getMatchKey().isBlank())
+            existing.setMatchKey(key != null ? key : productMatchKey(existing.getName()));
+        recomputeAggregates(existing);
+        existing.setLastScraped(LocalDateTime.now());
+        existing.setUpdatedAt(LocalDateTime.now());
+        Product saved = strict ? productRepository.save(existing) : safeSave(existing);
+        if (saved != null && saved.getId() != null) {
+            lsh.add(saved.getId(), normaliseForMatching(saved.getName()), null);
+            indexNow.submit(saved.getSlug());
+        }
+        merged.incrementAndGet();
+    }
+
+    private Optional<Product> safeFindByKey(String key) {
+        try { return productRepository.findFirstByMatchKey(key); }
+        catch (DataAccessException e) { return Optional.empty(); }
+    }
+
+    /** Reject attaching an offer whose price is wildly off the product's established
+     *  band — a strong signal it's a different product (or an accessory/parse error)
+     *  the fuzzy matcher mistook for this one. Only applied once there are ≥2 offers
+     *  to define a band, so genuine seller spread (a phone at ৳92k–99k) is untouched
+     *  while a ৳4,400 case on that phone (0.05×) or a ৳15,500 item among ৳3,730
+     *  earbuds (4.2×) is kept out. */
+    static boolean priceCompatible(Product existing, Double incoming) {
+        if (incoming == null || incoming <= 0 || existing == null || existing.getPrices() == null)
+            return true;
+        List<Double> vals = new ArrayList<>();
+        for (SitePrice p : existing.getPrices())
+            if (p.getPrice() != null && p.getPrice() > 0) vals.add(p.getPrice());
+        if (vals.size() < 2) return true;
+        java.util.Collections.sort(vals);
+        double median = vals.get(vals.size() / 2);
+        return incoming >= median * 0.25 && incoming <= median * 4.0;
+    }
+
+    /** Model qualifiers that distinguish otherwise-similar names (S24 vs S24 Ultra,
+     *  GTR 3 vs GTR 3 Pro, MacBook Air vs MacBook Pro). */
+    private static final java.util.Set<String> MODEL_QUALIFIERS = java.util.Set.of(
+            "pro","max","plus","ultra","mini","lite","se","fe","air","fold","flip",
+            "neo","prime","note","active","global","gt","ace","turbo","power");
+
+    /**
+     * Precise "is this really the same product?" gate, applied AFTER the fuzzy
+     * 4-gram MinHash proposes a candidate. The MinHash matches different models
+     * that share a brand + a category word, which glued unrelated products — and
+     * their prices — into one doc (e.g. "Amazfit Bip U Smart Watch" at ৳5,999 and
+     * "Amazfit Balance 2 Smart Watch" at ৳32,990 became one listing). Require the
+     * DISCRIMINATING tokens (anything with a digit, plus model qualifiers like
+     * pro/max/ultra) to match exactly, plus enough plain word overlap. Storage and
+     * colour are already stripped by normaliseForMatching, so genuine variants
+     * ("iPhone 15 Pro 256GB" vs "iPhone 15 Pro") still merge. Errs toward NOT
+     * merging — a duplicate listing is harmless, a cross-model price merge is not.
+     */
+    static boolean sameProduct(String a, String b) {
+        java.util.Set<String> wa = words(normaliseForMatching(a));
+        java.util.Set<String> wb = words(normaliseForMatching(b));
+        if (wa.isEmpty() || wb.isEmpty()) return false;
+        // An ACCESSORY (case/cover/charger/glass…) is never the same product as the
+        // bare device, even though their names overlap heavily and share every
+        // discriminator. This is the #1 cause of price-comparison corruption:
+        // a ৳4,400 "iPhone 16 Plus Case" gluing onto the ৳92,000 phone as its
+        // "lowest" seller. If exactly one side names an accessory, they differ.
+        // Over-splitting here is harmless (a duplicate listing); over-merging an
+        // accessory onto a device wrecks the headline price.
+        if (rawNameHasAccessory(a) != rawNameHasAccessory(b)) return false;
+        // A pre-built PC is never the same product as the bare component it contains.
+        if (rawNameHasPcBuild(a) != rawNameHasPcBuild(b)) return false;
+        // BD market lanes: an OFFICIAL (local-warranty) unit and an UNOFFICIAL /
+        // international/grey-market unit of the same model sell ~2× apart. They are
+        // NOT the same purchasable product, so they must never merge into one price
+        // comparison (otherwise a ৳150k grey unit becomes the "lowest" of a ৳250k
+        // official phone). Only opposite explicit tags conflict; untagged stays neutral.
+        if (laneOf(a) * laneOf(b) < 0) return false;
+        if (!discriminators(wa).equals(discriminators(wb))) return false;
+        java.util.Set<String> inter = new java.util.HashSet<>(wa); inter.retainAll(wb);
+        java.util.Set<String> uni = new java.util.HashSet<>(wa); uni.addAll(wb);
+        return !uni.isEmpty() && (double) inter.size() / uni.size() >= 0.5;
+    }
+
+    /** Accessory/peripheral nouns. A product whose name carries one of these is a
+     *  case/charger/protector/etc. — NOT the device it's "for" — so it must never
+     *  share a product (and therefore a price) with the bare device. Model
+     *  qualifiers (flip/fold/air/pro…) are deliberately absent. */
+    static final java.util.Set<String> ACCESSORY_WORDS = java.util.Set.of(
+            "case","cover","casing","bumper","sleeve","pouch","wallet","glass",
+            "protector","tempered","film","screenguard","screenprotector","guard",
+            "charger","cable","adapter","dock","holder","mount","stand","strap",
+            "skin","sticker","decal","grip","stylus","lanyard",
+            "casecover","backcover","flipcover");
+
+    /** True if the RAW name (including parenthetical content that
+     *  {@link #normaliseForMatching} strips) contains an accessory noun. Checked
+     *  raw so "iPhone 16 Plus (Silicone Case)" is still seen as an accessory. */
+    static boolean rawNameHasAccessory(String name) {
+        if (name == null) return false;
+        for (String w : name.toLowerCase().split("[^a-z0-9]+")) {
+            if (!w.isBlank() && ACCESSORY_WORDS.contains(w)) return true;
+        }
+        return false;
+    }
+
+    /** A pre-built computer ("Gaming PC / Budget PC built with [CPU]") is NOT the
+     *  bare component, even though the names share the model — so a ৳60k pre-built
+     *  must never merge onto the ৳14k processor (the #2 price-corruption pattern
+     *  after accessories). Phrase-based on purpose: "Desktop Processor" / "Desktop
+     *  RAM" describe component form-factor and must NOT trip this. */
+    private static final java.util.regex.Pattern PCBUILD = java.util.regex.Pattern.compile(
+            "\\b(gaming|budget|office|home|custom|entry|pro|value|starter)\\s*pc\\b"
+            + "|\\bpc\\s*build\\b|\\bbuilt\\s+with\\b|\\bgaming\\s+desktop\\b"
+            + "|\\bpre[- ]?built\\b|\\bbarebone\\b|\\bfull\\s+pc\\b");
+
+    static boolean rawNameHasPcBuild(String name) {
+        return name != null && PCBUILD.matcher(name.toLowerCase()).find();
+    }
+
+    private static final java.util.regex.Pattern OFFICIAL_TAG =
+            java.util.regex.Pattern.compile("\\bofficial\\b");
+    private static final java.util.regex.Pattern GREY_TAG =
+            java.util.regex.Pattern.compile("\\b(unofficial|international|grey[- ]?market)\\b");
+
+    /** BD-market price lane from the name: +1 official (local warranty), -1
+     *  unofficial/international/grey, 0 neutral/untagged. Used to keep the two
+     *  lanes from merging — they're ~2× apart and not the same purchasable item.
+     *  "global" is intentionally NOT a grey tag (too often a neutral region label). */
+    static int laneOf(String name) {
+        if (name == null) return 0;
+        String s = name.toLowerCase();
+        boolean off = OFFICIAL_TAG.matcher(s).find();
+        boolean grey = GREY_TAG.matcher(s).find();
+        if (off && !grey) return 1;
+        if (grey && !off) return -1;
+        return 0;
+    }
+
+    static java.util.Set<String> words(String s) {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        if (s == null) return out;
+        for (String w : s.split(" ")) if (!w.isBlank()) out.add(w);
+        return out;
+    }
+
+    /** Tokens that pin down a specific model: anything containing a digit, plus
+     *  known qualifiers. Two names with different discriminators are different
+     *  products even if the MinHash thinks they're similar. */
+    static java.util.Set<String> discriminators(java.util.Set<String> words) {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (String w : words) {
+            if (w.matches(".*\\d.*") || MODEL_QUALIFIERS.contains(w)) out.add(w);
+        }
+        return out;
+    }
+
+    /** A shop whose last run produced nothing — the candidates for DOM-first. */
+    private static boolean neverProduced(Shop shop) {
+        Integer c = shop.getLastIndexedCount();
+        return c == null || c <= 0;
     }
 
     /**
@@ -523,11 +1050,60 @@ public class BulkIndexer {
         s = s.replaceAll("\\b\\d+\\s*[/\\\\]\\s*\\d+\\s*(gb|tb|mb)\\b", " ");
         s = s.replaceAll("\\b\\d{2,4}\\s*(gb|tb)\\b", " ");
         s = s.replaceAll("\\b\\d{1,2}\\s*gb\\b", " ");
+        // Drop year tokens — shops label the SAME SKU "2022"/"2023"/none.
+        s = s.replaceAll("\\b20[12]\\d\\b", " ");
+        // Drop redundant CPU spec tails ("12 core 24 thread", socket names) that
+        // the model number already implies — they fragment the same chip.
+        s = s.replaceAll("\\b\\d+\\s*cores?\\b", " ");
+        s = s.replaceAll("\\b\\d+\\s*threads?\\b", " ");
+        s = s.replaceAll("\\b(am[45]|lga\\s?\\d{3,4})\\b", " ");
         // Drop colour suffixes when at end-of-name (titanium, black, white, etc.)
         s = s.replaceAll("\\b(titanium|black|white|silver|gold|blue|red|green|graphite|onyx|natural|desert|midnight)\\b", " ");
         // Drop punctuation, collapse whitespace
         s = s.replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
+        // Collapse decimal screen sizes to the integer inch: "13.6 inch" (now
+        // "13 6 inch") and "13-inch" both become "13 inch", so the same laptop
+        // doesn't fragment on size formatting. 13" vs 15" stay distinct.
+        s = s.replaceAll("\\b(1[0-9])\\s[0-9]\\s*(inch|inches|in)\\b", "$1 inch");
+        s = s.replaceAll("\\b(1[0-9])\\s*(inch|inches|in)\\b", "$1 inch");
+        s = s.replaceAll("\\s+", " ").trim();
         return s.isBlank() ? name.toLowerCase() : s;
+    }
+
+    /** Edition/region/condition noise that varies between sellers for the SAME
+     *  item and must not split it into separate products. (Model numbers and
+     *  pro/max/ultra/5g are NOT here — they distinguish real variants.) */
+    private static final java.util.regex.Pattern MATCHKEY_NOISE = java.util.regex.Pattern.compile(
+            "\\b(official|officially|unofficial|global|international|version|edition"
+          + "|limited|special|genuine|original|warranty)\\b");
+
+    /**
+     * Deterministic product-identity key for cross-seller grouping. Starts from
+     * the matching-normalised name (parens/storage/colour/spec-tails already
+     * gone) and additionally strips edition/region/"official"-style noise, so
+     * "Honor 400 (Official)" and "Honor 400" collapse to one key while
+     * "Amazfit GTR 3 Pro" and "Amazfit GTR 4" stay distinct. Stored on the
+     * Product and looked up at persist for run-independent grouping.
+     */
+    public static String productMatchKey(String name) {
+        String s = normaliseForMatching(name);
+        if (s == null) return null;
+        s = MATCHKEY_NOISE.matcher(s).replaceAll(" ").replaceAll("\\s+", " ").trim();
+        if (s.length() < 2) return null;
+        // Guard the path-2 (exact matchKey) collision: paren/spec stripping can erase
+        // an accessory's only distinguishing word ("iPhone 16 Plus (Silicone Case)"
+        // → "iphone 16 plus"), which would then share the phone's key and merge.
+        // If the raw name is an accessory but the normalised key shows no accessory
+        // word, mark the key so it can never collide with the bare device.
+        if (rawNameHasAccessory(name) && words(s).stream().noneMatch(ACCESSORY_WORDS::contains)) {
+            s = s + " acc";
+        }
+        // Same guard for pre-built PCs: a "Gaming PC with Ryzen 5 7500F" must get a
+        // distinct key from the bare "Ryzen 5 7500F Processor" so they never merge.
+        if (rawNameHasPcBuild(name)) {
+            s = s + " pcbuild";
+        }
+        return s;
     }
 
     private void applyDescriptiveFieldsIfMissing(Product existing, ScrapedProduct sp) {
@@ -539,28 +1115,97 @@ public class BulkIndexer {
         }
     }
 
-    private void recomputeAggregates(Product p) {
+    public static void recomputeAggregates(Product p) {
         List<SitePrice> prices = p.getPrices();
         if (prices == null || prices.isEmpty()) return;
-        double min = Double.MAX_VALUE, max = 0;
         double rsum = 0; int rn = 0; int reviews = 0;
+        List<Double> vals = new ArrayList<>();
         for (SitePrice sp : prices) {
-            if (sp.getPrice() != null) {
-                if (sp.getPrice() < min) min = sp.getPrice();
-                if (sp.getPrice() > max) max = sp.getPrice();
-            }
+            if (sp.getPrice() != null && sp.getPrice() > 0) vals.add(sp.getPrice());
             if (sp.getRating() != null) { rsum += sp.getRating(); rn++; }
             if (sp.getReviewCount() != null) reviews += sp.getReviewCount();
         }
-        p.setLowestPrice(min == Double.MAX_VALUE ? null : min);
-        p.setHighestPrice(max == 0 ? null : max);
         p.setAverageRating(rn == 0 ? null : Math.round(rsum / rn * 10.0) / 10.0);
         p.setTotalReviews(reviews == 0 ? null : reviews);
+        if (vals.isEmpty()) { p.setLowestPrice(null); p.setHighestPrice(null); p.setPriceVerdict(null); return; }
+        java.util.Collections.sort(vals);
+
+        // Drop EMI / down-payment / parse-error outliers from the HEADLINE price:
+        // an offer far below its peers — a ৳10,000 installment on a ৳45,000 phone,
+        // or the year "2026" parsed off "...price in Bangladesh 2026" — is not the
+        // real price and must never become "Low". (Offers stay in prices[]; only
+        // the aggregates ignore the outliers.)
+        List<Double> trusted = priceTrusted(vals);
+        p.setLowestPrice(trusted.get(0));
+        p.setHighestPrice(trusted.get(trusted.size() - 1));
+
+        // Price-truth: rate the cheapest TRUSTED seller against the trusted median.
+        if (trusted.size() >= 2) {
+            double median = trusted.get(trusted.size() / 2);
+            double lo = trusted.get(0);
+            if (lo <= median * 0.85) p.setPriceVerdict("real_deal");
+            else if (lo >= median * 1.05) p.setPriceVerdict("overpriced");
+            else p.setPriceVerdict("fair");
+        } else {
+            p.setPriceVerdict(null);
+        }
+    }
+
+    /** Filter EMI/parse-error price outliers for the headline aggregates.
+     *  ≥3 offers → trust a sane band around the median; 2 offers → drop only a
+     *  blatantly-tiny one (a year/৳1 error); 1 offer → as-is. Never empty. */
+    static List<Double> priceTrusted(List<Double> sortedVals) {
+        int n = sortedVals.size();
+        if (n <= 1) return sortedVals;
+        if (n == 2) {
+            double a = sortedVals.get(0), b = sortedVals.get(1);
+            return a < b * 0.12 ? List.of(b) : sortedVals;   // a is a blatant outlier
+        }
+        double median = sortedVals.get(n / 2);
+        List<Double> trusted = new ArrayList<>();
+        for (double v : sortedVals) if (v >= median * 0.35 && v <= median * 4.0) trusted.add(v);
+        return trusted.isEmpty() ? sortedVals : trusted;
     }
 
     private Double discount(Double original, Double current) {
         if (original == null || current == null || original <= 0 || original <= current) return null;
         return Math.round((original - current) / original * 1000.0) / 10.0;
+    }
+
+    /** Most offers we keep on one product, so a flooded marketplace can't bloat it. */
+    private static final int MAX_OFFERS_PER_PRODUCT = 24;
+
+    /**
+     * Dedup identity for an offer. A marketplace sub-seller (sellerId present) is
+     * its own offer; a first-party shop has a single offer keyed by its slug — so
+     * non-marketplace behaviour is unchanged.
+     */
+    static String offerKey(SitePrice p) {
+        if (p == null) return "";
+        String slug = p.getSiteSlug() == null ? "" : p.getSiteSlug();
+        return (p.getSellerId() != null && !p.getSellerId().isBlank())
+                ? slug + "#" + p.getSellerId()
+                : slug;
+    }
+
+    /**
+     * Keep a product from ballooning when a marketplace returns dozens of sellers:
+     * retain the cheapest in-stock offers, drop the long tail.
+     */
+    static void capSellers(Product p) {
+        List<SitePrice> prices = p.getPrices();
+        if (prices == null || prices.size() <= MAX_OFFERS_PER_PRODUCT) return;
+        prices.sort((a, b) -> {
+            boolean ai = !Boolean.FALSE.equals(a.getInStock());
+            boolean bi = !Boolean.FALSE.equals(b.getInStock());
+            if (ai != bi) return ai ? -1 : 1;
+            double ap = a.getPrice() == null ? Double.MAX_VALUE : a.getPrice();
+            double bp = b.getPrice() == null ? Double.MAX_VALUE : b.getPrice();
+            return Double.compare(ap, bp);
+        });
+        List<SitePrice> kept = new ArrayList<>(prices.subList(0, MAX_OFFERS_PER_PRODUCT));
+        prices.clear();
+        prices.addAll(kept);
     }
 
     private static String slugify(String name) {

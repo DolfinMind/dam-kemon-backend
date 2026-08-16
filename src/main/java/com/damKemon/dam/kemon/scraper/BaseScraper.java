@@ -48,6 +48,10 @@ public abstract class BaseScraper {
     @Value("${scraper.user-agents:Mozilla/5.0}")
     protected List<String> userAgents;
 
+    /** Optional upstream proxy ("host:port" or "http://host:port") for blocked hosts. */
+    @Value("${scraper.proxy-url:}")
+    protected String proxyUrl;
+
     private static final ConcurrentHashMap<String, AtomicLong> LAST_HIT = new ConcurrentHashMap<>();
 
     /** Fetch a URL with retry, UA rotation, and per-host throttle. */
@@ -74,7 +78,7 @@ public abstract class BaseScraper {
         String ua = userAgents == null || userAgents.isEmpty()
                 ? "Mozilla/5.0"
                 : userAgents.get(ThreadLocalRandom.current().nextInt(userAgents.size()));
-        return Jsoup.connect(url)
+        Connection c = Jsoup.connect(url)
                 .userAgent(ua)
                 .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
                 .header("Accept-Language", "en-US,en;q=0.9,bn;q=0.6")
@@ -84,6 +88,18 @@ public abstract class BaseScraper {
                 .ignoreHttpErrors(true)
                 .ignoreContentType(true)
                 .maxBodySize(0);
+        applyProxy(c);
+        return c;
+    }
+
+    /** Route jsoup through an upstream proxy when {@code scraper.proxy-url} is set. */
+    private void applyProxy(Connection c) {
+        if (proxyUrl == null || proxyUrl.isBlank()) return;
+        try {
+            String hp = proxyUrl.replaceAll("^https?://", "");
+            int i = hp.lastIndexOf(':');
+            if (i > 0) c.proxy(hp.substring(0, i), Integer.parseInt(hp.substring(i + 1)));
+        } catch (Exception ignored) { /* malformed proxy spec → go direct */ }
     }
 
     protected String encode(String query) {

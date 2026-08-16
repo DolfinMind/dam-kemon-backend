@@ -28,7 +28,9 @@ import java.util.List;
  * Public endpoints stay open. {@code /api/admin/**} is gated behind either
  * a valid admin JWT (issued by the magic-link flow to users with role
  * {@code admin}) OR the legacy {@code X-Admin-Key} header. Either is
- * accepted so existing curl-based operator scripts continue to work.
+ * accepted so existing curl-based operator scripts continue to work. The
+ * catalog ingest route also accepts a direct, unforwarded loopback request
+ * from the colocated crawler.
  */
 @Configuration
 @EnableWebSecurity
@@ -42,15 +44,53 @@ public class SecurityConfig {
     @Value("${cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;
 
+    // ── Per-IP rate-limit tiers (bot/scraper defense). capacity = burst;
+    //    refill-per-sec ≈ sustained req/sec (×60 ≈ per-minute). All tunable via
+    //    env, e.g. RATELIMIT_DATA_CAPACITY / RATELIMIT_DATA_REFILL_PER_SEC.
     @Value("${ratelimit.capacity:60}")
-    private long rateLimitCapacity;
-
+    private long searchCapacity;                 // /api/search (+ /suggest)
     @Value("${ratelimit.refill-per-sec:1.0}")
-    private double rateLimitRefillPerSec;
+    private double searchRefillPerSec;
+    @Value("${ratelimit.data-capacity:180}")
+    private long dataCapacity;                    // scrapable catalog/price reads
+    @Value("${ratelimit.data-refill-per-sec:3.0}")
+    private double dataRefillPerSec;
+    @Value("${ratelimit.strict-capacity:20}")
+    private long strictCapacity;                  // expensive/abuse-prone triggers
+    @Value("${ratelimit.strict-refill-per-sec:0.34}")
+    private double strictRefillPerSec;
+    @Value("${ratelimit.auth-capacity:8}")
+    private long authCapacity;                    // login brute-force throttle
+    @Value("${ratelimit.auth-refill-per-sec:0.13}")
+    private double authRefillPerSec;
+    @Value("${ratelimit.payment-capacity:20}")
+    private long paymentCapacity;
+    @Value("${ratelimit.payment-refill-per-sec:0.20}")
+    private double paymentRefillPerSec;
 
     @Bean
     public RateLimiter searchRateLimiter() {
-        return new RateLimiter(rateLimitCapacity, rateLimitRefillPerSec);
+        return new RateLimiter(searchCapacity, searchRefillPerSec);
+    }
+
+    @Bean
+    public RateLimiter dataRateLimiter() {
+        return new RateLimiter(dataCapacity, dataRefillPerSec);
+    }
+
+    @Bean
+    public RateLimiter strictRateLimiter() {
+        return new RateLimiter(strictCapacity, strictRefillPerSec);
+    }
+
+    @Bean
+    public RateLimiter authRateLimiter() {
+        return new RateLimiter(authCapacity, authRefillPerSec);
+    }
+
+    @Bean
+    public RateLimiter paymentRateLimiter() {
+        return new RateLimiter(paymentCapacity, paymentRefillPerSec);
     }
 
     @Bean
@@ -64,16 +104,39 @@ public class SecurityConfig {
             log.info("Admin API key is set ({} chars) — /api/admin/** requires either an admin JWT or X-Admin-Key.", adminApiKey.length());
         }
 
+        JwtAuthFilter jwtAuth = new JwtAuthFilter(jwtService);
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-            .addFilterBefore(new RateLimitFilter(searchRateLimiter()),
+            .addFilterBefore(new RateLimitFilter(List.of(
+                    // auth abuse throttle — tight. Covers password guessing (login),
+                    // account/token spraying (signup, forgot, reset, verify) and
+                    // verification-mail spam. A human won't exceed 8/min on any.
+                    new RateLimitFilter.Rule(authRateLimiter(), 30,
+                            List.of("/api/auth/login", "/api/auth/signup", "/api/auth/google",
+                                    "/api/auth/forgot", "/api/auth/reset", "/api/auth/verify",
+                                    "/api/auth/resend-verification")),
+                    // Checkout/license calls can reach an external provider. The
+                    // signed webhook route is intentionally excluded from this prefix.
+                    new RateLimitFilter.Rule(paymentRateLimiter(), 25,
+                            List.of("/api/payments/v1/apps/")),
+                    // expensive / abuse-prone triggers — tight (scrape kicks off a
+                    // crawl; assistant calls the LLM, so both cost real resources).
+                    new RateLimitFilter.Rule(strictRateLimiter(), 15,
+                            List.of("/api/scrape", "/api/assistant")),
+                    // search incl. /suggest autocomplete
+                    new RateLimitFilter.Rule(searchRateLimiter(), 5,
+                            List.of("/api/search")),
+                    // scrapable catalog + price/seller data — the bulk-mining surface
+                    new RateLimitFilter.Rule(dataRateLimiter(), 5, List.of(
+                            "/api/products", "/api/compare", "/api/sellers",
+                            "/api/shops", "/api/trust", "/api/stats", "/api/events"))
+                )), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(jwtAuth,
                     UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(new JwtAuthFilter(jwtService),
-                    UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(new AdminGateFilter(adminApiKey),
-                    UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(new AdminGateFilter(adminApiKey),
+                    JwtAuthFilter.class)
             .addFilterAfter(auditLog, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -81,12 +144,21 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim).filter(s -> !s.isEmpty()).toList();
+        List<String> origins = new java.util.ArrayList<>(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim).filter(s -> !s.isEmpty()).toList());
+        // The site's own origins are always allowed — a server env var that
+        // lists only the apex must not 403 users browsing on www (or vice
+        // versa). Seen live: www.damkemon.com preflights failing.
+        for (String own : List.of("https://damkemon.com", "https://www.damkemon.com")) {
+            if (!origins.contains(own)) origins.add(own);
+        }
         configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // PATCH was missing — the profile editor and wishlist alert settings are
+        // PATCH endpoints, so any cross-origin call (www ↔ apex) preflighted and
+        // got a bare 403 "Invalid CORS request".
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("X-Admin-Key", "X-Anon-Id", "Authorization"));
+        configuration.setExposedHeaders(List.of("X-Admin-Key", "X-Anon-Id", "Authorization", "X-Total-Reviews"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
@@ -97,8 +169,9 @@ public class SecurityConfig {
      * Gate every request to /api/admin/** behind either:
      *   - a valid {@code X-Admin-Key} header matching {@code ADMIN_API_KEY}, OR
      *   - an admin-role JWT (set on the request by {@link JwtAuthFilter}).
+     * The exact catalog ingest path additionally permits direct loopback calls.
      *
-     * No-op when {@code adminApiKey} is blank AND no JWT is present (dev mode).
+     * A blank key fails closed; only the direct loopback ingest exception remains.
      */
     static class AdminGateFilter extends OncePerRequestFilter {
         private final String expectedKey;
@@ -111,14 +184,24 @@ public class SecurityConfig {
         protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
                 throws ServletException, IOException {
             String path = req.getRequestURI();
-            if (path == null || !path.startsWith("/api/admin/")) {
+            // /api/scrape kicks off a full reindex (the crawl that OOMs the box),
+            // so it's admin-only too — not just rate-limited. The frontend never
+            // calls it; operator scripts use /api/admin/* with the key.
+            boolean gated = path != null
+                    && (path.startsWith("/api/admin/") || path.startsWith("/api/scrape"));
+            if (!gated) {
+                chain.doFilter(req, res);
+                return;
+            }
+
+            if (isDirectLoopbackIngest(req, path)) {
                 chain.doFilter(req, res);
                 return;
             }
 
             // JWT path: a signed-in admin user passes through.
             Object role = req.getAttribute("authUserRole");
-            if ("admin".equals(role)) {
+            if (role != null && "admin".equalsIgnoreCase(String.valueOf(role))) {
                 chain.doFilter(req, res);
                 return;
             }
@@ -136,8 +219,21 @@ public class SecurityConfig {
                 return;
             }
 
-            // Dev mode: no key set, no JWT — let it through but it's logged on boot.
-            chain.doFilter(req, res);
+            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            res.setContentType("application/json");
+            res.getWriter().write("{\"error\":\"admin access is not configured\"}");
+        }
+
+        private static boolean isDirectLoopbackIngest(HttpServletRequest req, String path) {
+            String remote = req.getRemoteAddr();
+            boolean loopback = "127.0.0.1".equals(remote)
+                    || "::1".equals(remote)
+                    || "0:0:0:0:0:0:0:1".equals(remote);
+            return "/api/admin/catalog/ingest".equals(path)
+                    && loopback
+                    && req.getHeader("Forwarded") == null
+                    && req.getHeader("X-Forwarded-For") == null
+                    && req.getHeader("X-Real-IP") == null;
         }
 
         private static boolean constantTimeEquals(String a, String b) {

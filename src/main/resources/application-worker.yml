@@ -1,0 +1,32 @@
+# Worker profile — activated with SPRING_PROFILES_ACTIVE=production,worker by the
+# damkemon-prod-worker.service unit. This process owns ALL heavy scraping/indexing,
+# runs it ONCE (IndexerRunner) and exits; the API ("web") node never crawls.
+#
+# Overlays application-production.yml.
+
+app:
+  role: worker
+  worker:
+    approve-per-run: ${WORKER_APPROVE_PER_RUN:50}
+    exit-after-run: ${WORKER_EXIT_AFTER_RUN:true}
+
+spring:
+  main:
+    # No HTTP server in the worker — it's a batch process, not an API node.
+    web-application-type: none
+
+# The worker drives the pipeline explicitly via IndexerRunner, so the in-JVM
+# schedulers stay OFF here too (no stray fire in the brief startup window).
+indexer:
+  scheduled: false
+  catchup-enabled: false
+  # Worker runs alongside the API on the same box — keep parallelism modest and
+  # lean on the systemd MemoryMax + swap rather than racing the API for RAM.
+  global-parallelism: ${WORKER_GLOBAL_PARALLELISM:4}
+
+# Chromium is OFF by default even here: on the 1 GB box it's the memory bomb that
+# started this. The worker still crawls out-of-process via jsoup/JSON harvest.
+# Flip WORKER_BROWSER_ENABLED=true ONLY after resizing the box to >= 2 GB, so the
+# cgroup-capped worker (not the API) absorbs the cost.
+browser:
+  enabled: ${WORKER_BROWSER_ENABLED:false}

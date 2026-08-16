@@ -8,6 +8,7 @@ import com.damKemon.dam.kemon.repository.PriceHistoryRepository;
 import com.damKemon.dam.kemon.repository.ProductRepository;
 import com.damKemon.dam.kemon.repository.ReviewRepository;
 import com.damKemon.dam.kemon.repository.ScrapingJobRepository;
+import com.damKemon.dam.kemon.repository.SellerRepository;
 import com.damKemon.dam.kemon.repository.ShopRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataAccessException;
@@ -32,48 +33,49 @@ public class DashboardController {
     private final PriceHistoryRepository priceHistoryRepository;
     private final ScrapingJobRepository scrapingJobRepository;
     private final ShopRepository shopRepository;
+    private final SellerRepository sellerRepository;
+    private final org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
 
     public DashboardController(ProductRepository productRepository,
                                ReviewRepository reviewRepository,
                                PriceHistoryRepository priceHistoryRepository,
                                ScrapingJobRepository scrapingJobRepository,
-                               ShopRepository shopRepository) {
+                               ShopRepository shopRepository,
+                               SellerRepository sellerRepository,
+                               org.springframework.data.mongodb.core.MongoTemplate mongoTemplate) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.priceHistoryRepository = priceHistoryRepository;
         this.scrapingJobRepository = scrapingJobRepository;
         this.shopRepository = shopRepository;
+        this.sellerRepository = sellerRepository;
+        this.mongoTemplate = mongoTemplate;
     }
 
     @GetMapping("/stats")
     @Cacheable("dashboard-stats")
     public ResponseEntity<DashboardStats> getStats() {
-        long totalProducts    = safe(() -> productRepository.count());
-        long totalReviews     = safe(() -> reviewRepository.count());
-        long totalPricePoints = safe(() -> priceHistoryRepository.count());
+        // estimatedCount = O(1) collection metadata, not a full countDocuments
+        // scan. price_history has millions of rows, so count() there was 7-11s on
+        // every cache miss (Redis is best-effort, so misses are common).
+        long totalProducts    = safe(() -> mongoTemplate.estimatedCount(Product.class));
+        long totalReviews     = safe(() -> mongoTemplate.estimatedCount(com.damKemon.dam.kemon.model.Review.class));
+        long totalPricePoints = safe(() -> mongoTemplate.estimatedCount(com.damKemon.dam.kemon.model.PriceHistory.class));
 
         List<String> recentSearches = safeList(() -> scrapingJobRepository.findTop10ByOrderByStartedAtDesc().stream()
                 .map(ScrapingJob::getQuery).filter(Objects::nonNull).distinct().limit(5)
                 .collect(Collectors.toList()));
 
-        // Count cross-shop price points by walking the products once.
-        Map<String, Long> productsBySite = new HashMap<>();
-        try {
-            for (Product p : productRepository.findAll()) {
-                if (p.getPrices() == null) continue;
-                Set<String> sites = new HashSet<>();
-                p.getPrices().forEach(sp -> { if (sp.getSiteName() != null) sites.add(sp.getSiteName()); });
-                sites.forEach(s -> productsBySite.merge(s, 1L, Long::sum));
-            }
-        } catch (DataAccessException ignored) {}
-
-        // Show real shops from the catalog — sorted by productive first.
+        // Per-shop product counts come from each shop's own lastIndexedCount — a
+        // cheap field read. We deliberately do NOT load the whole products
+        // collection here: findAll() over a 30k+ catalog spiked the heap on every
+        // cache-miss and OOM-crash-looped the app as the catalog grew. Sorted
+        // most-productive first.
         List<DashboardStats.SiteStat> siteStats;
         try {
-            List<Shop> shops = shopRepository.findAll();
-            siteStats = shops.stream()
+            siteStats = shopRepository.findAll().stream()
                     .map(s -> {
-                        long count = productsBySite.getOrDefault(s.getName(), 0L);
+                        long count = s.getLastIndexedCount() == null ? 0L : s.getLastIndexedCount();
                         String status = count > 0 ? "active"
                                 : s.getLastError() != null ? "down"
                                 : "dormant";
@@ -90,10 +92,12 @@ public class DashboardController {
         }
 
         long activeShops = siteStats.stream().filter(s -> "active".equals(s.getStatus())).count();
+        long totalSellers = safe(() -> sellerRepository.count());
 
         DashboardStats stats = DashboardStats.builder()
                 .totalProducts(totalProducts)
                 .totalSites((int) activeShops)
+                .totalSellers((int) totalSellers)
                 .totalReviews(totalReviews)
                 .totalPricePoints(totalPricePoints)
                 .recentSearches(recentSearches)
