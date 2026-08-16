@@ -46,6 +46,8 @@ public class PaymentService {
                                 String instanceId, Instant expiresAt, Instant validatedAt, boolean testMode) {}
     public record EntitlementResult(boolean valid, String status, String entitlementCode,
                                     Instant renewsAt, Instant expiresAt, Instant validatedAt, boolean testMode) {}
+    public record FulfillmentResult(String status, String productCode, String entitlementCode,
+                                    String providerOrderId, boolean testMode) {}
     public record ApplicationKey(PaymentApplication application, String apiKey) {}
 
     public CheckoutResult createCheckout(String appId, String productCode, String idempotencyKey,
@@ -100,6 +102,33 @@ public class PaymentService {
             store.save(checkout);
             throw providerFailure(e);
         }
+    }
+
+    public FulfillmentResult fulfillment(String appId, String checkoutId, Caller caller) {
+        PaymentApplication app = requireApplication(appId);
+        Subject subject = authenticate(app, caller, app.isPublicCheckout());
+        PaymentCheckout checkout = store.checkout(checkoutId)
+                .orElseThrow(() -> new PaymentException(HttpStatus.NOT_FOUND, "checkout_not_found", "Checkout not found"));
+        if (!appId.equals(checkout.getAppId()) || !subject.id().equals(checkout.getSubjectId())) {
+            throw new PaymentException(HttpStatus.FORBIDDEN, "checkout_not_owned", "Checkout does not belong to this installation");
+        }
+        PaymentProduct product = requireProduct(appId, checkout.getProductCode());
+        if (product.isSubscription() || product.isLicenseRequired()) {
+            throw new PaymentException(HttpStatus.BAD_REQUEST, "fulfillment_unavailable",
+                    "This product is fulfilled through its license or subscription entitlement");
+        }
+        PaymentOrder order = store.orderByCheckout(checkoutId)
+                .orElseThrow(() -> new PaymentException(HttpStatus.CONFLICT, "payment_sync_pending",
+                        "Payment is still synchronizing; retry shortly"));
+        if (!"PAID".equals(checkout.getStatus()) || !"paid".equalsIgnoreCase(order.getStatus())) {
+            throw new PaymentException(HttpStatus.FORBIDDEN, "order_not_paid", "The linked order is not paid");
+        }
+        if (!appId.equals(order.getAppId()) || !checkout.getProductCode().equals(order.getProductCode())
+                || !checkoutId.equals(order.getCheckoutId()) || order.isTestMode() != product.isTestMode()) {
+            throw new PaymentException(HttpStatus.CONFLICT, "payment_sync_mismatch", "Payment records do not match");
+        }
+        return new FulfillmentResult("PAID", checkout.getProductCode(), checkout.getEntitlementCode(),
+                order.getProviderOrderId(), order.isTestMode());
     }
 
     public LicenseResult activate(String appId, String productCode, Caller caller,

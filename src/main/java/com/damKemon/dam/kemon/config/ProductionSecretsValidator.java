@@ -26,6 +26,16 @@ public class ProductionSecretsValidator implements ApplicationRunner {
     @Value("${payments.rewire.product-id:0}") private long rewireProductId;
     @Value("${payments.rewire.variant-id:0}") private long rewireVariantId;
     @Value("${payments.rewire.test-mode:true}") private boolean rewireTestMode;
+    @Value("${payments.echo.enabled:false}") private boolean echoPaymentsEnabled;
+    @Value("${payments.echo.store-id:0}") private long echoStoreId;
+    @Value("${payments.echo.diamonds-product-id:0}") private long echoDiamondsProductId;
+    @Value("${payments.echo.diamonds-40-variant-id:0}") private long echoDiamonds40VariantId;
+    @Value("${payments.echo.diamonds-100-variant-id:0}") private long echoDiamonds100VariantId;
+    @Value("${payments.echo.diamonds-250-variant-id:0}") private long echoDiamonds250VariantId;
+    @Value("${payments.echo.pro-product-id:0}") private long echoProProductId;
+    @Value("${payments.echo.monthly-variant-id:0}") private long echoMonthlyVariantId;
+    @Value("${payments.echo.lifetime-variant-id:0}") private long echoLifetimeVariantId;
+    @Value("${payments.echo.test-mode:true}") private boolean echoTestMode;
     private final AppRole role;
 
     public ProductionSecretsValidator(AppRole role) { this.role = role; }
@@ -48,6 +58,16 @@ public class ProductionSecretsValidator implements ApplicationRunner {
         if (paymentsEnabled && rewirePaymentsEnabled
                 && !(rewireTestMode ? secret(lemonTestApiKey, 1) : secret(lemonLiveApiKey, 1))) {
             throw new IllegalStateException("Enabled Rewire payments require the Lemon API key for the configured test/live mode");
+        }
+        if (paymentsEnabled && echoPaymentsEnabled
+                && (echoStoreId <= 0 || echoDiamondsProductId <= 0 || echoDiamonds40VariantId <= 0
+                || echoDiamonds100VariantId <= 0 || echoDiamonds250VariantId <= 0 || echoProProductId <= 0
+                || echoMonthlyVariantId <= 0 || echoLifetimeVariantId <= 0)) {
+            throw new IllegalStateException("Enabled Echo payments require positive Lemon store, product, and variant IDs");
+        }
+        if (paymentsEnabled && echoPaymentsEnabled
+                && !(echoTestMode ? secret(lemonTestApiKey, 1) : secret(lemonLiveApiKey, 1))) {
+            throw new IllegalStateException("Enabled Echo payments require the Lemon API key for the configured test/live mode");
         }
     }
 

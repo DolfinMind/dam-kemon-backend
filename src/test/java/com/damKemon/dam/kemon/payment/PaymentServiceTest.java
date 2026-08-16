@@ -160,6 +160,39 @@ class PaymentServiceTest {
         verifyNoInteractions(lemon);
     }
 
+    @Test void returnsPaidFulfillmentOnlyToTheCheckoutOwner() {
+        product.setLicenseRequired(false);
+        PaymentCheckout checkout = PaymentCheckout.builder().id("checkout-1").appId("rewire")
+                .productCode("lifetime").entitlementCode("rewire_pro").subjectId(subjectId)
+                .status("PAID").testMode(true).build();
+        PaymentOrder order = PaymentOrder.builder().providerOrderId("42").checkoutId("checkout-1")
+                .appId("rewire").productCode("lifetime").subjectId(subjectId).status("paid")
+                .testMode(true).build();
+        when(store.checkout("checkout-1")).thenReturn(Optional.of(checkout));
+        when(store.orderByCheckout("checkout-1")).thenReturn(Optional.of(order));
+
+        PaymentService.FulfillmentResult result = service.fulfillment("rewire", "checkout-1", caller());
+
+        assertEquals("PAID", result.status());
+        assertEquals("42", result.providerOrderId());
+        assertEquals("rewire_pro", result.entitlementCode());
+    }
+
+    @Test void rejectsFulfillmentFromAnotherInstallation() {
+        product.setLicenseRequired(false);
+        PaymentCheckout checkout = PaymentCheckout.builder().id("checkout-1").appId("rewire")
+                .productCode("lifetime").subjectId(subjectId).status("PAID").build();
+        when(store.checkout("checkout-1")).thenReturn(Optional.of(checkout));
+
+        PaymentException error = assertThrows(PaymentException.class, () -> service.fulfillment(
+                "rewire", "checkout-1",
+                new PaymentService.Caller(null, null, null, null, "installation_other_abcdefghijklmnop")));
+
+        assertEquals(HttpStatus.FORBIDDEN, error.status());
+        assertEquals("checkout_not_owned", error.code());
+        verify(store, never()).orderByCheckout(anyString());
+    }
+
     private PaymentService.Caller caller() {
         return new PaymentService.Caller(null, null, null, null, installationId);
     }

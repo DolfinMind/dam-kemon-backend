@@ -39,6 +39,29 @@ class ProductionSecretsValidatorTest {
         ReflectionTestUtils.setField(v, "lemonLiveApiKey", "live-key");
         assertThrows(IllegalStateException.class, () -> v.run(null));
     }
+    @Test void enabledEchoSandboxRequiresEveryCatalogId() {
+        ProductionSecretsValidator v = validator(new AppRole("web"), "a".repeat(32), "b".repeat(32), "owner", "c".repeat(12), "key");
+        ReflectionTestUtils.setField(v, "paymentsEnabled", true);
+        ReflectionTestUtils.setField(v, "paymentFingerprintSecret", "f".repeat(32));
+        ReflectionTestUtils.setField(v, "lemonTestApiKey", "test-key");
+        ReflectionTestUtils.setField(v, "lemonWebhookSecret", "w".repeat(32));
+        ReflectionTestUtils.setField(v, "lemonWebhookUrl", "https://damkemon.com/api/payments/v1/webhooks/lemon-squeezy");
+        ReflectionTestUtils.setField(v, "echoPaymentsEnabled", true);
+        ReflectionTestUtils.setField(v, "echoStoreId", 1L);
+        ReflectionTestUtils.setField(v, "echoDiamondsProductId", 2L);
+        ReflectionTestUtils.setField(v, "echoDiamonds40VariantId", 3L);
+        ReflectionTestUtils.setField(v, "echoDiamonds100VariantId", 4L);
+        ReflectionTestUtils.setField(v, "echoDiamonds250VariantId", 5L);
+        ReflectionTestUtils.setField(v, "echoProProductId", 6L);
+        ReflectionTestUtils.setField(v, "echoMonthlyVariantId", 7L);
+        ReflectionTestUtils.setField(v, "echoLifetimeVariantId", 8L);
+        ReflectionTestUtils.setField(v, "echoTestMode", true);
+
+        assertDoesNotThrow(() -> v.run(null));
+
+        ReflectionTestUtils.setField(v, "echoLifetimeVariantId", 0L);
+        assertThrows(IllegalStateException.class, () -> v.run(null));
+    }
     private static ProductionSecretsValidator validator(AppRole role, String jwt, String admin, String owner, String password, String resend) {
         ProductionSecretsValidator v = new ProductionSecretsValidator(role);
         ReflectionTestUtils.setField(v, "jwt", jwt); ReflectionTestUtils.setField(v, "adminKey", admin);

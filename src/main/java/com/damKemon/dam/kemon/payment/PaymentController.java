@@ -26,6 +26,7 @@ public class PaymentController {
     }
 
     public record CheckoutRequest(String productCode, String installationId, String customerEmail) {}
+    public record FulfillmentRequest(String installationId) {}
     public record ActivateRequest(String productCode, String licenseKey, String installationId, String instanceName) {}
     public record LicenseRequest(String licenseKey, String installationId, String instanceId) {}
     public record EntitlementRequest(String productCode, String installationId) {}
@@ -40,6 +41,18 @@ public class PaymentController {
             HttpServletRequest request) {
         PaymentService.Caller caller = caller(request, apiKey, externalSubject, body.installationId());
         return noStore(payments.createCheckout(appId, body.productCode(), idempotencyKey, caller, body.customerEmail()));
+    }
+
+    @PostMapping("/apps/{appId}/checkouts/{checkoutId}/fulfillment")
+    public ResponseEntity<PaymentService.FulfillmentResult> fulfillment(
+            @PathVariable String appId,
+            @PathVariable String checkoutId,
+            @RequestHeader(value = "X-Payment-Api-Key", required = false) String apiKey,
+            @RequestHeader(value = "X-Payment-Subject", required = false) String externalSubject,
+            @RequestBody FulfillmentRequest body,
+            HttpServletRequest request) {
+        PaymentService.Caller caller = caller(request, apiKey, externalSubject, body.installationId());
+        return noStore(payments.fulfillment(appId, checkoutId, caller));
     }
 
     @PostMapping("/apps/{appId}/licenses/activate")

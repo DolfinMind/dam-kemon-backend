@@ -58,12 +58,23 @@ jobs:
           PAYMENTS_REWIRE_VARIANT_ID: ${{ vars.PAYMENTS_REWIRE_VARIANT_ID }}
           PAYMENTS_REWIRE_TEST_MODE: ${{ vars.PAYMENTS_REWIRE_TEST_MODE }}
           PAYMENTS_REWIRE_REDIRECT_URL: ${{ vars.PAYMENTS_REWIRE_REDIRECT_URL }}
+          PAYMENTS_ECHO_ENABLED: ${{ vars.PAYMENTS_ECHO_ENABLED }}
+          PAYMENTS_ECHO_STORE_ID: ${{ vars.PAYMENTS_ECHO_STORE_ID }}
+          PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID: ${{ vars.PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID }}
+          PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID: ${{ vars.PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID }}
+          PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID: ${{ vars.PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID }}
+          PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID: ${{ vars.PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID }}
+          PAYMENTS_ECHO_PRO_PRODUCT_ID: ${{ vars.PAYMENTS_ECHO_PRO_PRODUCT_ID }}
+          PAYMENTS_ECHO_MONTHLY_VARIANT_ID: ${{ vars.PAYMENTS_ECHO_MONTHLY_VARIANT_ID }}
+          PAYMENTS_ECHO_LIFETIME_VARIANT_ID: ${{ vars.PAYMENTS_ECHO_LIFETIME_VARIANT_ID }}
+          PAYMENTS_ECHO_TEST_MODE: ${{ vars.PAYMENTS_ECHO_TEST_MODE }}
+          PAYMENTS_ECHO_REDIRECT_URL: ${{ vars.PAYMENTS_ECHO_REDIRECT_URL }}
         with:
           host: ${{ vars.SERVER_HOST }}
           username: ${{ vars.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script_stop: true
-          envs: PAYMENTS_ENABLED,PAYMENTS_FINGERPRINT_SECRET,LEMON_SQUEEZY_TEST_API_KEY,LEMON_SQUEEZY_LIVE_API_KEY,LEMON_SQUEEZY_WEBHOOK_SECRET,LEMON_SQUEEZY_WEBHOOK_URL,PAYMENTS_REWIRE_ENABLED,PAYMENTS_REWIRE_STORE_ID,PAYMENTS_REWIRE_PRODUCT_ID,PAYMENTS_REWIRE_VARIANT_ID,PAYMENTS_REWIRE_TEST_MODE,PAYMENTS_REWIRE_REDIRECT_URL
+          envs: PAYMENTS_ENABLED,PAYMENTS_FINGERPRINT_SECRET,LEMON_SQUEEZY_TEST_API_KEY,LEMON_SQUEEZY_LIVE_API_KEY,LEMON_SQUEEZY_WEBHOOK_SECRET,LEMON_SQUEEZY_WEBHOOK_URL,PAYMENTS_REWIRE_ENABLED,PAYMENTS_REWIRE_STORE_ID,PAYMENTS_REWIRE_PRODUCT_ID,PAYMENTS_REWIRE_VARIANT_ID,PAYMENTS_REWIRE_TEST_MODE,PAYMENTS_REWIRE_REDIRECT_URL,PAYMENTS_ECHO_ENABLED,PAYMENTS_ECHO_STORE_ID,PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID,PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID,PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID,PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID,PAYMENTS_ECHO_PRO_PRODUCT_ID,PAYMENTS_ECHO_MONTHLY_VARIANT_ID,PAYMENTS_ECHO_LIFETIME_VARIANT_ID,PAYMENTS_ECHO_TEST_MODE,PAYMENTS_ECHO_REDIRECT_URL
           script: |
             set -eu
             expected="/home/${{ vars.SERVER_USER }}/server/.env"
@@ -104,6 +115,17 @@ jobs:
             upsert PAYMENTS_REWIRE_VARIANT_ID "$PAYMENTS_REWIRE_VARIANT_ID"
             upsert PAYMENTS_REWIRE_TEST_MODE "$PAYMENTS_REWIRE_TEST_MODE"
             upsert PAYMENTS_REWIRE_REDIRECT_URL "$PAYMENTS_REWIRE_REDIRECT_URL"
+            upsert PAYMENTS_ECHO_ENABLED "$PAYMENTS_ECHO_ENABLED"
+            upsert PAYMENTS_ECHO_STORE_ID "$PAYMENTS_ECHO_STORE_ID"
+            upsert PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID "$PAYMENTS_ECHO_DIAMONDS_PRODUCT_ID"
+            upsert PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID "$PAYMENTS_ECHO_DIAMONDS_40_VARIANT_ID"
+            upsert PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID "$PAYMENTS_ECHO_DIAMONDS_100_VARIANT_ID"
+            upsert PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID "$PAYMENTS_ECHO_DIAMONDS_250_VARIANT_ID"
+            upsert PAYMENTS_ECHO_PRO_PRODUCT_ID "$PAYMENTS_ECHO_PRO_PRODUCT_ID"
+            upsert PAYMENTS_ECHO_MONTHLY_VARIANT_ID "$PAYMENTS_ECHO_MONTHLY_VARIANT_ID"
+            upsert PAYMENTS_ECHO_LIFETIME_VARIANT_ID "$PAYMENTS_ECHO_LIFETIME_VARIANT_ID"
+            upsert PAYMENTS_ECHO_TEST_MODE "$PAYMENTS_ECHO_TEST_MODE"
+            upsert PAYMENTS_ECHO_REDIRECT_URL "$PAYMENTS_ECHO_REDIRECT_URL"
             chmod 600 "$tmp"
             mv "$tmp" "$env_file"
 
@@ -141,46 +163,59 @@ jobs:
         env:
           LEMON_TEST_API_KEY: ${{ secrets.LEMON_SQUEEZY_TEST_API_KEY }}
           LEMON_LIVE_API_KEY: ${{ secrets.LEMON_SQUEEZY_LIVE_API_KEY }}
-          TEST_MODE: ${{ vars.PAYMENTS_REWIRE_TEST_MODE }}
           WEBHOOK_SECRET: ${{ secrets.LEMON_SQUEEZY_WEBHOOK_SECRET }}
           WEBHOOK_URL: ${{ vars.LEMON_SQUEEZY_WEBHOOK_URL }}
-          STORE_ID: ${{ vars.PAYMENTS_REWIRE_STORE_ID }}
+          REWIRE_STORE_ID: ${{ vars.PAYMENTS_REWIRE_STORE_ID }}
+          ECHO_STORE_ID: ${{ vars.PAYMENTS_ECHO_STORE_ID }}
+          REWIRE_ENABLED: ${{ vars.PAYMENTS_REWIRE_ENABLED }}
+          REWIRE_TEST_MODE: ${{ vars.PAYMENTS_REWIRE_TEST_MODE }}
+          ECHO_ENABLED: ${{ vars.PAYMENTS_ECHO_ENABLED }}
+          ECHO_TEST_MODE: ${{ vars.PAYMENTS_ECHO_TEST_MODE }}
         run: |
           set -euo pipefail
-          if [ "$TEST_MODE" = "true" ]; then
-            LEMON_API_KEY=$LEMON_TEST_API_KEY
-          else
-            LEMON_API_KEY=$LEMON_LIVE_API_KEY
+          if [ "$REWIRE_ENABLED" = "true" ]; then STORE_ID="$REWIRE_STORE_ID"; else STORE_ID="$ECHO_STORE_ID"; fi
+          ensure_webhook() {
+            LEMON_API_KEY="$1"
+            test "${#LEMON_API_KEY}" -ge 100
+            response=$(curl --fail --silent --show-error --get \
+              --header "Authorization: Bearer $LEMON_API_KEY" \
+              --header 'Accept: application/vnd.api+json' \
+              --data-urlencode "filter[store_id]=$STORE_ID" \
+              --data-urlencode 'page[size]=100' \
+              https://api.lemonsqueezy.com/v1/webhooks)
+            webhook_id=$(jq -r --arg url "$WEBHOOK_URL" \
+              '.data[] | select(.attributes.url == $url) | .id' <<<"$response" | head -n 1)
+            attributes=$(jq -n --arg url "$WEBHOOK_URL" --arg secret "$WEBHOOK_SECRET" \
+              '{url:$url,events:["order_created","order_refunded","license_key_created","license_key_updated","subscription_created","subscription_updated"],secret:$secret}')
+            if [ -z "$webhook_id" ]; then
+              payload=$(jq -n --arg store "$STORE_ID" --argjson attributes "$attributes" \
+                '{data:{type:"webhooks",attributes:$attributes,relationships:{store:{data:{type:"stores",id:$store}}}}}')
+              method=POST
+              target=https://api.lemonsqueezy.com/v1/webhooks
+            else
+              payload=$(jq -n --arg id "$webhook_id" --argjson attributes "$attributes" \
+                '{data:{type:"webhooks",id:$id,attributes:$attributes}}')
+              method=PATCH
+              target="https://api.lemonsqueezy.com/v1/webhooks/$webhook_id"
+            fi
+            curl --fail --silent --show-error --output /dev/null \
+              --request "$method" \
+              --header "Authorization: Bearer $LEMON_API_KEY" \
+              --header 'Accept: application/vnd.api+json' \
+              --header 'Content-Type: application/vnd.api+json' \
+              --data "$payload" \
+              "$target"
+          }
+          needs_test=false
+          needs_live=false
+          if [ "$REWIRE_ENABLED" = "true" ]; then
+            if [ "$REWIRE_TEST_MODE" = "true" ]; then needs_test=true; else needs_live=true; fi
           fi
-          test "${#LEMON_API_KEY}" -ge 100
-          response=$(curl --fail --silent --show-error --get \
-            --header "Authorization: Bearer $LEMON_API_KEY" \
-            --header 'Accept: application/vnd.api+json' \
-            --data-urlencode "filter[store_id]=$STORE_ID" \
-            --data-urlencode 'page[size]=100' \
-            https://api.lemonsqueezy.com/v1/webhooks)
-          webhook_id=$(jq -r --arg url "$WEBHOOK_URL" \
-            '.data[] | select(.attributes.url == $url) | .id' <<<"$response" | head -n 1)
-          attributes=$(jq -n --arg url "$WEBHOOK_URL" --arg secret "$WEBHOOK_SECRET" \
-            '{url:$url,events:["order_created","order_refunded","license_key_created","license_key_updated"],secret:$secret}')
-          if [ -z "$webhook_id" ]; then
-            payload=$(jq -n --arg store "$STORE_ID" --argjson attributes "$attributes" \
-              '{data:{type:"webhooks",attributes:$attributes,relationships:{store:{data:{type:"stores",id:$store}}}}}')
-            method=POST
-            target=https://api.lemonsqueezy.com/v1/webhooks
-          else
-            payload=$(jq -n --arg id "$webhook_id" --argjson attributes "$attributes" \
-              '{data:{type:"webhooks",id:$id,attributes:$attributes}}')
-            method=PATCH
-            target="https://api.lemonsqueezy.com/v1/webhooks/$webhook_id"
+          if [ "$ECHO_ENABLED" = "true" ]; then
+            if [ "$ECHO_TEST_MODE" = "true" ]; then needs_test=true; else needs_live=true; fi
           fi
-          curl --fail --silent --show-error --output /dev/null \
-            --request "$method" \
-            --header "Authorization: Bearer $LEMON_API_KEY" \
-            --header 'Accept: application/vnd.api+json' \
-            --header 'Content-Type: application/vnd.api+json' \
-            --data "$payload" \
-            "$target"
+          if [ "$needs_test" = "true" ]; then ensure_webhook "$LEMON_TEST_API_KEY"; fi
+          if [ "$needs_live" = "true" ]; then ensure_webhook "$LEMON_LIVE_API_KEY"; fi
 
       # Prefer the root-installed systemd watchdog. Until its one-time installer
       # is applied, keep the same conservative liveness check active from the
